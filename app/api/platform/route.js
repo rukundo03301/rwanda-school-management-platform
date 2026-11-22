@@ -1,6 +1,5 @@
 import { authenticate, requirePermission, requireOwner, requireAal2, validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
 import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput } from "../../../lib/access.mjs";
-import { paymentSummary } from "../../../lib/money.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,11 +46,23 @@ export async function GET(request) {
       data.audit = await checked(db.from("platform_audit")
         .select("id,actor_id,event,resource_id,created_at").order("created_at", { ascending: false }).limit(80));
     }
-    const counts = Object.fromEntries(["onboarding","active","paused","suspended","archived","deletion_requested"]
-      .map((state) => [state, data.tenants.filter((tenant) => tenant.status === state).length]));
+    const stats = await checked(db.rpc("platform_owner_stats"));
+    const financial = can("billing.read")
+      ? { billedRwf: Number(stats.billedRwf), collectedRwf: Number(stats.collectedRwf),
+          unallocatedDifferenceRwf: Number(stats.billedRwf) - Number(stats.collectedRwf) }
+      : {};
+    if (can("billing.read") && !Object.values(financial).every(Number.isSafeInteger)) {
+      throw new ApiError(500,"Platform financial totals exceed safe whole-RWF display limits.");
+    }
+    const totals = {
+      tenants: can("tenants.read") ? Number(stats.tenants) : 0,
+      ...Object.fromEntries(["onboarding","active","paused","suspended","archived","deletion_requested"]
+        .map(state => [state, can("tenants.read") ? Number(stats[state]) : 0])),
+      ticketsOpen: can("tickets.read") ? Number(stats.ticketsOpen) : 0,
+      ...financial
+    };
     return Response.json({
-      ...data, totals: { tenants: data.tenants.length, ...counts, ticketsOpen: data.tickets.filter((ticket) => ticket.status !== "resolved").length, ...paymentSummary(data.invoices, data.payments) },
-      roleDefaults: actor.isOwner ? ROLE_DEFAULTS : undefined
+      ...data, totals, roleDefaults: actor.isOwner ? ROLE_DEFAULTS : undefined
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) { return jsonError(err); }
 }
