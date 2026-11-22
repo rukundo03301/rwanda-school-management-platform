@@ -80,7 +80,7 @@ export async function GET(request,{params}){
     }));
     if(termRecords.length&&studentIds.length){
       const allMarks=await checked(db.from("school_assessment_marks")
-        .select("id,term_id,student_id,class_id,subject_id,category,assessment_code,score,maximum_marks,learning_feedback,teacher_id,entered_at")
+        .select("id,term_id,student_id,class_id,subject_id,category,assessment_code,score,maximum_marks,raw_score,raw_maximum,learning_feedback,teacher_id,entered_at")
         .eq("school_id",school.id).in("term_id",termRecords.map(t=>t.id))
         .in("student_id",studentIds).limit(3000));
       marks=readReports?allMarks:allMarks.filter(m=>allowedPairs.has(m.class_id+"#"+m.subject_id));
@@ -226,8 +226,12 @@ export async function POST(request,{params}){
   }else if(action==="mark.record"){
     if(!actor.teacher)throw new ApiError(403,"Only a verified assigned teacher may enter marks");
     const score=Number(body.score);
-    if(!Number.isFinite(score)||score<0||!Number.isInteger(score*100))
-      throw new ApiError(400,"Enter a mark with no more than two decimals");
+    const rawMaximum=Number(body.rawMaximum);
+    if(!Number.isFinite(score)||!Number.isFinite(rawMaximum)
+      ||score<0||rawMaximum<=0||rawMaximum>10000||score>rawMaximum
+      ||Math.abs(Math.round(score*100)-score*100)>1e-6
+      ||Math.abs(Math.round(rawMaximum*100)-rawMaximum*100)>1e-6)
+      throw new ApiError(400,"Enter the score earned and actual paper maximum, with up to two decimals");
     const category=validateAssessmentCategory(body.category);
     const assessmentCode=category==="end_term"?"TERM":reportText(body.assessmentCode,30);
     const feedback=typeof body.feedback==="string"&&body.feedback.length<=1500?
@@ -238,7 +242,7 @@ export async function POST(request,{params}){
       p_class:reportId(body.classId,"class"),
       p_subject:reportId(body.subjectId,"subject"),
       p_category:category,p_assessment_code:assessmentCode,
-      p_score:score,p_feedback:feedback,p_actor:actor.id
+      p_raw_score:score,p_raw_maximum:rawMaximum,p_feedback:feedback,p_actor:actor.id
     }));
   }else if(action==="report.publish"){
     if(!actor.owner)throw new ApiError(403,"Only this school's owner can publish reports");
