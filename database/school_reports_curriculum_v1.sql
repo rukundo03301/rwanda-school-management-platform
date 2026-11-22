@@ -127,6 +127,8 @@ create table public.school_assessment_marks (
  assessment_code text not null check(length(btrim(assessment_code)) between 1 and 30),
  score numeric(8,2) not null check(score>=0),
  maximum_marks numeric(8,2) not null check(maximum_marks>0 and score<=maximum_marks),
+ raw_score numeric(8,2) not null check(raw_score>=0),
+ raw_maximum numeric(8,2) not null check(raw_maximum>0 and raw_score<=raw_maximum),
  learning_feedback text not null default '' check(length(learning_feedback)<=1500),
  entered_at timestamptz not null default now(),
  unique(school_id,term_id,student_id,class_id,subject_id,category,assessment_code),
@@ -304,13 +306,15 @@ $$;
 -- Multiple unit and project entries are averaged for the NESA 25/25/50 rule.
 create or replace function public.school_record_assessment(
  p_school uuid,p_term uuid,p_student uuid,p_class uuid,p_subject uuid,
- p_category text,p_assessment_code text,p_score numeric,p_feedback text,p_actor uuid
+ p_category text,p_assessment_code text,p_raw_score numeric,p_raw_maximum numeric,
+ p_feedback text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
 set search_path=pg_catalog,public as $$
 declare t public.school_assessment_terms%rowtype;
         m public.school_curriculum_class_subjects%rowtype;
         track text;
         max_allowed numeric;
+        normalized_score numeric;
         entry_id uuid;
 begin
  if p_category not in ('unit','project','end_term')
@@ -356,23 +360,29 @@ begin
  then raise exception 'This module cannot grade this curriculum track with general-education weights'; end if;
  if m.weekly_periods is null then raise exception 'Subject teaching periods missing'; end if;
  max_allowed:=m.weekly_periods*10;
- if p_score is null or p_score<0 or p_score>max_allowed
- then raise exception 'Mark must be between zero and the official subject maximum'; end if;
+ if p_raw_score is null or p_raw_maximum is null
+  or p_raw_maximum<=0 or p_raw_maximum>10000
+  or p_raw_score<0 or p_raw_score>p_raw_maximum
+ then raise exception 'Marks earned must be from zero to the actual assessment maximum'; end if;
+ normalized_score:=round(p_raw_score / p_raw_maximum * max_allowed,2);
  insert into public.school_assessment_marks(
   school_id,term_id,student_id,class_id,subject_id,teacher_id,category,
-  assessment_code,score,maximum_marks,learning_feedback)
+  assessment_code,score,maximum_marks,raw_score,raw_maximum,learning_feedback)
  values(p_school,p_term,p_student,p_class,p_subject,p_actor,p_category,
-  btrim(p_assessment_code),p_score,max_allowed,coalesce(p_feedback,''))
+  btrim(p_assessment_code),normalized_score,max_allowed,p_raw_score,p_raw_maximum,
+  coalesce(p_feedback,''))
  on conflict(school_id,term_id,student_id,class_id,subject_id,category,assessment_code)
  do update set score=excluded.score,teacher_id=p_actor,
-    maximum_marks=excluded.maximum_marks,
+    maximum_marks=excluded.maximum_marks,raw_score=excluded.raw_score,
+    raw_maximum=excluded.raw_maximum,
     learning_feedback=excluded.learning_feedback,entered_at=now()
  returning id into entry_id;
  insert into public.school_report_audit(school_id,actor_id,event,resource_id,metadata)
  values(p_school,p_actor,'assessment.mark_recorded',entry_id,
   jsonb_build_object('term_id',p_term,'student_id',p_student,'class_id',p_class,
    'subject_id',p_subject,'category',p_category));
- return jsonb_build_object('saved',true,'id',entry_id,'maximum_marks',max_allowed);
+ return jsonb_build_object('saved',true,'id',entry_id,
+    'normalized_marks',normalized_score,'maximum_marks',max_allowed);
 end;
 $$;
 
@@ -574,13 +584,13 @@ revoke all on function public.school_report_owner_authorized(uuid,uuid) from pub
 revoke all on function public.school_set_report_permissions(uuid,uuid,text[],text,uuid) from public,anon,authenticated;
 revoke all on function public.school_approve_curriculum(uuid,uuid,uuid) from public,anon,authenticated;
 revoke all on function public.school_approve_curriculum_subject(uuid,uuid,uuid,uuid) from public,anon,authenticated;
-revoke all on function public.school_record_assessment(uuid,uuid,uuid,uuid,uuid,text,text,numeric,text,uuid) from public,anon,authenticated;
+revoke all on function public.school_record_assessment(uuid,uuid,uuid,uuid,uuid,text,text,numeric,numeric,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_publish_term_report(uuid,uuid,uuid,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_withdraw_term_report(uuid,uuid,text,uuid) from public,anon,authenticated;
 grant execute on function public.school_report_owner_authorized(uuid,uuid) to service_role;
 grant execute on function public.school_set_report_permissions(uuid,uuid,text[],text,uuid) to service_role;
 grant execute on function public.school_approve_curriculum(uuid,uuid,uuid) to service_role;
 grant execute on function public.school_approve_curriculum_subject(uuid,uuid,uuid,uuid) to service_role;
-grant execute on function public.school_record_assessment(uuid,uuid,uuid,uuid,uuid,text,text,numeric,text,uuid) to service_role;
+grant execute on function public.school_record_assessment(uuid,uuid,uuid,uuid,uuid,text,text,numeric,numeric,text,uuid) to service_role;
 grant execute on function public.school_publish_term_report(uuid,uuid,uuid,text,uuid) to service_role;
 grant execute on function public.school_withdraw_term_report(uuid,uuid,text,uuid) to service_role;
