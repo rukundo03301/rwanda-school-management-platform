@@ -16,8 +16,8 @@ export async function GET(request,{params}){
       checked(db.from("school_onboarding").select(
         "current_step,school_type,education_levels,province,district,campus_name,academic_year,term_system,privacy_acknowledged,review_requested_at"
       ).eq("school_id",school.id).maybeSingle()),
-      checked(db.from("platform_school_sites").select(
-        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,is_published"
+      checked(db.from("school_site_drafts").select(
+        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone"
       ).eq("school_id",school.id).maybeSingle())
     ]);
     return Response.json({
@@ -93,15 +93,17 @@ export async function POST(request,{params}){
         contact_phone:schoolText(body.contactPhone||"",60),
         updated_at:new Date().toISOString()
       };
-      // Deliberately exclude is_published: editing a draft cannot publish.
-      await checked(db.from("platform_school_sites").upsert(site,{onConflict:"school_id"}).select("school_id").single());
+      // A draft write never touches the live public homepage.
+      await checked(db.from("school_site_drafts").upsert({
+        ...site,updated_by:user.id
+      },{onConflict:"school_id"}).select("school_id").single());
       await audit(db,{id:user.id},"school.brand_draft_saved",school.id,{});
       return Response.json({ok:true});
     }
     if(action==="requestReview"){
       const [p,site]=await Promise.all([
         checked(db.from("school_onboarding").select("*").eq("school_id",school.id).single()),
-        checked(db.from("platform_school_sites").select("*").eq("school_id",school.id).maybeSingle())
+        checked(db.from("school_site_drafts").select("*").eq("school_id",school.id).maybeSingle())
       ]);
       if(!p.privacy_acknowledged||!p.campus_name?.trim()||!p.province?.trim()||!p.education_levels?.length||!p.academic_year?.trim())
         throw new ApiError(400,"Complete your school, academic and privacy details before requesting review");
@@ -118,13 +120,16 @@ export async function POST(request,{params}){
       if(school.status!=="active")throw new ApiError(403,"Your school must be activated by the platform owner before publishing");
       const p=await checked(db.from("school_onboarding").select("review_requested_at").eq("school_id",school.id).single());
       if(!p.review_requested_at)throw new ApiError(400,"Request and receive school review before publication");
-      const site=await checked(db.from("platform_school_sites").select("tagline,about_text,contact_email,contact_phone")
-        .eq("school_id",school.id).single());
-      if(!site.tagline||!site.about_text||(!site.contact_email&&!site.contact_phone))
+      const draft=await checked(db.from("school_site_drafts").select(
+        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone"
+      ).eq("school_id",school.id).single());
+      if(!draft.tagline?.trim()||!draft.about_text?.trim()||(!draft.contact_email&&!draft.contact_phone))
         throw new ApiError(400,"The homepage requires an introduction and contact details");
-      await checked(db.from("platform_school_sites").update({
-        is_published:true,updated_at:new Date().toISOString()
-      }).eq("school_id",school.id));
+      // Publish a snapshot. Later edits remain private drafts until published again.
+      await checked(db.from("platform_school_sites").upsert({
+        school_id:school.id,...draft,is_published:true,
+        updated_at:new Date().toISOString()
+      },{onConflict:"school_id"}).select("school_id").single());
       await audit(db,{id:user.id},"school.homepage_published",school.id,{});
       return Response.json({ok:true,published:true});
     }
