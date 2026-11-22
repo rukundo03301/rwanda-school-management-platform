@@ -18,7 +18,7 @@
    - **Review and launch:** check official school information, request platform review and, after activation, publish the school homepage.
 6. Owner can **Save & exit**, return and continue. Progress is stored in the school's database record, not in browser-only local storage.
 7. Platform operator sees review requests; activation is blocked until review has been requested. School owner cannot activate a tenant or alter platform-level payments.
-8. Once tenant is active, school owner may publish public homepage at **/s/{School ID}**, which shows real logo, image, announcement, school name, About and Contact with a **School Portal** login link.
+8. Once tenant is active, school owner may publish a separate copy of their saved draft to the public homepage at **/s/{School ID}**, which shows real logo, image, announcement, school name, About and Contact with a **School Portal** login link.
 9. Paused/suspended/archived tenants deny private onboarding access, and public site displays maintenance notice.
 
 ## Explicit access boundaries
@@ -58,3 +58,5 @@
 ## Future modules
 
 Only after onboarding is functioning will we implement approved teacher/class memberships, verified guardian-child relationships, student enrollments and the different Android/iOS screens. This module does **not** include a released APK or App Store app.
+
+**Publication isolation:** School owner edits are saved in `school_site_drafts`; the public `platform_school_sites` row is updated only by explicit publication. Editing an already-published site does not immediately change what visitors see. Public marketing image URLs themselves are not private, so upload safeguards and school instructions prohibit private student photos.
