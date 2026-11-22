@@ -5,6 +5,14 @@
 **Scope:** Independent schools, school-owning companies/groups, campuses; nursery through university/TVET.
 **This document supersedes the former nine-step owner onboarding design.**
 
+## Mandatory administration and role-routing experiences
+
+The five-step wizard is **only the school owner's onboarding journey**, not the entire product. A separate **Platform Owner Tenant Command Center** must be included in Module 1A: list/search/filter tenants with unique Company ID and School ID, view their logo/state, approve new school, pause/reactivate/suspend, inspect permission and audit records, archive and request retention-aware deletion through elevated authorization. A company/school owner can manage their own school and memberships, not unrelated tenant accounts.
+
+On first login, users discover or follow an invitation into the correct **branded school**, verify identity, and receive *only* approved roles: teacher can access assigned classes, parent only verified children, student only their own records, and staff only job functions. Selecting a role during registration configures the application form but does not confer any right. If not approved, show `Access pending`, not a class roster.
+
+The product must ship as both responsive web **and native Android/iOS apps** with role-specific navigation and school themes. See [the full tenant console, access-control and Android/iPhone spec](./PLATFORM_TENANT_CONSOLE_ROLE_PORTALS_AND_MOBILE_SPEC.md). Implementation is staged: native shell and auth in 1C, academic/homework/report/fees views as backend modules become functional.
+
 ## Design objective
 
 A first-time school owner should feel they are setting up *their own real school*, not filling out a generic 9-step software form. The system creates company and school IDs **automatically** and prominently displays them. The owner does not enter or invent those IDs. The school uploads its *real* logo and photos, which show immediately in a responsive live preview. Short, guided steps, autosave, sensible defaults, and optional later configuration are essential.
