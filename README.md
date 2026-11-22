@@ -13,7 +13,7 @@ Cloud-based, multi-tenant school management platform for Rwanda. Intended for nu
 - Manage available subscription payment-method options (provider integration still required).
 - Review audit history; sensitive actions require MFA.
 
-The app uses Next.js, Supabase Auth and server-side protected API routes. All protected data access is through verified server-side identity and least-privilege staff permissions. Existing schools' student/student-fee data is NOT being accessed by platform support.
+The console login supports email/password and a configurable Google OAuth provider, plus password recovery and MFA. Staff permissions are editable through a table of ON/OFF switches. The app uses Next.js, Supabase Auth and server-side protected API routes. All protected data access is through verified server-side identity and least-privilege staff permissions. Existing schools' student/student-fee data is NOT being accessed by platform support.
 
 **No Supabase tables were created directly.** The SQL is currently source-controlled in \`database/platform_owner_console.sql\`. Before deployment, it must become a Supabase CLI-generated migration and pass local security tests. Native GitHub-to-Supabase deployment must be verified first.
 
@@ -48,6 +48,7 @@ See [Release Readiness](docs/OWNER_CONSOLE_RELEASE_READINESS.md) for the full te
 
 ## Product specifications
 
+- [Owner login, Google, password recovery and staff access](docs/OWNER_AUTH_AND_ACCESS_CONTROLS.md)
 - [Product and module flow](docs/PRODUCT_FLOW_AND_MODULE_PLAN.md)
 - [School onboarding and unique branding](docs/MODULE_01_SCHOOL_ONBOARDING_UX_SPEC.md)
 - [Tenant owner, role portals and Android/iOS architecture](docs/PLATFORM_TENANT_CONSOLE_ROLE_PORTALS_AND_MOBILE_SPEC.md)
