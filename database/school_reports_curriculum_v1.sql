@@ -95,6 +95,7 @@ create table public.school_curriculum_units (
  class_id uuid not null,
  subject_id uuid not null,
  unit_code text not null check(length(btrim(unit_code)) between 1 and 30),
+ term_number smallint not null check(term_number between 1 and 3),
  unit_title text not null check(length(btrim(unit_title)) between 3 and 180),
  key_competence text not null check(length(btrim(key_competence)) between 3 and 2000),
  learning_outcomes text not null default '' check(length(learning_outcomes)<=3000),
@@ -346,7 +347,8 @@ begin
  then raise exception 'Reserved assessment reference'; end if;
  if p_category='unit' and not exists(select 1 from public.school_curriculum_units
    where school_id=p_school and class_id=p_class
-   and subject_id=p_subject and unit_code=p_assessment_code)
+   and subject_id=p_subject and unit_code=p_assessment_code
+   and term_number=t.term_number)
  then raise exception 'End-of-unit marks must reference an approved curriculum unit'; end if;
  select * into t from public.school_assessment_terms
  where school_id=p_school and id=p_term and status='open';
@@ -502,12 +504,17 @@ begin
    from public.school_assessment_marks
    where school_id=p_school and student_id=p_student and term_id=p_term
      and class_id=e.class_id and subject_id=item.subject_id;
+   if not exists(select 1 from public.school_curriculum_units
+     where school_id=p_school and class_id=e.class_id
+      and subject_id=item.subject_id and term_number=t.term_number)
+   then raise exception 'No verified syllabus units scheduled for this subject and term'; end if;
    if count_units<1 or count_projects<2 or count_exam<>1
    then raise exception 'Missing unit, at least two projects, or end-term marks for subject %',
      item.subject_name; end if;
    if exists(select 1 from public.school_curriculum_units u
      where u.school_id=p_school and u.class_id=e.class_id
-       and u.subject_id=item.subject_id and not exists(
+       and u.subject_id=item.subject_id and u.term_number=t.term_number
+       and not exists(
        select 1 from public.school_assessment_marks a
        where a.school_id=p_school and a.student_id=p_student and a.term_id=p_term
          and a.class_id=e.class_id and a.subject_id=item.subject_id
@@ -521,11 +528,11 @@ begin
     and length(btrim(learning_feedback))>0;
    select coalesce(jsonb_agg(jsonb_build_object(
      'unit_code',u.unit_code,'title',u.unit_title,
-     'competence',u.key_competence
+     'competence',u.key_competence,'term',u.term_number
    ) order by u.unit_code),'[]'::jsonb) into units_json
    from public.school_curriculum_units u
    where u.school_id=p_school and u.class_id=e.class_id
-    and u.subject_id=item.subject_id;
+    and u.subject_id=item.subject_id and u.term_number=t.term_number;
    total:=round((unit_avg*0.25+project_avg*0.25+exam_avg*0.50)::numeric,2);
    all_earned:=all_earned+total;
    all_max:=all_max+subject_max;
