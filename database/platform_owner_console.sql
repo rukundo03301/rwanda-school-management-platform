@@ -312,7 +312,7 @@ begin
        where p <> all(array[
          'tenants.read','tenants.create','tenants.lifecycle',
          'tickets.read','tickets.manage','billing.read',
-         'billing.methods','staff.read','staff.manage','audit.read'
+         'billing.methods','billing.record','tenants.brand','staff.read','staff.manage','audit.read'
        ])
      ) then raise exception 'Invalid permission selection'; end if;
   select * into old_record from public.platform_staff
@@ -490,3 +490,27 @@ revoke all on function public.platform_void_manual_payment(uuid,text,uuid) from 
 grant execute on function public.platform_record_monthly_payment(uuid,date,bigint,text,text,text,uuid) to service_role;
 grant execute on function public.platform_set_monthly_terms(uuid,bigint,date,uuid) to service_role;
 grant execute on function public.platform_void_manual_payment(uuid,text,uuid) to service_role;
+
+
+-- Create an additional school under an existing company ID without duplicating
+-- the parent company. Only an authorized platform operator API may invoke.
+create or replace function public.platform_add_school_to_company(
+  p_company_id uuid,p_school_name text,p_owner_email text,p_actor uuid
+) returns jsonb language plpgsql security invoker set search_path=pg_catalog,public
+as $$
+declare c public.platform_companies%rowtype;
+        s public.platform_schools%rowtype;
+begin
+ if length(btrim(coalesce(p_school_name,''))) not between 2 and 120 then raise exception 'Invalid school name'; end if;
+ if position('@' in coalesce(p_owner_email,''))<2 then raise exception 'Invalid owner email'; end if;
+ select * into c from public.platform_companies where id=p_company_id;
+ if not found then raise exception 'Company not found'; end if;
+ insert into public.platform_schools(company_id,name,owner_email)
+   values(c.id,btrim(p_school_name),lower(btrim(p_owner_email))) returning * into s;
+ insert into public.platform_audit(actor_id,event,resource_id,metadata)
+   values(p_actor,'tenant.school_added_to_company',s.id,jsonb_build_object('company_id',c.id,'company_code',c.company_code));
+ return jsonb_build_object('company_id',c.id,'company_code',c.company_code,'school_id',s.id,'school_code',s.school_code);
+end;
+$$;
+revoke all on function public.platform_add_school_to_company(uuid,text,text,uuid) from public,anon,authenticated;
+grant execute on function public.platform_add_school_to_company(uuid,text,text,uuid) to service_role;
