@@ -113,3 +113,10 @@ Schools can use official NESA assessment guidance to configure versioned local c
 School Owners must approve curricula and term reports before verified student/guardian accounts can view a school-issued, printable, institution-branded term report. Grades, school curriculum permissions and report publications remain tenant-scoped and audited, with versioned withdrawal/reissue rather than silent overwrites. Lower-primary LEGRA, TVET, nursery, international and higher education require separate verified grading engines and are not assigned the General Education formula automatically.
 
 Read [Module 5 Curriculum & Reports](docs/RWANDA_CURRICULUM_ASSESSMENTS_REPORTS_MODULE_5.md). This is GitHub draft code, not a government-issued certificate, CA-MIS integration, deployed APEX migration, or released Android/iPhone application.
+
+
+## Module 6 — School Timetables, Community and Private Family Messaging
+
+Each branded school gains a verified community portal: weekly timetables with class/teacher/room conflict checks; private teacher-to-guardian conversations linked to actual enrolled pupils; calendar entries for exams, meetings and holidays; targeted school announcements; and a parent daily-school overview of linked children's homework deadlines, attendance records and released reports. Owners delegate calendar/announcement access to school administrators with ON/OFF permission switches and MFA. Messages create in-app notifications; external email and SMS delivery is NOT yet configured.
+
+See [Module 6 School Communications](docs/MODULE_06_SCHOOL_COMMUNICATIONS.md). This is a **GitHub development draft**, not a production APEX or Vercel deployment or Android/iPhone application.
