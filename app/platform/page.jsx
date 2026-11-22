@@ -79,7 +79,7 @@ function Login({client,onLogin}) {
   return <main className="shell"><div className="auth-card">
     <div className="mark">R</div>
     <h1>{mode==="forgot"?"Reset your password":mode==="signup"?"Request a platform account":"Welcome back"}</h1>
-    <p>{mode==="forgot"?"Enter your account email. We'll send a private password reset link.":mode==="signup"?"Only approved platform staff and the verified platform owner can use this console.":"Sign in to manage school tenants, subscriptions, support tickets and your team."}</p>
+    <p>{mode==="forgot"?"Enter your account email. We'll send a private password reset link.":mode==="signup"?"Only approved platform staff and the verified platform owner can use this console.":"Sign in to manage school tenants, private monthly payments, support tickets and your team."}</p>
     {problem&&<div className="notice error" role="alert">{problem}</div>}
     {message&&<div className="notice ok" role="status">{message}</div>}
     <form onSubmit={submit}>
