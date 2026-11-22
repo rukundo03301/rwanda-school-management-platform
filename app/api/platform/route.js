@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { authenticate, requirePermission, requireOwner, requireAal2, validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
 import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput } from "../../../lib/access.mjs";
 import { validateManualPayment,parseDate } from "../../../lib/billing-clock.mjs";
@@ -89,6 +90,37 @@ export async function POST(request) {
     if (action === "tenant.demo.create") {
       requireOwner(actor); requireAal2(token);
       result=await checked(db.rpc("platform_create_demo_school",{p_actor:actor.id}));
+      // Sample branding is physically stored in this school's own Storage
+      // prefix, so the permanent-deletion flow can exercise actual file cleanup.
+      const demoId=result.school_id;
+      const svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">'+
+        '<rect width="512" height="512" rx="112" fill="#176B75"/>'+
+        '<circle cx="256" cy="225" r="150" fill="#effaf7" opacity="0.15"/>'+
+        '<path d="M128 300l128-56 128 56-128 54z" fill="#f7d78c"/>'+
+        '<path d="M177 324v45c32 24 126 24 158 0v-45" fill="none" stroke="#f7d78c" stroke-width="17"/>'+
+        '<text x="256" y="212" text-anchor="middle" font-family="Arial,sans-serif" font-size="102" font-weight="bold" fill="#fff">KLA</text>'+
+        '<text x="256" y="443" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#fff">DEMO</text>'+
+        '</svg>';
+      try{
+        const logo=await sharp(Buffer.from(svg)).webp({quality:85}).toBuffer();
+        const path=demoId+"/demo-logo.webp";
+        const {error:assetError}=await db.storage.from("school-branding")
+          .upload(path,logo,{contentType:"image/webp",upsert:false});
+        if(assetError)throw assetError;
+        const {data:assetUrl}=db.storage.from("school-branding").getPublicUrl(path);
+        await checked(db.from("platform_school_sites").update({
+          logo_url:assetUrl.publicUrl
+        }).eq("school_id",demoId));
+        await checked(db.from("school_site_drafts").update({
+          logo_url:assetUrl.publicUrl
+        }).eq("school_id",demoId));
+        result={...result,demo_logo_uploaded:true};
+      }catch(e){
+        // The demo already exists. Report partial branding honestly; owner may
+        // reupload a logo rather than creating duplicate demo schools.
+        result={...result,demo_logo_uploaded:false,
+          demo_logo_warning:"Sample logo could not be saved. Demo school was created."};
+      }
     } else if (action === "tenant.purge.preview") {
       requireOwner(actor);
       const id=validateUuid(body.schoolId,"school");
