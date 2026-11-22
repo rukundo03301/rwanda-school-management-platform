@@ -21,14 +21,16 @@ export async function GET(request,{params}){
       .eq("active",true).limit(100));
     if(links.length){
       const ids=links.map(x=>x.student_id);
-      const [students,enrollments]=await Promise.all([
-        checked(db.from("school_students")
-          .select("id,student_code,first_name,last_name,status")
-          .eq("school_id",school.id).in("id",ids).eq("status","active")),
-        checked(db.from("school_student_enrollments")
-          .select("student_id,class_id,academic_year_id,status")
-          .eq("school_id",school.id).in("student_id",ids).eq("status","active"))
-      ]);
+      const currentYear=await checked(db.from("school_academic_years")
+        .select("id").eq("school_id",school.id).eq("status","current").maybeSingle());
+      const students=await checked(db.from("school_students")
+        .select("id,student_code,first_name,last_name,status")
+        .eq("school_id",school.id).in("id",ids).eq("status","active"));
+      // No arbitrary "first active" enrollment from a previous year.
+      const enrollments=currentYear?await checked(db.from("school_student_enrollments")
+        .select("student_id,class_id,academic_year_id,status")
+        .eq("school_id",school.id).eq("academic_year_id",currentYear.id)
+        .in("student_id",ids).eq("status","active")):[];
       const classIds=[...new Set(enrollments.map(x=>x.class_id))];
       const classes=classIds.length?await checked(db.from("school_classes")
         .select("id,name,section").eq("school_id",school.id).in("id",classIds)):[];
