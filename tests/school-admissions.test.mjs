@@ -79,6 +79,8 @@ test("school must verify the guardian; confirmed recipient opts in before any ch
  assert.match(family,/if\(isLinkedParent\)/);
  assert.match(family,/eq\("auth_user_id",user\.id\)/);
  assert.match(family,/eq\("active",true\)/);
+ assert.match(family,/eq\("academic_year_id",currentYear.id\)/);
+ assert.match(dashboard,/const currentYearId=years.find\(y=>y.status==="current"\)/);
  assert.match(family,/Never expose names or personal details for pending\/unclaimed/);
  assert.match(parentUi,/The child's identity is hidden/);
  assert.match(parentUi,/Accept family link/);
