@@ -97,3 +97,10 @@ A school owner or authorized admissions administrator can record a real applicat
 All child-related records are school-scoped and protected by server authentication and private database access. The module intentionally does not implement attendance, grades, homework, tuition, teacher rosters or student self-registration.
 
 See [Student Admissions Module 3](docs/STUDENT_ADMISSIONS_MODULE_3.md). This remains a draft, GitHub-only module with no changes deployed to APEX or released phone apps.
+
+
+## Module 4 — Teaching, Attendance and Homework (development)
+
+The school-specific Teacher Portal now contains assigned classes, subject lessons, homework publication, student rosters, attendance recording and submitted homework responses. Staff can only see pupils enrolled in the classes they are approved to teach. The school owner can assign teachers and, after verified guardian permission, issue optional student-account invitations. The Student Portal shows only the student's own current-year lessons, homework, attendance and text-submission history; the linked-parent view can read only that child's published learning information.
+
+See [Teaching & Learning Module 4](docs/TEACHING_LEARNING_MODULE_4.md) for security boundaries and release checks. This is a draft GitHub-only change. It does not deploy to APEX, create school accounts or install Android/iOS apps. Exams, grading, report cards, messaging and tuition remain distinct future modules.

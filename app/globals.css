@@ -386,3 +386,113 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
 @media(max-width:1060px){.adm-metrics{grid-template-columns:repeat(2,1fr)}.adm-two-cols{grid-template-columns:1fr}.adm-layout{gap:14px;grid-template-columns:185px minmax(0,1fr)}}
 @media(max-width:760px){.adm-header{flex-direction:column;align-items:flex-start;padding:16px}.adm-layout{display:block;padding:15px}.adm-side{position:static;display:flex;flex-direction:row;flex-wrap:wrap;margin-bottom:16px;padding:10px}.adm-side-label,.adm-side-foot{display:none}.adm-side>button{padding:10px 12px}.adm-section-title{align-items:flex-start;flex-direction:column}.adm-modal{padding:18px}.adm-family-header{padding:13px 15px}.adm-family-header span{display:none}.adm-family-content{padding:30px 15px}.adm-family-invite{flex-direction:column;align-items:flex-start}}
 @media(max-width:420px){.adm-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.adm-metric{padding:13px}.adm-metric strong{font-size:22px}.adm-field-grid{grid-template-columns:1fr}.adm-modal-wrap{padding:6px}}
+
+
+/* Module 4: school-specific classroom and student learning portals */
+.class-shell{background:#f4f7fb;min-height:100vh;color:#182e44;--school-color:#204a78}
+.class-header{background:#fff;border-bottom:1px solid #e1e9f1;display:flex;justify-content:space-between;align-items:center;padding:23px max(22px,5vw);gap:20px}
+.class-eyebrow{font-size:10px;letter-spacing:.13em;font-weight:800;color:#6685a6}
+.class-header h1{font-size:23px;letter-spacing:-.025em;margin:6px 0}
+.class-header p{font-size:13px;color:#657f98;margin:0}
+.class-header-links{display:flex;gap:18px;flex-wrap:wrap}
+.class-header-links a{font-size:12px;font-weight:700;color:#2d628e;text-decoration:none}
+.class-header-links a:hover{text-decoration:underline}
+.class-body{display:grid;grid-template-columns:205px minmax(0,1fr);gap:24px;max-width:1540px;margin:0 auto;padding:30px 24px}
+.class-nav{background:white;border:1px solid #e1e9f1;border-radius:14px;padding:19px 12px;display:flex;flex-direction:column;gap:6px;height:max-content;position:sticky;top:20px}
+.class-nav>strong{font-size:13px;padding:4px 10px 14px}
+.class-nav>button{background:transparent;border:0;padding:12px 10px;font-size:12px;text-align:left;border-radius:9px;color:#59738a;cursor:pointer;font-weight:700}
+.class-nav>button.selected,.class-nav>button:hover{background:#eaf2fa;color:#22537f}
+.class-nav>small{font-size:10px;color:#91a0af;line-height:1.7;margin:16px 9px 5px}
+.class-content{min-width:0}
+.class-intro{padding:8px 0 20px}
+.class-intro>span{font-size:10px;font-weight:800;letter-spacing:.12em;color:#4a78a0}
+.class-intro h2{font-size:30px;margin:8px 0}
+.class-intro p{font-size:13px;color:#6a7f92;max-width:800px;line-height:1.7}
+.class-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:20px 0}
+.class-metrics>div{background:#fff;border:1px solid #e2eaf2;border-radius:13px;padding:19px;display:flex;flex-direction:column;gap:7px}
+.class-metrics span{font-size:11px;color:#6d849a}
+.class-metrics strong{font-size:25px;font-weight:800;color:#23476c}
+.class-panel{background:#fff;border:1px solid #e0e8f0;border-radius:15px;padding:23px;margin-bottom:17px;min-width:0}
+.class-panel h3{font-size:18px;margin:0 0 10px}
+.class-panel>p,.class-panel-head p{font-size:12px;color:#77899b;line-height:1.7}
+.class-panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:17px}
+.class-panel-head h3{margin:0 0 4px}
+.class-panel-head>span{font-size:12px;color:#7b8e9d}
+.class-panel .table-wrap{overflow:auto;max-width:100%}
+.class-panel td{font-size:12px;vertical-align:middle}
+.class-panel th{font-size:11px;white-space:nowrap}
+.class-panel td kbd{font-size:11px}
+.class-select-row{display:flex;justify-content:space-between;align-items:end;gap:18px;background:#fff;border:1px solid #e3eaf2;border-radius:13px;padding:15px 20px}
+.class-select-row>label{font-size:12px;color:#657d94;font-weight:700;max-width:480px;flex:1}
+.class-select-row select{margin-top:8px}
+.class-select-row>span{font-size:12px;color:#73899c}
+.class-panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:16px}
+.class-student-tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.class-student-tags>div{padding:11px 13px;border:1px solid #e2eaf4;border-radius:9px}
+.class-student-tags strong{display:block;font-size:12px}
+.class-student-tags small{display:block;margin-top:6px;color:#8296a8;font-size:10px}
+.class-action-row{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.class-empty{padding:28px 12px;text-align:center;color:#6e8397}
+.class-empty strong{display:block;font-size:13px}
+.class-empty p{font-size:12px}
+.class-record{padding:18px 0;border-bottom:1px solid #eef1f5}
+.class-record:last-child{border-bottom:0}
+.class-record>div{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.class-record strong{font-size:14px}
+.class-record small{font-size:11px;color:#74889c}
+.class-record p{font-size:13px;color:#405d78;line-height:1.65;white-space:pre-wrap;margin:9px 0}
+.class-date-label{font-size:11px;color:#67809a}
+.class-date-label input{margin-top:5px}
+.class-attendance-actions{display:flex;flex-wrap:wrap;gap:5px}
+.class-attendance-actions .button{font-size:10px;text-transform:capitalize;padding:7px 10px}
+.class-overlay{position:fixed;inset:0;z-index:70;background:#122d487f;display:grid;place-items:center;padding:15px}
+.class-modal{width:min(575px,100%);max-height:90vh;overflow:auto;padding:25px;background:#fff;border-radius:16px;box-shadow:0 24px 70px #0003}
+.class-modal h2{font-size:20px;margin:0}
+.class-modal .field strong{font-size:12px}
+.class-modal form>.button{margin-top:17px}
+.class-attestation{display:flex;gap:12px;font-size:12px;line-height:1.7;margin:15px 0;color:#485e73}
+.class-attestation input{margin-top:4px;flex-shrink:0}
+.learn-shell{min-height:100vh;background:#f4f7fb}
+.learn-header{background:#fff;border-bottom:1px solid #e1eaf2;padding:19px max(20px,8vw);display:flex;justify-content:space-between;align-items:center;gap:15px}
+.learn-header a{font-size:12px;color:#32658d;text-decoration:none;font-weight:700}
+.learn-header strong{font-size:14px}
+.learn-header>div{display:flex;gap:16px;flex-wrap:wrap}
+.learn-container{width:min(1020px,100%);margin:0 auto;padding:42px 20px 70px}
+.learn-head span{font-size:11px;font-weight:800;letter-spacing:.12em;color:#4b78a1}
+.learn-head h1{font-size:clamp(28px,4vw,43px);margin:12px 0}
+.learn-head p{font-size:14px;color:#667e93;line-height:1.7}
+.learn-loading{min-height:100vh;padding:30px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;text-align:center}
+.learn-panel{background:white;border:1px solid #e1eaf3;border-radius:15px;padding:26px;margin:18px 0}
+.learn-panel h2{font-size:19px;margin:0 0 20px}
+.learn-panel>p{font-size:13px;color:#6d8095;line-height:1.7}
+.learn-panel td{font-size:13px}
+.learn-profile{background:#fff;border:1px solid #e2eaf1;border-radius:15px;display:flex;align-items:center;gap:18px;padding:22px;margin:22px 0}
+.learn-avatar{width:65px;height:65px;border-radius:15px;background:#e6f0fa;display:grid;place-items:center;font-size:28px}
+.learn-profile small{font-size:11px;color:#7c91a5}
+.learn-profile h2{font-size:22px;margin:7px 0}
+.learn-profile p{font-size:12px;color:#6c8299;margin:0}
+.learn-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+.learn-metrics>div{border:1px solid #e2e9f1;border-radius:13px;background:#fff;display:flex;flex-direction:column;padding:17px;gap:8px}
+.learn-metrics small{font-size:11px;color:#8295a6}
+.learn-metrics strong{font-size:24px;color:#234e76}
+.learn-metrics span{font-size:11px;color:#7b92a8}
+.learn-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:27px 0 15px}
+.learn-tabs button{border:1px solid #d9e5f0;padding:12px 16px;border-radius:11px;font-size:12px;background:#fff;color:#617b96;cursor:pointer;font-weight:800}
+.learn-tabs button.selected{background:#204a78;color:#fff;border-color:#204a78}
+.learn-task{padding:17px 0;border-top:1px solid #edf1f6}
+.learn-task>div:first-child{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.learn-task strong{font-size:15px}
+.learn-task p{font-size:13px;white-space:pre-wrap;line-height:1.7;color:#496279}
+.learn-task span{font-size:11px;color:#718ba5}
+.learn-due{background:#fff1d9;color:#825f22!important;border-radius:20px;padding:6px 11px;white-space:nowrap}
+.learn-task-footer{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.learn-response{margin:18px 0;padding:18px;background:#f8fbff;border:1px solid #dfeaf6;border-radius:10px}
+.learn-response label{display:grid;gap:8px;font-size:12px;font-weight:700}
+.learn-response .row{margin-top:10px}
+.learn-invite{display:flex;justify-content:space-between;align-items:center;gap:18px;border-top:1px solid #e3eaf3;padding:16px 0}
+.learn-invite p{font-size:12px;color:#758b9e}
+.learn-empty{text-align:center;padding:30px;font-size:13px;color:#8293a3}
+.learn-footer{text-align:center;font-size:11px;color:#8192a3;line-height:1.8;margin-top:30px}
+@media(max-width:1000px){.class-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.class-panels{grid-template-columns:1fr}}
+@media(max-width:760px){.class-header{padding:18px;flex-direction:column;align-items:start}.class-body{display:block;padding:16px}.class-nav{position:static;display:flex;flex-wrap:wrap;flex-direction:row;gap:4px;margin-bottom:22px;padding:12px}.class-nav>strong,.class-nav>small{display:none}.class-nav>button{padding:10px;font-size:11px}.class-panel{padding:17px}.class-panel-head{flex-wrap:wrap}.class-select-row{flex-direction:column;align-items:stretch}.class-overlay{padding:7px}.class-modal{padding:18px}.learn-header{flex-wrap:wrap;padding:13px 17px}.learn-container{padding:27px 15px}.learn-panel{padding:17px}.learn-profile{padding:16px}}
+@media(max-width:440px){.learn-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.learn-metrics>div{padding:11px}.learn-metrics strong{font-size:19px}.learn-task>div:first-child{align-items:start;flex-direction:column}.class-metrics{gap:8px}.class-metrics>div{padding:12px}.class-metrics strong{font-size:20px}.learn-invite{flex-direction:column;align-items:start}}
