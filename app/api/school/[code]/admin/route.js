@@ -32,8 +32,13 @@ export async function GET(request,{params}){
  try{
   const {code}=await params;
   const {db,school,actor}=await schoolAdminContext(request,code);
-  const brand=await checked(db.from("platform_school_sites")
-    .select("logo_url,primary_color").eq("school_id",school.id).maybeSingle());
+  const [publishedBrand,draftBrand]=await Promise.all([
+    checked(db.from("platform_school_sites").select("logo_url,primary_color")
+      .eq("school_id",school.id).maybeSingle()),
+    checked(db.from("school_site_drafts").select("logo_url,primary_color")
+      .eq("school_id",school.id).maybeSingle())
+  ]);
+  const brand=publishedBrand?.logo_url?publishedBrand:(draftBrand||publishedBrand);
   const data={school:{name:school.name,code:school.school_code,status:school.status,
     logoUrl:brand?.logo_url||null,primaryColor:/^#[0-9a-f]{6}$/i.test(brand?.primary_color||"")?
       brand.primary_color:"#204a78"},
