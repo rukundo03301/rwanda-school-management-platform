@@ -131,7 +131,7 @@ export default function SchoolAdmin({code}){
        {(owner||actor.permissions?.includes("academics.manage"))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/classroom"}><span aria-hidden="true">▦</span>Classrooms & Teachers</a>}
        {(owner||actor.reportPermissions?.some(p=>["curriculum.manage","reports.read"].includes(p)))&&
-         <a className="school-admin-nav-link" href={"/s/"+code+"/reports"}><span aria-hidden="true">▥</span>Curriculum & Reports</a>
+         <a className="school-admin-nav-link" href={"/s/"+code+"/reports"}><span aria-hidden="true">▥</span>Curriculum & Reports</a>}
      </nav>
      <div className="school-admin-sidebottom">
        <a href={"/s/"+code} target="_blank" rel="noreferrer">School Homepage</a>
