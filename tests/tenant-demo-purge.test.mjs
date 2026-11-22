@@ -39,7 +39,7 @@ test("demo school seeds actual synthetic school workflows without emails or mone
  assert.match(schema,/legal_hold boolean not null default false/);
  for(const s of [
   "platform_companies","platform_schools","school_memberships",
-  "school_onboarding","platform_school_sites","school_site_drafts",
+  "platform_school_sites","school_site_drafts",
   "school_academic_years","school_classes","school_subjects",
   "school_class_subjects","school_teacher_assignments","school_students",
   "school_student_enrollments","school_guardian_links",
@@ -47,6 +47,7 @@ test("demo school seeds actual synthetic school workflows without emails or mone
   "school_timetable_periods","school_announcements",
   "school_calendar_events","school_fee_catalog","school_fee_invoices"
  ])assert.match(schema,new RegExp("insert into public\\."+s+"\\b"),s);
+ assert.match(schema,/update public\.school_onboarding set current_step=5/);
  assert.match(schema,/DEMO SCHOOL — SAMPLE DATA ONLY/);
  assert.match(schema,/demo-owner@example\.invalid/);
  assert.doesNotMatch(schema,/inviteUserByEmail|chargeCustomer|createPayment/);
