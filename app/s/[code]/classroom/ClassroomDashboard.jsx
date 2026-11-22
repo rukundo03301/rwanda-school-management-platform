@@ -129,7 +129,7 @@ export default function ClassroomDashboard({code}){
          <p><strong>Review submissions</strong><span>Read student homework responses for your own assignments.</span></p></>:
        <><p><strong>Assign class teachers</strong><span>Verified teachers can be assigned only to subjects in their school's class.</span></p>
          <p><strong>Verify school student access</strong><span>Issue an account invitation only after school and family approval.</span></p>
-         <p><strong>Academic oversight</strong><span>Teachers' individual records stay scoped to their assignments.</span></>}
+         <p><strong>Academic oversight</strong><span>Teachers' individual records stay scoped to their assignments.</span></p></>}
       </div>
       {actor.manager&&<button className="button" onClick={()=>setTab("assignments")}>Manage teacher assignments</button>}
       {actor.teacher&&<button className="button" onClick={()=>setTab("lessons")}>Open My Lessons</button>}
