@@ -1,6 +1,6 @@
 import {
  schoolFinanceContext,financeText,financeId,rwfAmount,financeDate,
- normalizeFinanceRights,invoiceMath,kigaliToday,
+ normalizeFinanceRights,kigaliToday,
  FEE_CATEGORIES,PAYMENT_METHODS,REVIEW_EVIDENCE
 } from "../../../../../lib/school-fees.mjs";
 import {ApiError,checked,requireAal2,jsonError} from "../../../../../lib/platform-server.js";
@@ -15,10 +15,19 @@ function enumValue(v,allowed,name){
  if(!allowed.includes(v))throw new ApiError(400,"Choose an approved "+name);
  return v;
 }
-function balances(invoices,payments,credits,today){
- return invoices.map(i=>({...i,
-  balances:invoiceMath(i,payments,credits,today)
- }));
+function balances(invoices,rows,today){
+ const byInvoice=new Map(rows.map(b=>[b.invoice_id,b]));
+ return invoices.map(i=>{
+  const b=byInvoice.get(i.id);
+  if(!b)throw new ApiError(503,"Invoice balances are temporarily unavailable");
+  const remaining=BigInt(b.balance_rwf);
+  return {...i,balances:{
+   amount_rwf:String(i.amount_rwf),paid_rwf:b.paid_rwf,
+   waived_rwf:b.waived_rwf,balance_rwf:b.balance_rwf,
+   fully_paid:remaining===0n,
+   overdue:i.status==="issued"&&remaining>0n&&i.due_on<today
+  }};
+ });
 }
 export async function GET(request,{params}){
  try{
@@ -114,7 +123,11 @@ export async function GET(request,{params}){
    }
   }
   const currentDay=kigaliToday();
-  const invoices=balances(invoicesAll,payments,credits,currentDay);
+  const authoritativeBalances=invoiceIds.length?await checked(db.rpc(
+   "school_finance_invoice_balances",{
+    p_school:school.id,p_actor:user.id,p_invoices:invoiceIds
+   })):[],
+   invoices=balances(invoicesAll,authoritativeBalances,currentDay);
   let grants=[];
   if(ctx.owner){
    const [members,perms,invitations]=await Promise.all([
