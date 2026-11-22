@@ -269,7 +269,7 @@ export default function PlatformPage() {
         <Header title="Account security" description="Important actions require verified identity and two-factor authentication."/>
         <div className="panel stacked">
           <h2>Secure your platform owner account</h2><p className="muted">Enrolling a time-based authenticator is recommended. Approving staff, setting a default payment method and requesting school deletion require an MFA-verified session.</p>
-          <div className="row"><button className="button" onClick={async()=>{setError("");try{const r=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"Rwanda Platform Owner"});if(r.error)throw r.error;setMfa(r.data);}catch(e){setError(e.message);}}}>Set up authenticator</button><button className="button secondary" onClick={async()=>{setError("");try{const r=await client.auth.mfa.getAuthenticatorAssuranceLevel();if(r.error)throw r.error;setNotice("Current level: "+r.data.currentLevel+"; next level: "+r.data.nextLevel);}catch(e){setError(e.message);}}}>Check MFA status</button></div>
+          <div className="row"><button className="button" onClick={async()=>{setError("");try{const r=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"Rwanda Platform Owner"});if(r.error)throw r.error;setMfa(r.data);}catch(e){setError(e.message);}}}>Set up authenticator</button><button className="button secondary" onClick={async()=>{setError("");try{const r=await client.auth.mfa.getAuthenticatorAssuranceLevel();if(r.error)throw r.error;setNotice("Current level: "+r.data.currentLevel+"; next level: "+r.data.nextLevel);}catch(e){setError(e.message);}}}>Check MFA status</button><button className="button secondary" onClick={async()=>{setError("");try{const r=await client.auth.mfa.listFactors();if(r.error)throw r.error;const factor=r.data?.totp?.find(f=>f.status==="verified");if(!factor)throw new Error("No verified authenticator yet. Choose Set up authenticator first.");setMfa({id:factor.id,mode:"challenge"});setNotice("");}catch(e){setError(e.message);}}}>Verify authenticator to unlock sensitive actions</button></div>
           {mfa?.totp&&<MfaVerify mfa={mfa} client={client} setMfa={setMfa} setNotice={setNotice} setError={setError}/>}
         </div>
       </>}
@@ -327,11 +327,11 @@ function RequestAccess({onSubmit,busy}) {
 }
 function MfaVerify({mfa,client,setMfa,setNotice,setError}) {
   const [code,setCode]=useState("");
-  return <div className="panel" style={{background:"#f8fafc"}}><h3 style={{fontSize:14,marginBottom:8}}>Scan with your authenticator app</h3>
-    {mfa.totp.qr_code&&<img src={mfa.totp.qr_code} width="160" height="160" alt="Authenticator QR code" style={{maxWidth:"100%"}}/>}
-    <p className="micro">If needed, enter the secret manually in your authenticator app. Never share this code.</p>
+  return <div className="panel" style={{background:"#f8fafc"}}><h3 style={{fontSize:14,marginBottom:8}}>{mfa.mode==="challenge"?"Verify your sign-in":"Scan with your authenticator app"}</h3>
+    {mfa.totp?.qr_code&&<img src={mfa.totp.qr_code} width="160" height="160" alt="Authenticator QR code" style={{maxWidth:"100%"}}/>}
+    <p className="micro">{mfa.mode==="challenge"?"Open your authenticator app and enter the current six-digit code.":"Scan the QR image or enter its secret in your authenticator app. Never share this code."}</p>
     <Field label="One-time verification code"><input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)}/></Field>
-    <button className="button" onClick={async()=>{try{const r=await client.auth.mfa.challengeAndVerify({factorId:mfa.id,code});if(r.error)throw r.error;setMfa(null);setNotice("Authenticator activated. Your account now supports MFA-protected actions.");}catch(e){setError(e.message);}}}>Verify and activate MFA</button>
+    <button className="button" onClick={async()=>{try{const r=await client.auth.mfa.challengeAndVerify({factorId:mfa.id,code});if(r.error)throw r.error;setMfa(null);setNotice(mfa.mode==="challenge"?"Your identity is verified for MFA-protected actions.":"Authenticator activated. Your account now supports MFA-protected actions.");}catch(e){setError(e.message);}}}>{mfa.mode==="challenge"?"Verify sign-in":"Verify and activate MFA"}</button>
   </div>;
 }
 function Metric({label,value}){return <div className="card"><div className="label">{label}</div><div className="value">{value??"—"}</div></div>;}
