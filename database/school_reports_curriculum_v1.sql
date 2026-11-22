@@ -7,6 +7,19 @@
 -- CA-MIS / NESA official certification is NOT claimed. TVET modules have
 -- different assessment rules and cannot use this automatic general profile.
 
+create table public.school_report_admin_permissions (
+ school_id uuid not null references public.platform_schools(id) on delete restrict,
+ auth_user_id uuid not null references auth.users(id) on delete restrict,
+ role text not null default 'school_admin' check(role='school_admin'),
+ permissions text[] not null default '{}'::text[],
+ updated_by uuid references auth.users(id) on delete set null,
+ updated_at timestamptz not null default now(),
+ primary key(school_id,auth_user_id),
+ foreign key(school_id,auth_user_id,role)
+  references public.school_memberships(school_id,auth_user_id,role) on delete restrict,
+ check(permissions <@ array['curriculum.manage','reports.read']::text[])
+);
+
 create table public.school_curriculum_profiles (
  id uuid primary key default gen_random_uuid(),
  school_id uuid not null references public.platform_schools(id) on delete restrict,
@@ -175,7 +188,7 @@ do $$
 declare tbl text;
 begin
  foreach tbl in array array[
-  'school_curriculum_profiles','school_curriculum_class_subjects',
+  'school_report_admin_permissions','school_curriculum_profiles','school_curriculum_class_subjects',
   'school_curriculum_units','school_assessment_terms','school_assessment_marks',
   'school_published_reports','school_report_audit'
  ] loop
@@ -196,6 +209,37 @@ set search_path=pg_catalog,public as $$
  where s.id=p_school and s.status='active' and m.auth_user_id=p_actor
    and m.role='school_owner' and m.active)
 $$;
+
+create or replace function public.school_set_report_permissions(
+ p_school uuid,p_target uuid,p_permissions text[],p_reason text,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $
+declare prior text[];
+begin
+ if not public.school_report_owner_authorized(p_school,p_actor)
+ then raise exception 'Only school owner can grant curriculum/report permissions'; end if;
+ if p_actor=p_target then raise exception 'Cannot edit your own owner permissions'; end if;
+ if length(btrim(coalesce(p_reason,'')))<8 or length(p_reason)>600
+ then raise exception 'Audit reason required'; end if;
+ if p_permissions is null or not (p_permissions <@ array['curriculum.manage','reports.read']::text[])
+ then raise exception 'Unknown permission'; end if;
+ if not exists(select 1 from public.school_memberships
+  where school_id=p_school and auth_user_id=p_target and role='school_admin' and active)
+ then raise exception 'Target is not an active local school administrator'; end if;
+ select permissions into prior from public.school_report_admin_permissions
+ where school_id=p_school and auth_user_id=p_target for update;
+ insert into public.school_report_admin_permissions(
+  school_id,auth_user_id,role,permissions,updated_by)
+ values(p_school,p_target,'school_admin',p_permissions,p_actor)
+ on conflict(school_id,auth_user_id) do update
+ set permissions=excluded.permissions,updated_by=p_actor,updated_at=now();
+ insert into public.school_report_audit(school_id,actor_id,event,resource_id,metadata)
+ values(p_school,p_actor,'report.permissions_changed',p_target,
+  jsonb_build_object('before',coalesce(prior,'{}'::text[]),
+   'after',p_permissions,'reason',p_reason));
+ return jsonb_build_object('updated',true);
+end;
+$;
 
 create or replace function public.school_approve_curriculum(
  p_school uuid,p_profile uuid,p_actor uuid
@@ -274,6 +318,10 @@ begin
  then raise exception 'Use TERM for the one end-of-term assessment'; end if;
  if p_category<>'end_term' and p_assessment_code='TERM'
  then raise exception 'Reserved assessment reference'; end if;
+ if p_category='unit' and not exists(select 1 from public.school_curriculum_units
+   where school_id=p_school and class_id=p_class
+   and subject_id=p_subject and unit_code=p_assessment_code)
+ then raise exception 'End-of-unit marks must reference an approved curriculum unit'; end if;
  select * into t from public.school_assessment_terms
  where school_id=p_school and id=p_term and status='open';
  if not found then raise exception 'Assessment term unavailable or closed'; end if;
@@ -286,6 +334,11 @@ begin
    where e.school_id=p_school and e.student_id=p_student and e.class_id=p_class
      and e.academic_year_id=t.academic_year_id and e.status='active')
  then raise exception 'Student is not enrolled in this current-year class'; end if;
+ -- Lock the same student row that the publisher locks to serialize marks
+ -- and report publication, preventing a mark/report race condition.
+ perform 1 from public.school_students where school_id=p_school
+   and id=p_student and status='active' for update;
+ if not found then raise exception 'Student unavailable'; end if;
  if exists(select 1 from public.school_published_reports
    where school_id=p_school and term_id=p_term and student_id=p_student)
  then raise exception 'A report exists; marks cannot be silently changed'; end if;
@@ -405,6 +458,15 @@ begin
    if count_units<1 or count_projects<2 or count_exam<>1
    then raise exception 'Missing unit, at least two projects, or end-term marks for subject %',
      item.subject_name; end if;
+   if exists(select 1 from public.school_curriculum_units u
+     where u.school_id=p_school and u.class_id=e.class_id
+       and u.subject_id=item.subject_id and not exists(
+       select 1 from public.school_assessment_marks a
+       where a.school_id=p_school and a.student_id=p_student and a.term_id=p_term
+         and a.class_id=e.class_id and a.subject_id=item.subject_id
+         and a.category='unit' and a.assessment_code=u.unit_code))
+   then raise exception 'Missing recorded syllabus unit assessment for subject %',
+     item.subject_name; end if;
    total:=round((unit_avg*0.25+project_avg*0.25+exam_avg*0.50)::numeric,2);
    all_earned:=all_earned+total;
    all_max:=all_max+subject_max;
@@ -474,12 +536,14 @@ $$;
 
 -- Do not let browser clients invoke privileged school-data RPCs directly.
 revoke all on function public.school_report_owner_authorized(uuid,uuid) from public,anon,authenticated;
+revoke all on function public.school_set_report_permissions(uuid,uuid,text[],text,uuid) from public,anon,authenticated;
 revoke all on function public.school_approve_curriculum(uuid,uuid,uuid) from public,anon,authenticated;
 revoke all on function public.school_approve_curriculum_subject(uuid,uuid,uuid,uuid) from public,anon,authenticated;
 revoke all on function public.school_record_assessment(uuid,uuid,uuid,uuid,uuid,text,text,numeric,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_publish_term_report(uuid,uuid,uuid,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_withdraw_term_report(uuid,uuid,text,uuid) from public,anon,authenticated;
 grant execute on function public.school_report_owner_authorized(uuid,uuid) to service_role;
+grant execute on function public.school_set_report_permissions(uuid,uuid,text[],text,uuid) to service_role;
 grant execute on function public.school_approve_curriculum(uuid,uuid,uuid) to service_role;
 grant execute on function public.school_approve_curriculum_subject(uuid,uuid,uuid,uuid) to service_role;
 grant execute on function public.school_record_assessment(uuid,uuid,uuid,uuid,uuid,text,text,numeric,text,uuid) to service_role;
