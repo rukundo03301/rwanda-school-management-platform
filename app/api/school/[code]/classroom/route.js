@@ -6,6 +6,17 @@ export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const noStore={"Cache-Control":"no-store"};
 
+async function publishedSchoolBrand(db,school){
+ const site=await checked(db.from("platform_school_sites")
+   .select("logo_url,primary_color").eq("school_id",school.id)
+   .eq("is_published",true).maybeSingle());
+ return {name:school.name,code:school.school_code,
+  logoUrl:site?.logo_url||null,
+  primaryColor:/^#[0-9a-f]{6}$/i.test(site?.primary_color||"")?
+    site.primary_color:"#204a78"};
+}
+
+
 async function teacherData(db,school,user){
  const assignments=await checked(db.from("school_teacher_assignments")
   .select("id,class_id,subject_id,active")
@@ -99,12 +110,12 @@ export async function GET(request,{params}){
    if(!academicManager&&!studentAccessManager)
      throw new ApiError(403,"School management permission required");
    const data=await managerData(db,school,actor,academicManager,studentAccessManager);
-   return Response.json(data,{headers:noStore});
+   return Response.json({...data,school:await publishedSchoolBrand(db,school)},{headers:noStore});
   }
   if(mode!=="teacher")throw new ApiError(400,"Unknown classroom mode");
   const {db,school,user}=await teacherContext(request,code);
   const data=await teacherData(db,school,user);
-  return Response.json(data,{headers:noStore});
+  return Response.json({...data,school:await publishedSchoolBrand(db,school)},{headers:noStore});
  }catch(e){return jsonError(e);}
 }
 
