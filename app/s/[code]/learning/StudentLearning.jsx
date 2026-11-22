@@ -68,8 +68,8 @@ export default function StudentLearning({code}){
  const subMap=new Map(submissions.map(s=>[s.homework_id,s]));
  const subjectName=(id)=>data.subjects?.find(s=>s.id===(data.assignments?.find(a=>a.id===id)?.subject_id))?.name||"Class subject";
  const tabs=["homework","lessons","attendance"];
- return <main className="learn-shell">
-   <header className="learn-header"><a href={"/s/"+code}>School Homepage</a><strong>{school.name}</strong>
+ return <main className="learn-shell" style={{"--school-color":school.primaryColor||"#204a78"}}>
+   <header className="learn-header"><a href={"/s/"+code}>School Homepage</a><div className="row" style={{gap:9,alignItems:"center"}}>{school.logoUrl&&<img src={school.logoUrl} alt={school.name+" official logo"} style={{height:42,width:42,objectFit:"contain"}}/>}<strong>{school.name}</strong></div>
      <div><a href={"/s/"+code+"/portal?role="+(family?"parent":"student")}>My Portal</a>
      {family&&<a href={"/s/"+code+"/family"}>My Children</a>}</div></header>
    <section className="learn-container">
