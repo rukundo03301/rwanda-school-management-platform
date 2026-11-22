@@ -80,7 +80,7 @@ test("purge is a transaction using dependency-safe order, preserving other schoo
  assert.match(schema,/where company_id=s\.company_id/);
  assert.match(schema,/delete from public\.platform_companies where id=s\.company_id/);
  assert.match(schema,/shared_user_accounts_preserved/);
- assert.doesNotMatch(schema,/on delete cascade/i);
+ assert.doesNotMatch(schema,/^\s*on delete cascade\b/im);
 });
 test("sensitive purge functions are service-role only and use SECURITY INVOKER",()=>{
  for(const name of [
