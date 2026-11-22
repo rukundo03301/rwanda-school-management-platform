@@ -119,7 +119,7 @@ export default function PublishedReportCard({code}){
     <strong>School-issued academic record</strong>
     <p>Prepared by {school.name} using curriculum information approved by its school leadership and NESA's published assessment guidance.
     This is not a NESA national examination result, government certificate, CA-MIS submission, or ministry-issued document. No government seal or signature is reproduced.</p>
-    <p>Report reference: {report.id.slice(0,8).toUpperCase()} · Published {new Date(report.published_at).toLocaleDateString("en-RW",{timeZone:"Africa/Kigali"})} · School ID {school.code}</p>
+    <p>Report reference: {report.id.toUpperCase()} · Version {printed.report_version||1} · Published {new Date(report.published_at).toLocaleDateString("en-RW",{timeZone:"Africa/Kigali"})} · School ID {school.code}</p>
    </footer>
   </article>}
  </main>;
