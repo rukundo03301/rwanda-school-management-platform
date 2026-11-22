@@ -374,6 +374,9 @@ declare hw public.school_homework%rowtype;
 begin
  if not exists(select 1 from public.platform_schools where id=p_school and status='active')
  then raise exception 'School inactive'; end if;
+ if not exists(select 1 from public.school_guardian_links
+  where school_id=p_school and student_id=p_student and active)
+ then raise exception 'Student guardian approval has been revoked'; end if;
  if not exists(select 1 from public.school_student_accounts sa
    join public.school_memberships m on m.school_id=sa.school_id and
      m.auth_user_id=sa.auth_user_id and m.role='student' and m.active
