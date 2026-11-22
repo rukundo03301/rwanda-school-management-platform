@@ -285,9 +285,9 @@ begin
   where m.school_id=p_school and m.auth_user_id=p_actor and m.active and s.status='active'
    and m.role='school_owner')
   and not exists(select 1 from public.school_memberships m
-   join public.school_admin_permissions p on p.school_id=m.school_id and p.auth_user_id=m.auth_user_id
+   join public.school_admissions_permissions p on p.school_id=m.school_id and p.auth_user_id=m.auth_user_id
    where m.school_id=p_school and m.auth_user_id=p_actor and m.role='school_admin'
-   and m.active and 'people.invite'=any(p.permissions))
+   and m.active and 'guardians.manage'=any(p.permissions))
  then raise exception 'School account invitation not authorized'; end if;
  select date_of_birth into dob from public.school_students
  where school_id=p_school and id=p_student and status='active';
@@ -434,3 +434,28 @@ grant execute on function public.school_invite_student_account(uuid,uuid,text,uu
 grant execute on function public.school_approve_student_account(uuid,uuid,uuid) to service_role;
 grant execute on function public.school_claim_student_account(uuid,uuid,uuid,text) to service_role;
 grant execute on function public.school_submit_homework(uuid,uuid,uuid,uuid,text) to service_role;
+
+
+create or replace function public.school_teacher_unassign(
+ p_school uuid,p_assignment uuid,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $$
+begin
+ if not exists(select 1 from public.school_memberships m
+  join public.platform_schools s on s.id=m.school_id
+  where s.id=p_school and s.status='active' and m.auth_user_id=p_actor and m.active
+   and (m.role='school_owner'
+    or (m.role='school_admin' and exists(select 1 from public.school_admin_permissions ap
+      where ap.school_id=p_school and ap.auth_user_id=p_actor
+       and 'academics.manage'=any(ap.permissions)))))
+ then raise exception 'School academic manager required'; end if;
+ update public.school_teacher_assignments set active=false
+ where school_id=p_school and id=p_assignment and active=true;
+ if not found then raise exception 'Assignment already inactive or missing'; end if;
+ insert into public.school_teaching_audit(school_id,actor_id,event,resource_id)
+ values(p_school,p_actor,'teacher.unassigned',p_assignment);
+ return jsonb_build_object('unassigned',true);
+end;
+$$;
+revoke all on function public.school_teacher_unassign(uuid,uuid,uuid) from public,anon,authenticated;
+grant execute on function public.school_teacher_unassign(uuid,uuid,uuid) to service_role;
