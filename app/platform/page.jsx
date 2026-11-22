@@ -130,7 +130,7 @@ function PermissionToggleTable({permissions,onChange,disabled=false}) {
 }
 
 export default function PlatformPage() {
-  const client=useMemo(()=>browserSupabase(),[]);
+  const [client,setClient]=useState(null);
   const [session,setSession]=useState(null);
   const [loading,setLoading]=useState(true);
   const [tab,setTab]=useState("overview");
@@ -144,8 +144,10 @@ export default function PlatformPage() {
   const [form,setForm]=useState({});
   const [mfa,setMfa]=useState(null);
 
+  useEffect(()=>{ setClient(browserSupabase()); },[]);
+
   useEffect(()=>{
-    if(!client){setLoading(false);return;}
+    if(!client){return;}
     let mounted=true;
     client.auth.getSession().then(({data})=>{if(mounted){setSession(data.session);setLoading(false);}});
     const {data:{subscription}}=client.auth.onAuthStateChange((_event,newSession)=>setSession(newSession));
@@ -185,8 +187,8 @@ export default function PlatformPage() {
     return search.includes(query.trim().toLowerCase()) && (filter==="all"||t.status===filter);
   });
 
-  if(!client)return <main className="shell"><div className="auth-card"><h1>Setup required</h1><p>Provide the Supabase URL and publishable key in the deployment environment. No records are available until secure connection is configured.</p></div></main>;
   if(loading)return <main className="shell">Loading secure account...</main>;
+  if(!client)return <main className="shell"><div className="auth-card"><h1>Setup required</h1><p>Provide the Supabase URL and publishable key in the deployment environment. No records are available until secure connection is configured.</p></div></main>;
   if(!session)return <Login client={client} onLogin={setSession}/>;
   if(!data&& !error)return <main className="shell">Checking your access...</main>;
   if(error&&!data)return <main className="shell"><div className="auth-card"><h1>Console unavailable</h1><div className="notice error">{error}</div><button className="button" onClick={refresh}>Try again</button><button style={{marginTop:10}} className="button secondary" onClick={()=>client.auth.signOut()}>Sign out</button></div></main>;
