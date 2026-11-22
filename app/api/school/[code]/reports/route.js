@@ -51,7 +51,7 @@ export async function GET(request,{params}){
     .eq("school_id",school.id).eq("academic_year_id",year.id)
     .order("term_number",{ascending:true}).limit(10)):[];
   const curriculum=year?await checked(db.from("school_curriculum_profiles")
-    .select("id,name,track,pathway,policy_version,source_title,source_url,status,academic_year_id")
+    .select("id,name,track,level_band,pathway,policy_version,source_title,source_url,status,academic_year_id")
     .eq("school_id",school.id).eq("academic_year_id",year.id).limit(100)):[];
   const courseMappings=classSet.size?await checked(db.from("school_curriculum_class_subjects")
     .select("class_id,subject_id,academic_year_id,curriculum_profile_id,weekly_periods,module_credits,syllabus_title,syllabus_url,approved_at")
@@ -108,8 +108,13 @@ export async function GET(request,{params}){
       email:byEmail.get(a.auth_user_id)||null,
       permissions:permsById.get(a.auth_user_id)||[]}));
   }
-  const brand=await checked(db.from("school_site_drafts")
-    .select("logo_url,primary_color").eq("school_id",school.id).maybeSingle());
+  const [officialBrand,draftBrand]=await Promise.all([
+    checked(db.from("platform_school_sites")
+      .select("logo_url,primary_color").eq("school_id",school.id).maybeSingle()),
+    checked(db.from("school_site_drafts")
+      .select("logo_url,primary_color").eq("school_id",school.id).maybeSingle())
+  ]);
+  const brand=officialBrand?.logo_url?officialBrand:(draftBrand||officialBrand);
   return Response.json({
     school:{name:school.name,code:school.school_code,
       logoUrl:brand?.logo_url||null,primaryColor:brand?.primary_color||"#204a78"},
@@ -138,9 +143,17 @@ export async function POST(request,{params}){
     if(!year||year.status!=="current")throw new ApiError(400,"Choose the current school year");
     const track=String(body.track||"");
     if(!CURRICULUM_TRACKS.includes(track))throw new ApiError(400,"Choose a curriculum track");
+    const band=String(body.levelBand||"");
+    const permitted={
+      general:["lower_primary","upper_primary","ordinary_secondary","advanced_secondary"],
+      professional:["professional"],tvet:["tvet"],nursery:["nursery"],
+      higher_education:["higher_education"],international:["international"]
+    };
+    if(!permitted[track].includes(band))
+      throw new ApiError(400,"Select a valid education level for this curriculum");
     result=await checked(db.from("school_curriculum_profiles").insert({
       school_id:school.id,academic_year_id:yearId,
-      name:reportText(body.name,120,{min:3}),track,
+      name:reportText(body.name,120,{min:3}),track,level_band:band,
       pathway:typeof body.pathway==="string"?body.pathway.slice(0,120):"",
       policy_version:reportText(body.policyVersion,120,{min:3}),
       source_title:reportText(body.sourceTitle,240,{min:3}),
