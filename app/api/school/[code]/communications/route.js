@@ -124,12 +124,24 @@ export async function GET(request,{params}){
   const myAssignments=ctx.teacherAssignments.filter(a=>activeClassIds.has(a.class_id));
   const pairsAllowedForTeacher=new Set(myAssignments.map(a=>a.class_id+"#"+a.subject_id));
   const allTimetable=schoolTimetable.filter(p=>activeClassIds.has(p.class_id));
-  // If a teacher's subject assignment was revoked, their old timetable
-  // does not continue to authorize them or expose their former class.
+  const studentOrFamily=ctx.parent||ctx.student;
+  const schedAssignments=studentOrFamily?await checked(db.from("school_teacher_assignments")
+   .select("teacher_id,class_id,subject_id")
+   .eq("school_id",school.id).eq("active",true).limit(1400)):[];
+  const activeTeacherIds=[...new Set(schedAssignments.map(x=>x.teacher_id))];
+  const activeTeacherMembers=activeTeacherIds.length?await checked(db.from("school_memberships")
+   .select("auth_user_id").eq("school_id",school.id)
+   .eq("role","teacher").eq("active",true).in("auth_user_id",activeTeacherIds).limit(1400)):[];
+  const teacherMembers=new Set(activeTeacherMembers.map(x=>x.auth_user_id));
+  const activeTimetableAssignments=new Set(schedAssignments.filter(x=>
+    teacherMembers.has(x.teacher_id)).map(x=>x.teacher_id+"#"+x.class_id+"#"+x.subject_id));
+  // Revocation of a teacher assignment removes the stale lesson from
+  // parent/student schedules even if the historical timetable row remains.
   const timetable=allTimetable.filter(p=>
    ctx.managerTimetable||
    (ctx.teacher&&p.teacher_id===user.id&&pairsAllowedForTeacher.has(p.class_id+"#"+p.subject_id))||
-   ((ctx.parent||ctx.student)&&ctx.enrollments.some(e=>e.class_id===p.class_id)));
+   (studentOrFamily&&ctx.enrollments.some(e=>e.class_id===p.class_id)
+    &&activeTimetableAssignments.has(p.teacher_id+"#"+p.class_id+"#"+p.subject_id)));
   const contextForAudience={...ctx,classIds:visibleClasses.map(x=>x.id)};
   const announcements=rawAnnouncements.filter(a=>ctx.managerAnnouncements||canViewAnnouncement(a,contextForAudience));
   const events=rawEvents.filter(e=>ctx.managerAnnouncements||isVisibleTo(e,contextForAudience));
@@ -167,7 +179,7 @@ export async function GET(request,{params}){
   let family=[];
   if(ctx.parent&&ctx.childIds.length){
    const linkedIds=ctx.childIds;
-   const [students,homework,attendance,reports]=await Promise.all([
+   const [students,homework,attendance,reports,submitted]=await Promise.all([
     checked(db.from("school_students").select("id,first_name,last_name,student_code")
      .eq("school_id",school.id).eq("status","active")
      .in("id",linkedIds).limit(100)),
@@ -184,7 +196,10 @@ export async function GET(request,{params}){
     checked(db.from("school_published_reports")
      .select("id,student_id,term_id,published_at").eq("school_id",school.id)
      .eq("status","published").in("student_id",linkedIds)
-     .order("published_at",{ascending:false}).limit(300))
+     .order("published_at",{ascending:false}).limit(300)),
+    checked(db.from("school_homework_submissions")
+     .select("student_id,homework_id").eq("school_id",school.id)
+     .in("student_id",linkedIds).limit(1200))
    ]);
    const sMap=new Map(students.map(s=>[s.id,s]));
    family=ctx.enrollments.filter(e=>sMap.has(e.student_id)).map(e=>{
@@ -194,7 +209,10 @@ export async function GET(request,{params}){
     return {
      studentId:st.id,name:st.first_name+" "+st.last_name,studentCode:st.student_code,
      classId:e.class_id,className:visibleClasses.find(c=>c.id===e.class_id)?.name||"School class",
-     upcomingHomework:take(pending,12).map(h=>({title:h.title,dueAt:h.due_at,subjectId:h.subject_id})),
+     upcomingHomework:take(pending,12).map(h=>({
+      title:h.title,dueAt:h.due_at,subjectId:h.subject_id,
+      submitted:submitted.some(x=>x.student_id===st.id&&x.homework_id===h.id)
+     })),
      recordedAttendance:take(days,20),
      publishedReportCount:reports.filter(r=>r.student_id===st.id).length
     };
