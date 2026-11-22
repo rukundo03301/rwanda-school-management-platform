@@ -99,8 +99,8 @@ begin
  where school_id=p_school_id and email=lower(trim(p_verified_email)) for update;
  if not found or invitation.status='revoked' then raise exception 'No authorized invitation';
  end if;
- if invitation.status='claimed' and invitation.claimed_by is distinct from p_auth_user_id then
-   raise exception 'Invitation already claimed by a different identity';
+ if invitation.status <> 'pending' then
+   raise exception 'Invitation is no longer pending; request a new approval';
  end if;
  insert into public.school_memberships(school_id,auth_user_id,role,active)
  values(p_school_id,p_auth_user_id,'school_owner',true)
