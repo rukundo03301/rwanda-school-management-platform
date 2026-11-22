@@ -10,7 +10,7 @@ export async function GET(request) {
     const { actor, db } = await authenticate(request);
     if (!actor.active) return Response.json({ actor, needsApproval: true }, { headers: { "Cache-Control": "no-store" } });
     const can = (permission) => actor.isOwner || actor.permissions.includes(permission);
-    const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], audit: [] };
+    const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], onboardingReviews: [], audit: [] };
     if (can("tenants.read")) {
       data.tenants = await checked(db.from("platform_schools")
         .select("id,school_code,name,owner_email,status,created_at,updated_at,company_id,platform_companies(company_code,name)")
@@ -27,6 +27,11 @@ export async function GET(request) {
       data.sites = await checked(db.from("platform_school_sites")
         .select("school_id,tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,is_published")
         .limit(200));
+    }
+    if (can("tenants.read")) {
+      data.onboardingReviews = await checked(db.from("school_onboarding").select("school_id,review_requested_at,current_step")
+        .not("review_requested_at","is",null)
+        .order("review_requested_at",{ascending:false}).limit(200));
     }
     if (can("tickets.read")) {
       data.tickets = await checked(db.from("platform_tickets")
@@ -152,6 +157,31 @@ export async function POST(request) {
       };
       result=await checked(db.from("platform_school_sites").upsert(record,{onConflict:"school_id"}).select("school_id").single());
       await audit(db,actor,"tenant.brand_updated",schoolId,{published:record.is_published});
+    } else if (action === "school.inviteOwner") {
+      requireOwner(actor);requireAal2(token);
+      const schoolId=validateUuid(body.schoolId,"school");
+      const school=await checked(db.from("platform_schools")
+        .select("id,school_code,name,owner_email,status").eq("id",schoolId).single());
+      if(!["onboarding","active"].includes(school.status))
+        throw new ApiError(403,"This school's tenant state does not allow invitations");
+      const email=String(school.owner_email||"").trim().toLowerCase();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new ApiError(400,"School owner email is invalid");
+      const invitation=await checked(db.from("school_owner_invites")
+        .select("status,claimed_by").eq("school_id",schoolId).eq("email",email).maybeSingle());
+      if(!invitation||invitation.status==="revoked")
+        throw new ApiError(409,"No authorized school owner invitation available");
+      if(invitation.status==="claimed")
+        throw new ApiError(409,"School owner has already claimed this invitation");
+      const base=(process.env.APP_PUBLIC_URL||"").replace(/\/$/,"");
+      if(!/^https?:\/\/[^/]+/.test(base))
+        throw new ApiError(503,"Configure APP_PUBLIC_URL to send a school-owner invitation");
+      const {error:invErr}=await db.auth.admin.inviteUserByEmail(email,{
+        redirectTo:base+"/s/"+school.school_code+"/login"
+      });
+      if(invErr)throw new ApiError(409,
+        "Invitation email could not be sent. If the school owner already has a confirmed account, they can sign in to their school using that account. Verify invitation/email settings.");
+      await audit(db,actor,"school.owner_email_invited",schoolId,{email});
+      result={invited:true,school_code:school.school_code,owner_email:email};
     } else if (action === "tenant.state") {
       requirePermission(actor,"tenants.lifecycle");
       const schoolId = validateUuid(body.id, "school");
@@ -160,6 +190,12 @@ export async function POST(request) {
       const target = String(body.status || "");
       const current = await checked(db.from("platform_schools").select("status,school_code").eq("id",schoolId).single());
       if (!canTransition(current.status,target)) throw new ApiError(400, "This tenant status change is not permitted.");
+      if (current.status==="onboarding" && target==="active") {
+        const review=await checked(db.from("school_onboarding")
+          .select("review_requested_at").eq("school_id",schoolId).maybeSingle());
+        if(!review?.review_requested_at)throw new ApiError(400,
+          "The school owner must complete onboarding and request platform review before activation.");
+      }
       if (target === "deletion_requested") { requireOwner(actor); requireAal2(token); if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
       result = await checked(db.rpc("platform_change_school_state", {
         p_school_id: schoolId, p_target: target, p_reason: reason, p_actor: actor.id

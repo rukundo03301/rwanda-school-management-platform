@@ -251,7 +251,7 @@ export default function PlatformPage() {
           </div>
           {(data.totals.pastDue>0||data.totals.dueToday>0)&&<div className="notice error">Attention: {data.totals.pastDue} school(s) past due and {data.totals.dueToday} due today. <button className="button small secondary" onClick={()=>setTab("billing")}>Open private monthly clock</button></div>}
         </>}
-        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
+        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canInvite={data.actor.isOwner} onInvite={(t)=>open("inviteSchoolOwner",{tenant:t})} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
         <div className="notice info">Monthly amounts and countdowns belong only to authorized platform staff. Schools do not see this billing ledger. These records represent what you entered manually, not verified bank or Mobile Money balances.</div>
       </>}
       {tab==="tenants"&&<>
@@ -333,6 +333,12 @@ export default function PlatformPage() {
         <Field label="School owner's email"><input className="input" type="email" required value={form.ownerEmail||""} onChange={e=>setForm({...form,ownerEmail:e.target.value})}/></Field>
         <div className="modal-footer"><button type="submit" className="button" disabled={busy}>Register school</button></div>
       </form>}
+      {modal==="inviteSchoolOwner"&&<div>
+        <p>Invite the owner of <strong>{form.tenant.name}</strong> to their own branded school setup.</p>
+        <p className="micro">Invitation will be sent to {form.tenant.owner_email}. Existing verified users may sign in with their current account without a new invitation email.</p>
+        <div className="notice info">Sending the invitation requires your MFA-authenticated platform-owner session. The school owner will not receive access to your platform billing or other schools.</div>
+        <div className="modal-footer"><button className="button" disabled={busy} onClick={()=>action({action:"school.inviteOwner",schoolId:form.tenant.id})}>Email school owner</button></div>
+      </div>}
       {modal==="addSchool"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.addSchool",companyId:form.companyId,schoolName:form.schoolName,ownerEmail:form.ownerEmail});}}>
         <p className="muted">A second school shares its company's existing Company ID, while receiving its own new School ID.</p>
         <Field label="Existing school company"><select className="input" required value={form.companyId||""} onChange={e=>setForm({...form,companyId:e.target.value})}><option value="">Choose existing company</option>{[...new Map(data.tenants.map(t=>[t.company_id,{id:t.company_id,name:t.platform_companies?.name||"Company",code:t.platform_companies?.company_code||""}])).values()].map(c=><option key={c.id} value={c.id}>{c.name} · {c.code}</option>)}</select></Field>
@@ -449,7 +455,7 @@ function siteForm(site) {
     heroUrl:site?.hero_url||"",primaryColor:site?.primary_color||"#204a78",
     contactEmail:site?.contact_email||"",contactPhone:site?.contact_phone||"",isPublished:Boolean(site?.is_published)};
 }
-function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,onState,onPaid,onTerms,onBrand}) {
+function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,canInvite,onInvite,onState,onPaid,onTerms,onBrand}) {
   return <div className="table-wrap"><table>
     <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>Next monthly due</th><th>Actions</th></tr></thead>
     <tbody>{tenants.map(t=>{const terms=feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(terms?.next_due_on);
@@ -460,9 +466,10 @@ function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,onState,o
           {canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage status</button>}
           {canRecord&&<><button className="button secondary small" onClick={()=>onTerms(t)}>Set fee</button><button disabled={!terms?.monthly_fee_rwf} className="button small" onClick={()=>onPaid(t)}>Mark paid</button></>}
           {canBrand&&<button className="button secondary small" onClick={()=>onBrand(t)}>School site</button>}
+          {canInvite&&<button className="button secondary small" onClick={()=>onInvite(t)}>Invite school owner</button>}
           <a href={"/s/"+t.school_code} target="_blank" rel="noreferrer">Preview</a>
         </div></td>
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
-function modalTitle(mode){return ({newTenant:"Register a new school",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
+function modalTitle(mode){return ({newTenant:"Register a new school",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
