@@ -177,7 +177,7 @@ export default function ReportsManager({code}){
        <td><a href={m.syllabus_url} target="_blank" rel="noreferrer">{m.syllabus_title}</a></td>
        <td>{units.filter(u=>u.class_id===m.class_id&&u.subject_id===m.subject_id).length}</td>
        <td>{m.approved_at?<span className="repm-status good">Approved</span>:
-        <div className="repm-td-actions"><button className="button secondary small" onClick={()=>ownerAction("unit",{classId:m.class_id,subjectId:m.subject_id})}>+ Unit</button>
+        <div className="repm-td-actions"><button className="button secondary small" onClick={()=>ownerAction("unit",{classId:m.class_id,subjectId:m.subject_id,termNumber:1})}>+ Unit</button>
          {actor.owner&&<button className="button small" onClick={()=>ownerAction("approveSubject",{course:m})}>Approve</button>}</div>}</td>
      </tr>)}</tbody></table>{!courseMappings.length&&<Empty label="No mapped subjects yet" description="Define classes and subjects in School Administration; link them to an approved syllabus here."/>}</div></article>
     <div className="repm-section-top"><div><h2>Term assessment periods</h2><p>One reporting period for each official school term.</p></div>
@@ -187,7 +187,7 @@ export default function ReportsManager({code}){
       {!terms.length&&<Empty label="No term periods" description="Create school term dates within the current academic year."/>}</div></article>
     {units.length>0&&<article className="repm-panel"><h2>Curriculum unit competences</h2>
       <div className="repm-unit-grid">{units.map(u=><div key={u.id}><small>{klass(u.class_id)?.name} / {subject(u.subject_id)?.name}</small>
-       <strong>{u.unit_code} — {u.unit_title}</strong><p>{u.key_competence}</p></div>)}</div></article>}
+       <strong>{u.unit_code} — {u.unit_title}</strong><p>Term {u.term_number}: {u.key_competence}</p></div>)}</div></article>}
    </>}
    {tab==="marks"&&(teacher||canRead)&&<>
     <div className="repm-section-top"><div><h2>Assessment gradebook</h2>
@@ -209,7 +209,7 @@ export default function ReportsManager({code}){
       {!visibleMarks.length&&<Empty label="No marks entered" description="Approved and assigned teachers can record actual curriculum assessments after the school configures a term."/>}</div></article>
     <article className="repm-panel"><h3>Curriculum units available for marking</h3>
       <div className="repm-unit-grid">{units.filter(u=>u.class_id===classId).map(u=><div key={u.id}>
-       <small>{subject(u.subject_id)?.name}</small><strong>{u.unit_code} · {u.unit_title}</strong><p>{u.key_competence}</p></div>)}</div>
+       <small>{subject(u.subject_id)?.name}</small><strong>{u.unit_code} · {u.unit_title}</strong><p>Term {u.term_number}: {u.key_competence}</p></div>)}</div>
       {!units.some(u=>u.class_id===classId)&&<Empty label="No syllabus units recorded" description="The school needs to enter approved unit competences before entering end-of-unit marks."/>}</article>
    </>}
    {tab==="published"&&canRead&&<>
@@ -285,6 +285,10 @@ export default function ReportsManager({code}){
    </form>}
    {modal==="unit"&&<form onSubmit={e=>{e.preventDefault();act({action:"curriculum.unit",...form});}}>
     <p>Copy the unit's code and competence accurately from your school's verified source syllabus.</p>
+    <Field label="Teaching term for this unit"><select className="input" value={form.termNumber||1}
+      onChange={e=>setForm({...form,termNumber:Number(e.target.value)})}>
+      <option value={1}>Term 1</option><option value={2}>Term 2</option><option value={3}>Term 3</option>
+     </select></Field>
     <Field label="Syllabus unit code"><input className="input" required maxLength={30} value={form.unitCode||""} onChange={e=>setForm({...form,unitCode:e.target.value})}/></Field>
     <Field label="Unit title"><input className="input" required maxLength={180} value={form.unitTitle||""} onChange={e=>setForm({...form,unitTitle:e.target.value})}/></Field>
     <Field label="Key competence"><textarea className="input" required minLength={3} maxLength={2000} value={form.competence||""} onChange={e=>setForm({...form,competence:e.target.value})}/></Field>
@@ -322,7 +326,8 @@ export default function ReportsManager({code}){
      <option value="end_term">End of term</option></select></Field>
     {form.category==="unit"&&<Field label="Curriculum unit"><select required className="input" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}>
      <option value="">Choose official unit</option>
-     {units.filter(u=>u.class_id===form.classId&&u.subject_id===form.subjectId).map(u=><option key={u.id} value={u.unit_code}>{u.unit_code} · {u.unit_title}</option>)}</select></Field>}
+     {units.filter(u=>u.class_id===form.classId&&u.subject_id===form.subjectId
+       &&u.term_number===terms.find(t=>t.id===form.termId)?.term_number).map(u=><option key={u.id} value={u.unit_code}>{u.unit_code} · {u.unit_title}</option>)}</select></Field>}
     {form.category==="project"&&<Field label="Project reference"><input className="input" required maxLength={30} placeholder="PROJECT-1" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}/></Field>}
     {form.category==="end_term"&&<p className="repm-info">The end-of-term examination is recorded once as TERM for this subject.</p>}
     <Field label="Marks earned on this assessment"><input className="input" type="number" step="0.01" min="0" required
