@@ -81,9 +81,9 @@ export default function TeachingConsole({code}){
  const subjectName=(id)=>data.subjects.find(x=>x.id===id)?.name||"Subject";
  const todayAttendance=(enrollmentId)=>data.attendance?.find(x=>x.enrollment_id===enrollmentId&&x.attendance_on===day);
  const tabs=manage?["overview","teachers","students"]:["overview","lessons","homework","attendance","submissions"];
- return <main className="class-shell" style={{"--school-color":"#204a78"}}>
-   <header className="class-header"><div><span className="class-eyebrow">PRIVATE SCHOOL WORKSPACE</span><h1>{school.name}</h1>
-      <p>{kind(mode)} · {data.currentYear?.name||"No current academic year configured"}</p></div>
+ return <main className="class-shell" style={{"--school-color":school.primaryColor||"#204a78"}}>
+   <header className="class-header"><div className="row" style={{gap:12,alignItems:"center"}}>{school.logoUrl&&<img src={school.logoUrl} alt={school.name+" official logo"} style={{width:55,height:55,objectFit:"contain",borderRadius:10}}/>}<div><span className="class-eyebrow">PRIVATE SCHOOL WORKSPACE</span><h1>{school.name}</h1>
+      <p>{kind(mode)} · {data.currentYear?.name||"No current academic year configured"}</p></div></div>
      <div className="class-header-links"><a href={"/s/"+code+"/admin"}>School Administration</a>
        <a href={"/s/"+code}>School Website</a></div>
    </header>
