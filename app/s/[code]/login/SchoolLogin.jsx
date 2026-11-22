@@ -62,7 +62,7 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
        <div><strong>{name}</strong><div className="micro">Secure School Portal</div></div>
      </div>
      <h2>{mode==="login"?"Choose your school role":"Reset your password"}</h2>
-     {mode==="login"&&!signedIn&&<>
+     {mode==="login"&&<>
        <p className="muted">Select how you belong to this school. Your verified account and approved school membership determine what you may actually access.</p>
        <div className="school-role-options login-roles" role="group" aria-label="Choose school login role">
          {SCHOOL_ROLES.map(r=><button key={r.id} type="button"
@@ -80,14 +80,14 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
      {signedIn&&mode==="login"?<div className="notice info">
        <strong>You're already signed in.</strong>
        <p>Select an authorized school role above to continue. You can switch accounts if this is not your intended identity.</p>
-       <div className="row"><button className="button" type="button" disabled={!role} onClick={()=>window.location.assign(schoolPortalPath(code,role))}>Continue to selected workspace</button>
+       <div className="row"><button className="button" type="button" disabled={!role||unavailable} onClick={()=>window.location.assign(schoolPortalPath(code,role))}>Continue to selected workspace</button>
          <button className="button secondary" type="button" onClick={async()=>{await client.auth.signOut();setSignedIn(false);}}>Use another account</button></div>
      </div>:<form onSubmit={submit}>
        <label className="field">Email address<input className="input" required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
        {mode==="login"&&<label className="field">Password<input className="input" required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
        <button className="button" type="submit" disabled={!client||busy||unavailable||(mode==="login"&&!role)} style={{width:"100%"}}>{busy?"Please wait…":mode==="login"?"Sign in to your school":"Email reset link"}</button>
      </form>
-     {mode==="login"&&<>
+     {mode==="login"&&!signedIn&&<>
        <div className="auth-divider"><span>or</span></div>
        <button className="button secondary" style={{width:"100%"}} disabled={!client||busy||unavailable||!role} onClick={google}>Continue with Google</button>
      </>}
