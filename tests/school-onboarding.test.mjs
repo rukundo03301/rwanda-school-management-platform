@@ -19,11 +19,11 @@ test("school owner claims only a preapproved, pending verified email invite",()=
   assert.doesNotMatch(scope,/invite\?\.status==="claimed"/);
   assert.match(migration,/if invitation\.status <> 'pending'/);
   assert.match(migration,/school_claim_owner_invitation/);
-  assert.match(migration,/primary key\(school_id,auth_user_id\)/);
+  assert.match(migration,/primary key\(school_id,auth_user_id,role\)/);
 });
 
 test("no direct browser access to draft, invitations or student-facing data",()=>{
-  for(const table of ["school_owner_invites","school_memberships","school_onboarding"]){
+  for(const table of ["school_owner_invites","school_memberships","school_onboarding","school_site_drafts"]){
     assert.ok(migration.includes("'"+table+"'"),"Missing RLS/revocation for "+table);
   }
   assert.match(migration,/enable row level security/);
