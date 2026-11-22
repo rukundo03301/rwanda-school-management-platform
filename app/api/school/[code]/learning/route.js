@@ -1,4 +1,5 @@
-import {schoolVerifiedContext,studentLearningContext,classroomText} from "../../../../../lib/school-classroom.mjs";
+import {studentLearningContext,classroomText} from "../../../../../lib/school-classroom.mjs";
+import {schoolVerifiedContext} from "../../../../../lib/school-admin.mjs";
 import {ApiError,checked,jsonError,validateUuid} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
