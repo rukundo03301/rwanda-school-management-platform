@@ -72,8 +72,11 @@ export default function FamilyDashboard({code}){
          </div></article>)}</div>:
          <div className="adm-empty"><strong>No linked children yet</strong><p>If your school has already verified your relationship, ask it to invite your confirmed email address. Your child will appear only after you accept the invitation.</p></div>}
      </section>
-     <div className="adm-family-next"><strong>Coming in future student and parent modules</strong><p>Attendance, homework due dates, tuition balances, class reports, timetables and teacher messages will be available after each feature passes school-specific privacy and permission checks. They are not live yet.</p></div>
-     <a href={"/s/"+code+"/portal?role=parent"}>Return to Parent Portal</a>
+     <div className="adm-family-next"><strong>Coming in future student and parent modules</strong><p>Approved school-issued term reports are now available in a separate private report viewer after publication. Tuition, parent-facing homework, timetables and teacher messaging are separate upcoming modules.</p></div>
+     <div className="row">
+      <a className="button secondary" href={"/s/"+code+"/report-card"}>View Approved Child Reports</a>
+      <a href={"/s/"+code+"/portal?role=parent"}>Return to Parent Portal</a>
+     </div>
    </div>
  </main>;
 }
