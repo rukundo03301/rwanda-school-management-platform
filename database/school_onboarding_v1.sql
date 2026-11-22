@@ -88,7 +88,7 @@ create or replace function public.school_claim_owner_invitation(
 ) returns jsonb language plpgsql security invoker set search_path=pg_catalog,public
 as $$
 declare invitation public.school_owner_invites%rowtype;
-declare school_status text;
+  school_status text;
 begin
  if p_school_id is null or p_auth_user_id is null or p_verified_email is null then
     raise exception 'Missing verified invitation data';
