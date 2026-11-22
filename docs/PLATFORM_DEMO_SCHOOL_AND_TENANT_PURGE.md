@@ -11,7 +11,7 @@ In Platform Owner → Tenants, select **Create Mockup School** and confirm using
 - Current academic year, Primary 4 class, mathematics subject, assigned teacher.
 - Fake admission, fictitious student, enrollment and active sample guardian link.
 - Sample lesson plan, homework, attendance, timetable, school announcement and calendar event.
-- Sample RWF fee catalog and one **unpaid fictional invoice**.
+- Sample RWF fee catalog, one **unpaid fictional invoice**, and a clearly marked **PENDING, NOT REAL** payment claim (no settlement or receipt).
 - Sample platform support ticket and zero-RWF private platform monthly fee tracking.
 - **No real payments are initiated; no invitation emails are sent; no actual school documents are uploaded.**
 
