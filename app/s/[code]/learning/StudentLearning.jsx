@@ -84,7 +84,7 @@ export default function StudentLearning({code}){
        {data.invitations?.map(inv=><div className="learn-invite" key={inv.student_id}><div>
          <strong>School invitation ready</strong><p>Identity hidden until confirmation. Expires {inv.expires_at?.slice(0,10)}.</p>
        </div><button className="button" disabled={busy} onClick={()=>act({action:"student.claim",studentId:inv.student_id,accepted:true})}>Accept Student Invitation</button></div>)}
-       {!data.invitations?.length&&<TinyEmpty text="No approved invitation for this account. Ask your school to verify and invite you."/ >}
+       {!data.invitations?.length&&<TinyEmpty text="No approved invitation for this account. Ask your school to verify and invite you."/>}
      </section>:<>
        <div className="learn-profile">
          <div className="learn-avatar" aria-hidden="true">🎓</div><div><small>{school.name} · {data.currentYear?.name||"Academic year not set"}</small>
