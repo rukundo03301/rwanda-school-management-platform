@@ -97,3 +97,10 @@ A school owner or authorized admissions administrator can record a real applicat
 All child-related records are school-scoped and protected by server authentication and private database access. The module intentionally does not implement attendance, grades, homework, tuition, teacher rosters or student self-registration.
 
 See [Student Admissions Module 3](docs/STUDENT_ADMISSIONS_MODULE_3.md). This remains a draft, GitHub-only module with no changes deployed to APEX or released phone apps.
+
+
+## Module 4: Teacher Classrooms, Homework and Student Learning
+
+Verified teachers can work with their own assigned class/subject roster, save lesson plans, draft/publish homework, record class attendance and read submissions. School Owners/authorized academic managers assign teachers; the School Owner can invite student accounts only after school and guardian checks. Verified students receive separate personalized learning screens for their own subjects, published homework, responses and attendance. Teachers cannot access unrelated classes and students cannot select arbitrary Student IDs.
+
+See [Classrooms Module 4](docs/CLASSROOMS_MODULE_4.md) for privacy, business flow and release tests. This is GitHub-only development, not a deployed school, Android app or iPhone app. Native mobile distribution remains a later release layer.
