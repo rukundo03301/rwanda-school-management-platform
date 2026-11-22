@@ -11,6 +11,7 @@ on:
       - feature/curriculum-assessments-reports-v1
       - feature/module-06-school-communications-v1
       - feature/module-07-school-fees-rwf-v1
+      - feature/platform-demo-tenant-secure-purge-v1
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,7 +32,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://stgqhkhfpnqmsiyrvvhe.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-for-build-only
-# Isolated CI tests owner-console, school-onboarding, school-administration admissions, classroom curriculum/reporting and school communications migrations.
+# Isolated CI tests all nine GitHub-owned migrations plus transactional mock tenant purge.
+# Never run this smoke test against hosted APEX or another non-local database.
 # NO production database deployment in this workflow.
 # Do not add a second migration deployer if Supabase native GitHub integration is enabled.
 
@@ -70,10 +72,16 @@ jobs:
           sleep 1
           supabase migration new school_fees_rwf_v1
           cp database/school_fees_rwf_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_fees_rwf_v1.sql' | head -n 1)"
+          sleep 1
+          supabase migration new platform_demo_tenant_purge_v1
+          cp database/platform_demo_tenant_purge_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_platform_demo_tenant_purge_v1.sql' | head -n 1)"
       - name: Start isolated Supabase and apply migration
         run: |
           supabase start
           supabase db reset
+      - name: Exercise two synthetic tenants and validate permanent wipe, no cross-school damage
+        run: |
+          PGPASSWORD=postgres psql --host 127.0.0.1 --port 54322             --username postgres --dbname postgres --set ON_ERROR_STOP=1             --file tests/platform-tenant-purge.smoke.sql
       - name: Stop local stack
         if: always()
         run: supabase stop || true
