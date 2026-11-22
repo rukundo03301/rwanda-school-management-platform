@@ -53,3 +53,14 @@ First delivery focuses exclusively on the SaaS **platform operator** (you), not 
 - CI, SQL migration and security tests passed before module can be called "built and working" in production.
 
 **Source rule:** Only approved GitHub code/migrations can change Supabase; do not use Supabase SQL editor to create, drop or edit tables.
+
+
+## Owner-only payment model amendment (overrides legacy subscription language above)
+
+There is **no tenant-facing subscription portal**. The business owner sets a private monthly RWF fee and due date for each school, records actual payments manually, and sees countdowns, past-due alerts and an audited ledger in Tenant Management. Payment due never triggers automatic suspension. The app does not claim that manual receipts were verified by a gateway.
+
+The new optional GitHub Actions email digest lists schools overdue, due today or approaching due within seven days, delivered privately to the operator through a configured Brevo transactional email account. It requires an approved GitHub-first migration, deployment, Brevo sender/API configuration, designated owner recipient and enable flag. See [Private Monthly Payments and Reminders](./PRIVATE_MONTHLY_PAYMENTS_AND_REMINDERS.md).
+
+Tenant branding now includes a public institution-specific homepage with owner-configured logo, campus photograph, school description, official contacts and announcement. The school portal login and actual school-role dashboards are not yet implemented and must not be presented as active.
+
+The platform owner's identity now uses the immutable authenticated user UUID from `PLATFORM_OWNER_USER_ID`, not an editable email setting.
