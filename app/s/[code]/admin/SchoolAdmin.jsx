@@ -9,7 +9,7 @@ const SECTIONS=[
  {id:"academics",name:"Academic Setup",icon:"▤"},
  {id:"activity",name:"School Activity",icon:"◷"}
 ];
-const DATE=(v)=>v?new Date(v).toLocaleDateString("en-RW",{year:"numeric",month:"short",day:"numeric"}):"—";
+const DATE=(v)=>v?new Date(v).toLocaleDateString("en-RW",{timeZone:"Africa/Kigali",year:"numeric",month:"short",day:"numeric"}):"—";
 function Dialog({title,close,children}){
  return <div className="school-admin-modal-wrap" role="presentation" onClick={e=>{if(e.target===e.currentTarget)close();}}>
    <div role="dialog" aria-modal="true" aria-label={title} className="school-admin-modal">
