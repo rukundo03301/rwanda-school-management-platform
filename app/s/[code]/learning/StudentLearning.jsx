@@ -116,8 +116,11 @@ export default function StudentLearning({code}){
       {!attendance.length&&<p className="lr-empty">No attendance entries have been recorded for your current class yet.</p>}
      </section>}
     </>}
-    <div className="lr-note"><a className="button secondary small" href={"/s/"+code+"/report-card"}>View My Approved Report Cards</a>
-      <p><strong>Not yet available:</strong> government-issued exam certificates, school-fee balances, teacher messaging and full timetables. Only school-approved term reports are included.</p></div>
+    <div className="lr-note"><div className="row">
+        <a className="button secondary small" href={"/s/"+code+"/report-card"}>My Approved Reports</a>
+        <a className="button secondary small" href={"/s/"+code+"/communications"}>My Class Timetable & Notices</a>
+       </div>
+       <p><strong>Not yet available:</strong> government-issued exam certificates, school-fee balances and direct student–teacher messages. Timetables and school calendar events now have their own authorized workspace.</p></div>
    </>}
   </div>
  </main>;
