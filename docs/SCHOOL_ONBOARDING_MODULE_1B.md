@@ -60,3 +60,32 @@
 Only after onboarding is functioning will we implement approved teacher/class memberships, verified guardian-child relationships, student enrollments and the different Android/iOS screens. This module does **not** include a released APK or App Store app.
 
 **Publication isolation:** School owner edits are saved in `school_site_drafts`; the public `platform_school_sites` row is updated only by explicit publication. Editing an already-published site does not immediately change what visitors see. Public marketing image URLs themselves are not private, so upload safeguards and school instructions prohibit private student photos.
+
+
+## Amendment — School website content and identity-aware login
+
+**Decision:** Every school owns its public identity. The institutional homepage may present authentic school-supplied **About**, **Mission**, **Vision**, **Leadership/Owner profile**, published school **announcements and advertisements** (up to three cards in this initial editor), contacts, photos and a visible **School Portal** link. The leadership profile can show an official name, position, optional portrait and authorized welcome statement; if the school has not supplied this, the site does not invent a founder, principal or mission.
+
+Advertisements are school-controlled notices for events, enrollment, approved programs and opportunities, not an external ad network or the SaaS operator's internal fees. Active cards display a fixed, safe **Contact the school** action; no unverified external links, targeting, payment checkout or child data are present.
+
+Draft and published homepage records have separate columns for mission, vision, leadership and advertisements. Editing the draft never updates the public site until an authorized publish action copies the approved snapshot. Uploaded portrait images are marketing assets; do not publish photos of children without appropriate permission.
+
+### School Portal role choice
+
+- On each school's branded login, users choose one of **School Owner**, **Administrator**, **Teacher**, **School Staff**, **Parent/Guardian**, or **Student**.
+- Each choice explains the intended workspace; after email/password or Google authentication, the backend resolves actual school-scoped memberships.
+- A chosen button is **never a role grant**. The school member must be approved for that school. Multi-role accounts can have more than one approved role; the selected destination must match an active membership.
+- A verified **School Owner** can enter the existing setup workspace. Pending invited school owners can accept only their own approved invitation. School Owner is distinct from the platform operator's private console.
+- Other role selections currently enter a protected gateway screen and transparently explain that the academic, staff, parent and student apps are **not yet released**. They do not show fabricated rosters, fees, grades or homework. Their operational dashboards will be implemented in later modules with teacher-class, guardian-child and self-enrollment authorization rules.
+- School pause/suspension denies private role access via the server's tenant state checks.
+
+### New files and test gates
+
+- \`lib/school-roles.mjs\`: shared, explicit role identifiers and user-friendly choice explanations.
+- \`app/api/school/[code]/access/route.js\`: verifies Supabase identity, school, tenant state and approved active memberships.
+- \`app/s/[code]/portal\`: routes verified users and shows clear unapproved / unavailable states.
+- \`app/s/[code]/login/SchoolLogin.jsx\`: accessible role cards before authentication.
+- \`tests/school-homepage-and-roles.test.mjs\`: static and pure policy tests.
+- CI must pass unit/build plus isolated migration smoke tests before this branch can be merged. Live sign-in, upload, review/publish, and cross-school access must be exercised against isolated test tenants; code compilation alone is insufficient.
+
+**No production deployment and no direct changes to APEX from this amendment.**
