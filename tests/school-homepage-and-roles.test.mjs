@@ -48,7 +48,7 @@ test("homepage uses published marketing content, not a draft or operator ledger"
   }
   assert.match(publicSite,/className="site-portal-link"/);
   assert.match(publicSite,/promos\.map/);
-  assert.match(publicSite,/ad\.enabled/);
+  assert.match(publicSite,/a\?\.enabled/);
 });
 
 test("owner edits mission, vision, leader and approved promos in private draft",()=>{
