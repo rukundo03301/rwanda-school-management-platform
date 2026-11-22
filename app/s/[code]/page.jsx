@@ -28,7 +28,7 @@ export default async function SchoolHome({params}) {
   </main>;
   const contactHref=site.contact_email?"mailto:"+site.contact_email:null;
   return <main className="site-landing" style={{"--school-color":color}}>
-    <header className="site-header">{brand}<nav aria-label="School website"><a href="#about">About</a><a href="#programs">Programs</a><a href="#contact">Contact</a></nav></header>
+    <header className="site-header">{brand}<nav aria-label="School website"><a href="#about">About</a><a href="#programs">Programs</a><a href="#contact">Contact</a><a href={"/s/"+code+"/login"} className="site-portal-link">School Portal</a></nav></header>
     {site.announcement&&<div className="site-announcement">{site.announcement}</div>}
     <section className="site-hero" style={site.hero_url?{backgroundImage:"linear-gradient(90deg,rgba(7,25,43,.83),rgba(7,25,43,.3)),url("+JSON.stringify(site.hero_url)+")"}:{}}>
       <div className="site-hero-content">
@@ -47,6 +47,6 @@ export default async function SchoolHome({params}) {
       {site.contact_phone&&<p>{site.contact_phone}</p>}
       {!site.contact_email&&!site.contact_phone&&<p>Official school contact details will be provided here.</p>}
     </section>
-    <footer className="site-footer"><strong>{school.name}</strong> · Official school website</footer>
+    <footer className="site-footer"><strong>{school.name}</strong> · Official school website · <a href={"/s/"+code+"/login"} style={{color:"white"}}>School Portal</a></footer>
   </main>;
 }
