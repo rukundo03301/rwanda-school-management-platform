@@ -333,3 +333,160 @@ revoke all on function public.platform_update_staff_permissions(uuid,text,text[]
   from public, anon, authenticated;
 grant execute on function public.platform_update_staff_permissions(uuid,text,text[],text,uuid)
   to service_role;
+
+
+-- Owner-only, human-managed monthly terms. These are NOT a subscription checkout,
+-- payment processor, or anything shown to schools, teachers, students, parents.
+create table if not exists public.platform_fee_terms (
+  school_id uuid primary key references public.platform_schools(id) on delete restrict,
+  monthly_fee_rwf bigint not null check (monthly_fee_rwf >= 0),
+  next_due_on date,
+  last_paid_on date,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references auth.users(id) on delete set null
+);
+create index if not exists platform_fee_terms_due_idx on public.platform_fee_terms(next_due_on);
+
+create table if not exists public.platform_manual_payments (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.platform_schools(id) on delete restrict,
+  paid_on date not null,
+  amount_rwf bigint not null check(amount_rwf > 0),
+  method text not null check(method in ('mobile_money','bank_transfer','cash','other')),
+  reference text,
+  notes text,
+  state text not null default 'recorded' check(state in ('recorded','voided')),
+  recorded_by uuid not null references auth.users(id) on delete restrict,
+  recorded_at timestamptz not null default now(),
+  voided_by uuid references auth.users(id) on delete restrict,
+  voided_at timestamptz,
+  void_reason text
+);
+create index if not exists platform_manual_payments_school_idx on public.platform_manual_payments(school_id,paid_on desc);
+
+create table if not exists public.platform_school_sites (
+  school_id uuid primary key references public.platform_schools(id) on delete restrict,
+  tagline text not null default '',
+  about_text text not null default '',
+  announcement text not null default '',
+  logo_url text,
+  hero_url text,
+  primary_color text not null default '#204a78',
+  contact_email text,
+  contact_phone text,
+  is_published boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+-- Restrict all new platform tables to the trusted server-side role only.
+do $$
+declare t text;
+begin
+ foreach t in array array['platform_fee_terms','platform_manual_payments','platform_school_sites'] loop
+  execute format('alter table public.%I enable row level security',t);
+  execute format('revoke all on table public.%I from public,anon,authenticated',t);
+  execute format('grant all on table public.%I to service_role',t);
+ end loop;
+end $$;
+
+-- Payment record and derived next date are atomic. Do not call for real gateway receipts.
+create or replace function public.platform_record_monthly_payment(
+  p_school_id uuid, p_paid_on date, p_amount_rwf bigint,
+  p_method text,p_reference text,p_notes text,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public
+as $$
+declare
+  terms public.platform_fee_terms%rowtype;
+  payment_id uuid;
+  computed_due date;
+begin
+  if p_method not in ('mobile_money','bank_transfer','cash','other') then raise exception 'Unrecognized payment method'; end if;
+  if p_paid_on is null or p_paid_on > (now() at time zone 'Africa/Kigali')::date then raise exception 'Invalid or future payment date'; end if;
+  if length(coalesce(p_reference,''))>120 or length(coalesce(p_notes,''))>500 then raise exception 'Payment notes too long'; end if;
+  select * into terms from public.platform_fee_terms where school_id=p_school_id for update;
+  if not found or terms.monthly_fee_rwf <= 0 then raise exception 'Set a monthly fee before marking paid'; end if;
+  if p_amount_rwf is null or p_amount_rwf < terms.monthly_fee_rwf then
+    raise exception 'Payment is below required monthly amount; do not mark a partial as fully paid';
+  end if;
+  if terms.last_paid_on is not null and p_paid_on <= terms.last_paid_on then
+    raise exception 'Payment date must be after last recorded paid date';
+  end if;
+  computed_due := (p_paid_on + interval '1 month')::date;
+  insert into public.platform_manual_payments(
+    school_id,paid_on,amount_rwf,method,reference,notes,recorded_by)
+    values(p_school_id,p_paid_on,p_amount_rwf,p_method,p_reference,p_notes,p_actor)
+    returning id into payment_id;
+  update public.platform_fee_terms
+    set last_paid_on=p_paid_on,next_due_on=computed_due,updated_at=now(),updated_by=p_actor
+    where school_id=p_school_id;
+  insert into public.platform_audit(actor_id,event,resource_id,metadata)
+    values(p_actor,'fee.manual_payment_recorded',p_school_id,jsonb_build_object(
+      'manual_payment_id',payment_id,'paid_on',p_paid_on,
+      'next_due',computed_due,'amount_rwf',p_amount_rwf,'method',p_method));
+  return jsonb_build_object('payment_id',payment_id,'next_due_on',computed_due);
+end;
+$$;
+
+create or replace function public.platform_set_monthly_terms(
+  p_school_id uuid,p_amount_rwf bigint,p_first_due_on date,p_actor uuid
+) returns jsonb language plpgsql security invoker set search_path=pg_catalog,public
+as $$
+declare terms public.platform_fee_terms%rowtype;
+begin
+ if p_amount_rwf is null or p_amount_rwf<0 then raise exception 'Invalid monthly RWF amount'; end if;
+ if p_first_due_on is null then raise exception 'Initial due date is required'; end if;
+ if not exists(select 1 from public.platform_schools where id=p_school_id) then raise exception 'School not found'; end if;
+ select * into terms from public.platform_fee_terms where school_id=p_school_id for update;
+ if found and terms.last_paid_on is not null then
+   -- Changing fee amount may not silently reset next due or erase payment history.
+   update public.platform_fee_terms set monthly_fee_rwf=p_amount_rwf,
+     updated_by=p_actor,updated_at=now() where school_id=p_school_id;
+ else
+   insert into public.platform_fee_terms(school_id,monthly_fee_rwf,next_due_on,updated_by)
+      values(p_school_id,p_amount_rwf,p_first_due_on,p_actor)
+      on conflict(school_id) do update set monthly_fee_rwf=excluded.monthly_fee_rwf,
+      next_due_on=excluded.next_due_on,updated_by=p_actor,updated_at=now();
+ end if;
+ insert into public.platform_audit(actor_id,event,resource_id,metadata)
+   values(p_actor,'fee.terms_updated',p_school_id,
+     jsonb_build_object('monthly_fee_rwf',p_amount_rwf,'requested_first_due_on',p_first_due_on));
+ return jsonb_build_object('school_id',p_school_id,'amount_rwf',p_amount_rwf);
+end;
+$$;
+
+-- Corrections remain auditable: void the mistaken record and restore the previous
+-- non-voided payment's next_due_on; never delete payment history.
+create or replace function public.platform_void_manual_payment(
+ p_payment_id uuid,p_reason text,p_actor uuid
+) returns jsonb language plpgsql security invoker set search_path=pg_catalog,public
+as $$
+declare
+ receipt public.platform_manual_payments%rowtype;
+ prev_paid date;
+ next_due date;
+begin
+ if length(btrim(coalesce(p_reason,'')))<8 then raise exception 'Correction reason required'; end if;
+ select * into receipt from public.platform_manual_payments where id=p_payment_id for update;
+ if not found or receipt.state <> 'recorded' then raise exception 'Recorded payment not found'; end if;
+ perform 1 from public.platform_fee_terms where school_id=receipt.school_id for update;
+ update public.platform_manual_payments set state='voided',voided_by=p_actor,voided_at=now(),
+   void_reason=p_reason where id=p_payment_id;
+ select max(paid_on) into prev_paid from public.platform_manual_payments
+  where school_id=receipt.school_id and state='recorded';
+ next_due := case when prev_paid is null then null else (prev_paid+interval '1 month')::date end;
+ update public.platform_fee_terms set last_paid_on=prev_paid,next_due_on=next_due,
+  updated_at=now(),updated_by=p_actor where school_id=receipt.school_id;
+ insert into public.platform_audit(actor_id,event,resource_id,metadata)
+   values(p_actor,'fee.manual_payment_voided',receipt.school_id,
+    jsonb_build_object('payment_id',receipt.id,'reason',p_reason,'recomputed_due',next_due));
+ return jsonb_build_object('payment_id',receipt.id,'next_due_on',next_due);
+end;
+$$;
+
+revoke all on function public.platform_record_monthly_payment(uuid,date,bigint,text,text,text,uuid) from public,anon,authenticated;
+revoke all on function public.platform_set_monthly_terms(uuid,bigint,date,uuid) from public,anon,authenticated;
+revoke all on function public.platform_void_manual_payment(uuid,text,uuid) from public,anon,authenticated;
+grant execute on function public.platform_record_monthly_payment(uuid,date,bigint,text,text,text,uuid) to service_role;
+grant execute on function public.platform_set_monthly_terms(uuid,bigint,date,uuid) to service_role;
+grant execute on function public.platform_void_manual_payment(uuid,text,uuid) to service_role;
