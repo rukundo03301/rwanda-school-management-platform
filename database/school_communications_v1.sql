@@ -363,7 +363,7 @@ create or replace function public.school_schedule_calendar_event(
  p_school uuid,p_title text,p_details text,p_kind text,p_audience text,
  p_class uuid,p_start timestamptz,p_end timestamptz,p_location text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
-set search_path=pg_catalog,public as $
+set search_path=pg_catalog,public as $$
 declare event_id uuid;
 begin
  if not public.school_comms_manager_allowed(p_school,p_actor,'announcements.manage')
@@ -394,12 +394,12 @@ begin
  values(p_school,p_actor,'calendar.event_created',event_id);
  return jsonb_build_object('id',event_id,'scheduled',true);
 end;
-$;
+$$;
 
 create or replace function public.school_cancel_calendar_event(
  p_school uuid,p_event uuid,p_reason text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
-set search_path=pg_catalog,public as $
+set search_path=pg_catalog,public as $$
 begin
  if not public.school_comms_manager_allowed(p_school,p_actor,'announcements.manage')
  then raise exception 'Calendar management permission required'; end if;
@@ -413,7 +413,7 @@ begin
    jsonb_build_object('reason',p_reason));
  return jsonb_build_object('cancelled',true);
 end;
-$;
+$$;
 
 create or replace function public.school_archive_announcement(
  p_school uuid,p_id uuid,p_reason text,p_actor uuid
