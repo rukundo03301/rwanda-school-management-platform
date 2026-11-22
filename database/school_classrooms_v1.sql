@@ -327,7 +327,10 @@ begin
  then raise exception 'Teacher is not assigned to this class'; end if;
  select academic_year_id into school_year_id from public.school_classes
  where school_id=p_school_id and id=p_class and status='active';
- if not found or not exists(select 1 from public.school_student_enrollments
+ if not found or not exists(select 1 from public.school_academic_years
+    where id=school_year_id and school_id=p_school_id and status='current'
+     and p_date between starts_on and ends_on)
+ or not exists(select 1 from public.school_student_enrollments
   where school_id=p_school_id and class_id=p_class and student_id=p_student
    and academic_year_id=school_year_id and status='active')
  then raise exception 'Student is not currently enrolled in this class'; end if;
@@ -350,8 +353,8 @@ create or replace function public.school_invite_student_account(
 ) returns jsonb language plpgsql security invoker
 set search_path=pg_catalog,public as $$
 declare normalized_email text;
-declare student_dob date;
-declare new_id uuid;
+        student_dob date;
+        new_id uuid;
 begin
  if not (
   exists(select 1 from public.platform_schools s join public.school_memberships m
