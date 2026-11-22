@@ -59,14 +59,19 @@ export async function GET(request,{params}){
     ]);
   }
   if(actor.isOwner){
-    const [admins,grants]=await Promise.all([
+    const [admins,grants,claimedInvites]=await Promise.all([
       checked(db.from("school_memberships").select("auth_user_id,role,active")
         .eq("school_id",school.id).eq("role","school_admin").eq("active",true).limit(250)),
       checked(db.from("school_admissions_permissions").select("auth_user_id,permissions")
-        .eq("school_id",school.id).limit(250))
+        .eq("school_id",school.id).limit(250)),
+      checked(db.from("school_role_invites").select("claimed_by,email")
+        .eq("school_id",school.id).eq("role","school_admin")
+        .eq("status","claimed").not("claimed_by","is",null).limit(250))
     ]);
     const grantMap=new Map(grants.map(g=>[g.auth_user_id,g.permissions]));
+    const emailMap=new Map(claimedInvites.map(i=>[i.claimed_by,i.email]));
     result.adminGrants=admins.map(a=>({userId:a.auth_user_id,
+      email:emailMap.get(a.auth_user_id)||null,
       permissions:grantMap.get(a.auth_user_id)||[]}));
   }
   return Response.json(result,{headers:noStore});
