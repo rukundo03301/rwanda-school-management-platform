@@ -80,27 +80,6 @@ create table if not exists public.platform_payment_methods (
 create unique index if not exists platform_payment_one_default_idx
   on public.platform_payment_methods (is_default) where is_default;
 
-create table if not exists public.platform_invoices (
-  id uuid primary key default gen_random_uuid(),
-  school_id uuid not null references public.platform_schools(id) on delete restrict,
-  amount_rwf bigint not null check (amount_rwf >= 0),
-  status text not null default 'draft' check (status in ('draft','open','paid','void')),
-  due_date date,
-  created_at timestamptz not null default now()
-);
-create index if not exists platform_invoices_school_idx on public.platform_invoices(school_id);
-
-create table if not exists public.platform_payments (
-  id uuid primary key default gen_random_uuid(),
-  invoice_id uuid not null references public.platform_invoices(id) on delete restrict,
-  amount_rwf bigint not null check (amount_rwf > 0),
-  status text not null default 'pending' check (status in ('pending','settled','failed','refunded')),
-  provider text not null,
-  external_reference text unique,
-  created_at timestamptz not null default now()
-);
-create index if not exists platform_payments_invoice_idx on public.platform_payments(invoice_id);
-
 create table if not exists public.platform_audit (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid,
@@ -120,7 +99,7 @@ begin
  foreach tbl in array array[
    'platform_companies','platform_schools','platform_staff',
    'platform_staff_requests','platform_tickets','platform_payment_methods',
-   'platform_invoices','platform_payments','platform_audit'
+   'platform_audit'
  ] loop
    execute format('alter table public.%I enable row level security', tbl);
    execute format('revoke all on table public.%I from public, anon, authenticated',tbl);
@@ -517,8 +496,6 @@ as $fn$
     'archived', (select count(*) from public.platform_schools where status='archived'),
     'deletion_requested', (select count(*) from public.platform_schools where status='deletion_requested'),
     'ticketsOpen', (select count(*) from public.platform_tickets where status<>'resolved'),
-    'billedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_invoices where status<>'void'),
-    'collectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_payments where status='settled'),
     'manualCollectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_manual_payments where state='recorded'),
     'monthlyExpectedRwf', (select coalesce(sum(monthly_fee_rwf),0) from public.platform_fee_terms),
     'pastDue', (select count(*) from public.platform_fee_terms where next_due_on < (now() at time zone 'Africa/Kigali')::date),
