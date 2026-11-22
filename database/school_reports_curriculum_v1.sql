@@ -233,7 +233,7 @@ $$;
 create or replace function public.school_set_report_permissions(
  p_school uuid,p_target uuid,p_permissions text[],p_reason text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
-set search_path=pg_catalog,public as $
+set search_path=pg_catalog,public as $$
 declare prior text[];
 begin
  if not public.school_report_owner_authorized(p_school,p_actor)
@@ -259,7 +259,7 @@ begin
    'after',p_permissions,'reason',p_reason));
  return jsonb_build_object('updated',true);
 end;
-$;
+$$;
 
 create or replace function public.school_approve_curriculum(
  p_school uuid,p_profile uuid,p_actor uuid
