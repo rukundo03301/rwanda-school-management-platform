@@ -304,3 +304,41 @@ grant execute on function public.school_invite_member(uuid,text,text,text[],uuid
 grant execute on function public.school_claim_member_invite(uuid,uuid,text,text) to service_role;
 grant execute on function public.school_set_admin_permissions(uuid,uuid,text[],text,uuid) to service_role;
 grant execute on function public.school_revoke_member(uuid,uuid,text,text,uuid) to service_role;
+
+
+-- Switching current academic year is atomic. Lock the school row to serialize
+-- competing changes. Member permissions are re-checked in the DB transaction.
+create or replace function public.school_set_current_year(
+ p_school_id uuid,p_year_id uuid,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $$
+declare is_owner boolean;
+        may_edit boolean;
+begin
+ perform 1 from public.platform_schools where id=p_school_id and status='active' for update;
+ if not found then raise exception 'School unavailable'; end if;
+ select exists(select 1 from public.school_memberships where school_id=p_school_id
+   and auth_user_id=p_actor and role='school_owner' and active) into is_owner;
+ select exists(select 1 from public.school_memberships m
+   join public.school_admin_permissions p on p.school_id=m.school_id
+    and p.auth_user_id=m.auth_user_id
+   where m.school_id=p_school_id and m.auth_user_id=p_actor
+    and m.role='school_admin' and m.active
+    and 'academics.manage'=any(p.permissions)) into may_edit;
+ if not is_owner and not may_edit then raise exception 'Academic management permission required'; end if;
+ if not exists(select 1 from public.school_academic_years
+   where school_id=p_school_id and id=p_year_id and status<>'closed')
+   then raise exception 'Year not found or already closed'; end if;
+ update public.school_academic_years set status='planned'
+   where school_id=p_school_id and status='current';
+ update public.school_academic_years set status='current'
+   where school_id=p_school_id and id=p_year_id;
+ insert into public.school_admin_audit(school_id,actor_id,event,metadata)
+   values(p_school_id,p_actor,'academic.current_year_changed',
+    jsonb_build_object('year_id',p_year_id));
+ return jsonb_build_object('school_id',p_school_id,'current_year_id',p_year_id);
+end;
+$$;
+revoke all on function public.school_set_current_year(uuid,uuid,uuid)
+ from public,anon,authenticated;
+grant execute on function public.school_set_current_year(uuid,uuid,uuid) to service_role;
