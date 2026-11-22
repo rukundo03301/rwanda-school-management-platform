@@ -40,6 +40,9 @@ test("five distinct school setup steps with save, preview and review",()=>{
   assert.match(wizard,/Publish my school website/);
   assert.match(api,/action==="saveProfile"/);
   assert.match(api,/action==="saveSite"/);
+  assert.match(api,/from\("school_site_drafts"\)\.upsert/);
+  assert.match(api,/from\("platform_school_sites"\)\.upsert/);
+  assert.match(migration,/create table if not exists public\.school_site_drafts/);
   assert.match(api,/action==="requestReview"/);
 });
 
