@@ -54,6 +54,9 @@ test("demo school seeds actual synthetic school workflows without emails or mone
 });
 test("only platform owner with verified two-factor and exact school code may permanently delete",()=>{
  assert.match(api,/action === "tenant\.demo\.create"/);
+ assert.match(api,/demoId\+"\/demo-logo\.webp"/);
+ assert.match(api,/\.storage\.from\("school-branding"\)/);
+ assert.match(api,/demo_logo_uploaded:true/);
  assert.match(api,/action === "tenant\.purge\.preview"/);
  assert.match(api,/action === "tenant\.purge"/);
  assert.match(api,/requireOwner\(actor\);requireAal2\(token\)/);
