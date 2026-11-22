@@ -57,7 +57,13 @@ export async function GET(request,{params}){
   const mode=new URL(request.url).searchParams.get("view")||"student";
   if(mode!=="student"&&mode!=="family")throw new ApiError(400,"Invalid learning view");
   const {db,school,user}=await schoolVerifiedContext(request,code);
-  const schoolInfo={name:school.name,code:school.school_code};
+  const branding=await checked(db.from("platform_school_sites")
+    .select("logo_url,primary_color").eq("school_id",school.id)
+    .eq("is_published",true).maybeSingle());
+  const schoolInfo={name:school.name,code:school.school_code,
+    logoUrl:branding?.logo_url||null,
+    primaryColor:/^#[0-9a-f]{6}$/i.test(branding?.primary_color||"")?
+      branding.primary_color:"#204a78"};
   if(mode==="family"){
     const studentId=validateUuid(new URL(request.url).searchParams.get("studentId"),"child");
     const parent=await checked(db.from("school_memberships")
