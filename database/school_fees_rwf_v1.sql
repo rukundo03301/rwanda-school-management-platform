@@ -255,7 +255,7 @@ create or replace function public.school_finance_invoice_balances(
  p_school uuid,p_actor uuid,p_invoices uuid[]
 ) returns table(invoice_id uuid,paid_rwf text,waived_rwf text,balance_rwf text)
 language plpgsql stable security invoker
-set search_path=pg_catalog,public as $
+set search_path=pg_catalog,public as $$
 declare elevated boolean;
 begin
  if p_invoices is null or coalesce(array_length(p_invoices,1),0)>1500
@@ -296,7 +296,7 @@ begin
  where i.school_id=p_school and i.id=any(p_invoices)
   and (elevated or public.school_finance_parent_link(p_school,p_actor,i.student_id));
 end;
-$;
+$$;
 
 create or replace function public.school_finance_set_permissions(
  p_school uuid,p_target uuid,p_permissions text[],p_reason text,p_actor uuid
