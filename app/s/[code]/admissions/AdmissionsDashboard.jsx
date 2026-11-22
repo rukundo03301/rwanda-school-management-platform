@@ -120,10 +120,10 @@ export default function AdmissionsDashboard({code}){
       {error&&<div className="notice error" role="alert">{error}</div>}
       {tab==="overview"&&<>
         <div className="adm-metrics">
-          <Card label="Applications" count={allowed("admissions.read")?counts.applications:"—"} detail="Submitted records"/>
+          <Card label="Loaded applications" count={allowed("admissions.read")?counts.applications:"—"} detail="Recent 250 records maximum"/>
           <Card label="Awaiting decision" count={allowed("admissions.read")?counts.pending:"—"} detail="Submitted or under review"/>
-          <Card label="Enrolled students" count={allowed("admissions.read")?counts.admitted:"—"} detail="Approved student profiles"/>
-          <Card label="Verified family links" count={allowed("guardians.manage")?counts.family:"—"} detail="Active, school-approved"/>
+          <Card label="Loaded students" count={allowed("admissions.read")?counts.admitted:"—"} detail="Recent 250 records maximum"/>
+          <Card label="Loaded family links" count={allowed("guardians.manage")?counts.family:"—"} detail="Recent 250 records maximum"/>
         </div>
         <div className="adm-two-cols"><article className="adm-panel">
           <h2>How a student joins your school</h2>
@@ -186,7 +186,7 @@ export default function AdmissionsDashboard({code}){
       {tab==="access"&&data.actor.isOwner&&<>
         <div className="adm-section-title"><div><h2>Administrator admissions permissions</h2><p>Only you as this school's owner may grant these privileges.</p></div></div>
         <article className="adm-panel"><div className="table-wrap"><table><thead><tr><th>Administrator</th><th>Allowed permissions</th><th>Actions</th></tr></thead><tbody>
-          {data.adminGrants.map(a=><tr key={a.userId}><td><span className="micro">{a.userId.slice(0,8)}…</span></td>
+          {data.adminGrants.map(a=><tr key={a.userId}><td><strong>{a.email||"Verified school administrator"}</strong><div className="micro">{a.userId.slice(0,8)}…</div></td>
             <td>{a.permissions.length?a.permissions.join(", "):"None"}</td>
             <td><button className="button secondary small" onClick={()=>open("permissions",{admin:a,permissions:[...a.permissions],reason:""})}>Manage switches</button></td>
           </tr>)}</tbody></table>{!data.adminGrants.length&&<Empty title="No local administrators" subtitle="Invite administrators in School Administration before assigning admissions access."/>}</div></article>
