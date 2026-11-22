@@ -96,23 +96,29 @@ export default function SchoolPortal({code}) {
            <a className="button secondary" href={"/s/"+code+"/setup"}>Manage School Website</a>
            <a className="button secondary" href={"/s/"+code+"/classroom"}>Manage Classrooms</a>
            <a className="button secondary" href={"/s/"+code+"/reports"}>Curriculum & Reports</a>
+           <a className="button secondary" href={"/s/"+code+"/communications"}>School Community</a>
          </div>:role==="school_admin"?<div className="row">
             <a className="button" href={"/s/"+code+"/admin"}>Open Administrator Dashboard</a>
             <a className="button secondary" href={"/s/"+code+"/reports"}>Curriculum & Reports (if authorized)</a>
+            <a className="button secondary" href={"/s/"+code+"/communications"}>School Communications</a>
            </div>:
            role==="parent"?<div className="row">
             <a className="button" href={"/s/"+code+"/family"}>See My Verified Children</a>
             <a className="button secondary" href={"/s/"+code+"/report-card"}>Approved School Reports</a>
+            <a className="button secondary" href={"/s/"+code+"/communications"}>Family Timetable & Messages</a>
            </div>:
            role==="teacher"?<div className="row">
             <a className="button" href={"/s/"+code+"/classroom"}>Open My Teaching Workspace</a>
             <a className="button secondary" href={"/s/"+code+"/reports"}>Enter Assessment Marks</a>
+            <a className="button secondary" href={"/s/"+code+"/communications"}>Timetable & Parent Messages</a>
            </div>:
            role==="student"?<div className="row">
             <a className="button" href={"/s/"+code+"/learning"}>Open My Learning Workspace</a>
             <a className="button secondary" href={"/s/"+code+"/report-card"}>View Approved Reports</a>
+            <a className="button secondary" href={"/s/"+code+"/communications"}>Class Timetable & Announcements</a>
            </div>:
-           <p><strong>Workspace under development.</strong> Your authorized staff workspace is not yet available.</p>}
+           <div><a className="button" href={"/s/"+code+"/communications"}>School Notices and Calendar</a>
+            <p>Additional staff-specific operational features are under development.</p></div>}
        </div>:
        staffInvitePending?<div className="notice info">
          <strong>Verified school invitation available</strong>
