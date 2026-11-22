@@ -116,8 +116,9 @@ export default function LearningDashboard({code}){
    </div>}
    {tab==="curriculum"&&<div className="tl-panel"><h2>Current class and subjects</h2>
      <p>{data.classInfo?.name||"School has not assigned a current class."}</p>
-     <p className="muted">Subject names are shown with published homework. A complete lesson timetable and curriculum syllabus are planned for a separate academic-calendar module.</p>
-     <div className="tl-subjectchips">{[...new Set(data.homework.map(h=>h.subject))].map(n=><span key={n}>{n}</span>)}</div>
+     <p className="muted">These are the subjects configured by your school for your current class. A complete timetable and detailed syllabus will follow in the academic-calendar module.</p>
+     <div className="tl-subjectchips">{(data.curriculum||[]).map(s=><span key={s.code}>{s.code} · {s.name}</span>)}</div>
+     {!(data.curriculum||[]).length&&<p className="muted">No class subjects have been configured yet.</p>}
    </div>}
    <p className="micro">No unapproved student, grade, other family's records, or platform-owner payment information is shown.</p>
   </div>
