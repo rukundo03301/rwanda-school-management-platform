@@ -78,7 +78,7 @@ export async function GET(request,{params}){
      .eq("role","teacher").eq("status","claimed").not("claimed_by","is",null)
      .limit(500)):[];
    const emails=new Map(claimedEmails.map(x=>[x.claimed_by,x.email]));
-   let studentCandidates=[],studentInvites=[];
+   let studentCandidates=[],studentInvites=[],studentAccounts=[];
    if(role.owner){
      studentCandidates=await checked(db.from("school_students")
        .select("id,student_code,first_name,last_name,date_of_birth,status")
@@ -86,6 +86,9 @@ export async function GET(request,{params}){
      studentInvites=await checked(db.from("school_student_account_invites")
        .select("student_id,email,status,expires_at")
        .eq("school_id",school.id).order("created_at",{ascending:false}).limit(500));
+     studentAccounts=await checked(db.from("school_student_accounts")
+       .select("student_id,auth_user_id,active,authorized_at")
+       .eq("school_id",school.id).limit(500));
    }
    const [publishedBrand,draftBrand]=await Promise.all([
      checked(db.from("platform_school_sites").select("logo_url,primary_color")
@@ -105,7 +108,7 @@ export async function GET(request,{params}){
      myAssignments:teacherAssignments,
      teachers:teacherMembers.map(m=>({userId:m.auth_user_id,email:emails.get(m.auth_user_id)||"Verified teacher"})),
      roster,lessons,homework,submissions,attendance,
-     studentCandidates,studentInvites
+     studentCandidates,studentInvites,studentAccounts
    },{headers:noStore});
  }catch(e){return jsonError(e);}
 }
@@ -173,6 +176,14 @@ export async function POST(request,{params}){
     result=await checked(db.rpc("school_record_attendance",{
       p_school_id:school.id,p_class:cls,p_student:studentId,p_date:on,
       p_status:status,p_teacher:actorId
+    }));
+  }else if(action==="student.revoke"){
+    if(!role.owner)throw new ApiError(403,"Only the school owner can revoke student access");
+    requireAal2(token);
+    const studentId=requiredSchoolId(body.studentId,"student");
+    const reason=classroomText(body.reason,500,{min:8});
+    result=await checked(db.rpc("school_revoke_student_account",{
+      p_school_id:school.id,p_student:studentId,p_reason:reason,p_actor:actorId
     }));
   }else if(action==="student.invite"){
     if(!role.owner)throw new ApiError(403,"Only the school owner can authorize a student account");
