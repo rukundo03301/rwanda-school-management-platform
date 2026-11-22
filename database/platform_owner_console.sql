@@ -514,3 +514,13 @@ end;
 $$;
 revoke all on function public.platform_add_school_to_company(uuid,text,text,uuid) from public,anon,authenticated;
 grant execute on function public.platform_add_school_to_company(uuid,text,text,uuid) to service_role;
+
+
+-- Only school-approved marketing images belong here. No student documents.
+-- Every upload goes through a verified, privileged server route, which strips
+-- EXIF and normalizes images to WebP before publishing.
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+ values('school-branding','school-branding',true,5242880,array['image/webp'])
+ on conflict(id) do update set public=true,file_size_limit=5242880,
+   allowed_mime_types=array['image/webp'];
+-- No browser/anon INSERT/UPDATE/DELETE policy: uploads are server-only.
