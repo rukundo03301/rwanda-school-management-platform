@@ -259,7 +259,7 @@ export default function PlatformPage() {
           {(data.requests||[]).map(r=><div key={r.id} className="panel" style={{background:"#f8fafc",marginBottom:9}}><div className="row" style={{justifyContent:"space-between"}}><div><strong>{r.email}</strong><p className="section-subtitle">{r.reason}</p></div><button className="button small" onClick={()=>open("approveStaff",{request:r,role:"support",permissions:[...ROLE_DEFAULTS.support]})}>Review access</button></div></div>)}
           {!data.requests.length&&<Empty title="No pending requests" description="Staff register and request access; only you can approve their permissions."/>}
         </div>}
-        <div className="panel"><div className="panel-header"><h2>Approved platform staff</h2></div><div className="table-wrap"><table><thead><tr><th>Staff account</th><th>Role</th><th>Permissions</th><th>Status</th><th>Action</th></tr></thead><tbody>{data.staff.map(s=><tr key={s.auth_user_id}><td>{s.email}</td><td>{s.role}</td><td style={{whiteSpace:"normal",maxWidth:280}}>{s.permissions.join(", ")||"None"}</td><td><Pill>{s.active?"active":"disabled"}</Pill></td><td>{data.actor.isOwner&&s.active?<button className="button small secondary" onClick={()=>open("disableStaff",{staff:s})}>Revoke access</button>:"—"}</td></tr>)}</tbody></table>{!data.staff.length&&<Empty title="No staff accounts" description="You are the verified platform owner. Approve access requests when you add your team."/>}</div></div>
+        <div className="panel"><div className="panel-header"><h2>Approved platform staff</h2></div><div className="table-wrap"><table><thead><tr><th>Staff account</th><th>Role</th><th>Permissions</th><th>Status</th><th>Action</th></tr></thead><tbody>{data.staff.map(s=><tr key={s.auth_user_id}><td>{s.email}</td><td>{s.role}</td><td style={{whiteSpace:"normal",maxWidth:280}}>{s.permissions.join(", ")||"None"}</td><td><Pill>{s.active?"active":"disabled"}</Pill></td><td>{data.actor.isOwner&&s.active?<div className="row"><button className="button small secondary" onClick={()=>open("editStaff",{staff:s,role:s.role,permissions:[...s.permissions]})}>Access table</button><button className="button small secondary" onClick={()=>open("disableStaff",{staff:s})}>Revoke</button></div>:"—"}</td></tr>)}</tbody></table>{!data.staff.length&&<Empty title="No staff accounts" description="You are the verified platform owner. Approve access requests when you add your team."/>}</div></div>
       </>}
       {tab==="audit"&&<>
         <Header title="Audit history" description="Trace platform-wide actions and permissions changes."/>
@@ -305,11 +305,19 @@ export default function PlatformPage() {
       {modal==="approveStaff"&&<form onSubmit={e=>{e.preventDefault();action({action:"staff.approve",id:form.request.id,role:form.role,permissions:form.permissions});}}>
         <p className="muted">Approving <strong>{form.request.email}</strong>. Only grant the access this colleague needs; two-factor authentication is required.</p>
         <Field label="Staff role"><select className="input" value={form.role} onChange={e=>setForm({...form,role:e.target.value,permissions:[...ROLE_DEFAULTS[e.target.value]]})}>{Object.keys(ROLE_DEFAULTS).map(role=><option key={role} value={role}>{role}</option>)}</select></Field>
-        <div style={{fontWeight:700,marginBottom:8}}>Allowed actions</div>
-        <div className="permissions">{ALL_PERMISSIONS.map(p=><label key={p}><input type="checkbox" checked={form.permissions.includes(p)} onChange={e=>setForm({...form,permissions:e.target.checked?[...form.permissions,p]:form.permissions.filter(x=>x!==p)})}/> {p}</label>)}</div>
+        <div style={{fontWeight:700,marginBottom:8}}>Access permissions — switch ON to allow</div>
+        <PermissionToggleTable permissions={form.permissions} onChange={(p,enabled)=>setForm({...form,permissions:enabled?[...form.permissions,p]:form.permissions.filter(x=>x!==p)})}/>
         <div className="modal-footer"><button type="submit" className="button" disabled={busy}>Approve staff access</button></div>
       </form>}
-      {modal==="disableStaff"&&<div><p>Revoke platform access for <strong>{form.staff.email}</strong>? Existing sessions will be denied on their next server request.</p><div className="modal-footer"><button className="button danger" disabled={busy} onClick={()=>action({action:"staff.disable",id:form.staff.auth_user_id})}>Revoke access</button></div></div>}
+      {modal==="editStaff"&&<form onSubmit={e=>{e.preventDefault();action({action:"staff.permissions",id:form.staff.auth_user_id,role:form.role,permissions:form.permissions,reason:form.reason});}}>
+        <p className="muted">Edit <strong>{form.staff.email}</strong>. Toggle each permission ON or OFF. The change takes effect on the person's next protected API request.</p>
+        <Field label="Staff role"><select className="input" value={form.role} onChange={e=>setForm({...form,role:e.target.value,permissions:[...ROLE_DEFAULTS[e.target.value]]})}>{Object.keys(ROLE_DEFAULTS).map(role=><option key={role} value={role}>{role}</option>)}</select></Field>
+        <PermissionToggleTable permissions={form.permissions} onChange={(p,enabled)=>setForm({...form,permissions:enabled?[...form.permissions,p]:form.permissions.filter(x=>x!==p)})}/>
+        <Field label="Reason for permission change"><textarea required minLength={8} maxLength={500} className="input" value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})} placeholder="For example: New support duties"/></Field>
+        <div className="notice info">Saving requires the platform owner's multifactor-authenticated session. Every change is audited.</div>
+        <div className="modal-footer"><button type="submit" className="button" disabled={busy}>Save permissions</button></div>
+      </form>}
+            {modal==="disableStaff"&&<div><p>Revoke platform access for <strong>{form.staff.email}</strong>? Existing sessions will be denied on their next server request.</p><div className="modal-footer"><button className="button danger" disabled={busy} onClick={()=>action({action:"staff.disable",id:form.staff.auth_user_id})}>Revoke access</button></div></div>}
     </Modal>}
   </div>;
 }
@@ -333,4 +341,4 @@ function TenantTable({tenants,canManage,onState}) {
     {tenants.map(t=><tr key={t.id}><td><strong>{t.name}</strong><div className="micro">{t.platform_companies?.name||"—"}</div></td><td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td><td><Pill>{t.status}</Pill></td><td>{DATE(t.created_at)}</td><td>{canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage</button>}</td></tr>)}
     </tbody></table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
-function modalTitle(mode){return ({newTenant:"Register a new school",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",disableStaff:"Revoke staff access"})[mode]||"Manage";}
+function modalTitle(mode){return ({newTenant:"Register a new school",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
