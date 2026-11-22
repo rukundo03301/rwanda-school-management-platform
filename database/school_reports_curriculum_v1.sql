@@ -28,6 +28,10 @@ create table public.school_curriculum_profiles (
  track text not null check(track in (
    'general','professional','tvet','nursery','international','higher_education'
  )),
+ level_band text not null check(level_band in (
+   'lower_primary','upper_primary','ordinary_secondary','advanced_secondary',
+   'professional','tvet','nursery','international','higher_education'
+ )),
  pathway text not null default '' check(length(pathway)<=120),
  policy_version text not null check(length(btrim(policy_version)) between 3 and 120),
  source_title text not null check(length(btrim(source_title)) between 3 and 240),
@@ -44,7 +48,16 @@ create table public.school_curriculum_profiles (
  foreign key(school_id,academic_year_id)
   references public.school_academic_years(school_id,id) on delete restrict,
  check((status='approved' and approved_at is not null and approved_by is not null)
-   or (status<>'approved'))
+   or (status<>'approved')),
+ check(
+   (track='general' and level_band in ('lower_primary','upper_primary',
+      'ordinary_secondary','advanced_secondary'))
+   or (track='professional' and level_band='professional')
+   or (track='tvet' and level_band='tvet')
+   or (track='nursery' and level_band='nursery')
+   or (track='international' and level_band='international')
+   or (track='higher_education' and level_band='higher_education')
+ )
 );
 create index school_curriculum_profiles_year_idx
  on public.school_curriculum_profiles(school_id,academic_year_id,status);
@@ -313,6 +326,7 @@ set search_path=pg_catalog,public as $$
 declare t public.school_assessment_terms%rowtype;
         m public.school_curriculum_class_subjects%rowtype;
         track text;
+        band text;
         max_allowed numeric;
         normalized_score numeric;
         entry_id uuid;
@@ -354,10 +368,10 @@ begin
  where school_id=p_school and class_id=p_class and subject_id=p_subject
    and academic_year_id=t.academic_year_id and approved_at is not null;
  if not found then raise exception 'School owner must approve official subject allocation first'; end if;
- select p.track into track from public.school_curriculum_profiles p
+ select p.track,p.level_band into track,band from public.school_curriculum_profiles p
  where p.school_id=p_school and p.id=m.curriculum_profile_id and p.status='approved';
- if not found or track not in ('general','professional')
- then raise exception 'This module cannot grade this curriculum track with general-education weights'; end if;
+ if not found or track not in ('general','professional') or band='lower_primary'
+ then raise exception 'This curriculum requires a separate verified grading engine (including LEGRA for lower primary)'; end if;
  if m.weekly_periods is null then raise exception 'Subject teaching periods missing'; end if;
  max_allowed:=m.weekly_periods*10;
  if p_raw_score is null or p_raw_maximum is null
@@ -451,7 +465,7 @@ begin
  for item in
    select map.subject_id,map.weekly_periods,map.approved_at,
      c.name as subject_name,c.code as subject_code,
-     p.track as track,p.status as profile_status,
+     p.track as track,p.level_band as level_band,p.status as profile_status,
      p.source_title,p.source_url,p.policy_version,map.syllabus_url
    from public.school_class_subjects cs
    join public.school_curriculum_class_subjects map
@@ -465,7 +479,8 @@ begin
    order by c.name
  loop
    if item.profile_status<>'approved' or item.approved_at is null
-    or item.track not in ('general','professional') or item.weekly_periods is null
+    or item.track not in ('general','professional')
+    or item.level_band='lower_primary' or item.weekly_periods is null
    then raise exception 'Only an approved General/Professional Education curriculum may be published'; end if;
    subject_max:=item.weekly_periods*10;
    select count(*) filter(where category='unit'),
