@@ -66,6 +66,9 @@ test("only school-issued student accounts can read personal learning records",()
  assert.match(learner,/eq\("active",true\)/);
  assert.match(learner,/classLearningSnapshot\(db,school\.id,studentId\)/);
  assert.match(learning,/eq\("academic_year_id",currentYear\.id\)/);
+ assert.match(learning,/from\("school_class_subjects"\)/);
+ assert.match(learning,/curriculumRows\.map/);
+ assert.match(learnerUI,/data\.curriculum/);
  assert.match(familyUI,/View homework &amp; attendance/);
  assert.match(learnerUI,/My Learning/);
 });
@@ -93,6 +96,8 @@ test("student/parent homework submissions use enrollment+verified identity, no o
  assert.match(sql,/school_student_accounts sa/);
  assert.match(sql,/school_guardian_links g/);
  assert.match(sql,/student_allowed/);
+ assert.match(sql,/e\.status='active'/);
+ assert.match(sql,/p_kind='homework' and p_on<=now\(\)/);
  assert.match(sql,/unique\(school_id,homework_id,student_id\)/);
  assert.match(learner,/p_student:studentId/);
  assert.match(learnerUI,/homework\.submit/);
