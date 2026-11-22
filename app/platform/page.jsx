@@ -203,7 +203,10 @@ export default function PlatformPage() {
         ". Shared user accounts and provider backups follow separate retention rules.":
         body.action==="tenant.demo.create"?
         "Fictional demo school created: "+(output.result?.school_code||"")+
-        ". Open Tenant Management to preview it and test permanent deletion.":
+        (output.result?.demo_logo_uploaded?
+         ". Its sample logo was uploaded into tenant-owned Storage.":
+         ". The sample logo was not uploaded; you can add one in School Site.")+
+        " Open Tenant Management to preview it and test permanent deletion.":
         "Change saved and verified by the API.");
     }catch(e){setError(e.message);}
     finally{setBusy(false);}
