@@ -198,11 +198,18 @@ export default function ClassroomDashboard({code}){
      <div className="cr-info">Before inviting a minor or a student with unknown age, a verified guardian must already be linked in the Admissions module. The school owner must confirm identity and the required family authorization. Students without appropriate consent do not receive independent accounts.</div>
      <section className="cr-panel"><h3>Student account invitations</h3><div className="table-wrap"><table><thead><tr><th>Student</th><th>Email</th><th>Status</th><th>Expires</th></tr></thead><tbody>
       {data.studentInvites.map((i,n)=><tr key={i.student_id+"#"+n}><td>{data.studentCandidates.find(s=>s.id===i.student_id)?.student_code||"School student"}</td><td>{i.email}</td><td>{i.status}</td><td>{i.expires_at?.slice(0,10)}</td></tr>)}
-     </tbody></table>{!data.studentInvites.length&&<Blank title="No student invitations" description="Approved student invitations will appear here."/>}</div></section></>}
+     </tbody></table>{!data.studentInvites.length&&<Blank title="No student invitations" description="Approved student invitations will appear here."/>}</div></section>
+     <section className="cr-panel"><h3>School-verified student accounts</h3><div className="table-wrap"><table><thead><tr><th>Student</th><th>Access status</th><th>Action</th></tr></thead><tbody>
+      {data.studentAccounts.map(a=><tr key={a.student_id}>
+       <td>{data.studentCandidates.find(s=>s.id===a.student_id)?.student_code||"School student"}</td>
+       <td>{a.active?"Active student account":"Access revoked"}</td>
+       <td>{a.active&&<button className="button secondary small" onClick={()=>open("revokeStudent",{studentId:a.student_id,reason:""})}>Revoke account</button>}</td>
+      </tr>)}</tbody></table>
+      {!data.studentAccounts.length&&<Blank title="No activated student accounts" description="Students must use their verified invitation before an account becomes active."/>}</div></section></>}
     <p className="cr-foot">School-specific learning · No platform-owner monthly fees · Attendance and student data restricted to authorized school memberships</p>
    </main>
   </div>
-  {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account"})[modal]} close={()=>{setModal(null);setError("");}}>
+  {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account",revokeStudent:"Revoke student account"})[modal]} close={()=>{setModal(null);setError("");}}>
    {error&&<div className="notice error" role="alert">{error}</div>}
    {modal==="assign"&&<form onSubmit={e=>{e.preventDefault();submit({action:"teacher.assign",teacherId:form.teacherId,classId:form.classId,subjectId:form.subjectId});}}>
     <Label name="Verified school teacher"><select className="input" value={form.teacherId||""} onChange={e=>setForm({...form,teacherId:e.target.value})}>{teachers.map(t=><option key={t.userId} value={t.userId}>{t.email}</option>)}</select></Label>
@@ -239,6 +246,15 @@ export default function ClassroomDashboard({code}){
     <Label name="Due date and time (Rwanda, UTC+02:00)"><input className="input" required type="datetime-local" value={form.dueLocal||""} onChange={e=>setForm({...form,dueLocal:e.target.value})}/></Label>
     <p className="muted">Save as a draft. Students will not see it until you select Publish on the homework card.</p>
     <button className="button" disabled={busy} type="submit">Save homework draft</button>
+   </form>}
+   {modal==="revokeStudent"&&<form onSubmit={e=>{e.preventDefault();submit({
+     action:"student.revoke",studentId:form.studentId,reason:form.reason
+    });}}>
+    <p>Disable this student's independent access to your school. Their academic records will remain intact.</p>
+    <Label name="Required audit reason"><textarea className="input" required minLength={8} maxLength={500}
+      value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Label>
+    <div className="notice info">This action requires school-owner MFA. The student's verified link will stop authorizing new requests immediately.</div>
+    <button type="submit" className="button danger" disabled={busy}>Revoke student account</button>
    </form>}
    {modal==="studentInvite"&&<form onSubmit={e=>{e.preventDefault();submit({action:"student.invite",
      studentId:form.studentId,email:form.email,consentAttested:form.consentAttested});}}>
