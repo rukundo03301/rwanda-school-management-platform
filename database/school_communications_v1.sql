@@ -61,6 +61,28 @@ create table public.school_announcements (
 create index school_announcements_feed_idx
  on public.school_announcements(school_id,status,published_at desc);
 
+create table public.school_calendar_events (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.platform_schools(id) on delete restrict,
+ audience text not null check(audience in ('all','staff','teachers','parents','students','class')),
+ class_id uuid,
+ kind text not null check(kind in ('exam','meeting','holiday','activity','closure','other')),
+ title text not null check(length(btrim(title)) between 3 and 160),
+ details text not null default '' check(length(details)<=1500),
+ starts_at timestamptz not null,
+ ends_at timestamptz not null,
+ location text not null default '' check(length(location)<=120),
+ status text not null default 'scheduled' check(status in ('scheduled','cancelled')),
+ created_by uuid not null references auth.users(id) on delete restrict,
+ created_at timestamptz not null default now(),
+ unique(school_id,id),
+ foreign key(school_id,class_id) references public.school_classes(school_id,id) on delete restrict,
+ check(ends_at>starts_at),
+ check((audience='class' and class_id is not null) or (audience<>'class' and class_id is null))
+);
+create index school_calendar_events_date_idx
+ on public.school_calendar_events(school_id,status,starts_at);
+
 create table public.school_announcement_reads (
  school_id uuid not null references public.platform_schools(id) on delete restrict,
  announcement_id uuid not null,
@@ -148,7 +170,7 @@ declare tbl text;
 begin
  foreach tbl in array array[
   'school_communication_permissions','school_timetable_periods',
-  'school_announcements','school_announcement_reads',
+  'school_announcements','school_calendar_events','school_announcement_reads',
   'school_family_message_threads','school_family_messages',
   'school_message_notifications','school_communications_audit'
  ] loop
@@ -337,6 +359,62 @@ begin
 end;
 $$;
 
+create or replace function public.school_schedule_calendar_event(
+ p_school uuid,p_title text,p_details text,p_kind text,p_audience text,
+ p_class uuid,p_start timestamptz,p_end timestamptz,p_location text,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $
+declare event_id uuid;
+begin
+ if not public.school_comms_manager_allowed(p_school,p_actor,'announcements.manage')
+ then raise exception 'Calendar management permission required'; end if;
+ if length(btrim(coalesce(p_title,''))) not between 3 and 160
+ or length(coalesce(p_details,''))>1500 or length(coalesce(p_location,''))>120
+ then raise exception 'Invalid calendar title or details'; end if;
+ if p_kind not in ('exam','meeting','holiday','activity','closure','other')
+ then raise exception 'Invalid event type'; end if;
+ if p_audience not in ('all','staff','teachers','parents','students','class')
+ or (p_audience='class') is distinct from (p_class is not null)
+ then raise exception 'Invalid school calendar audience'; end if;
+ if p_class is not null and not exists(select 1 from public.school_classes c
+  join public.school_academic_years y on y.id=c.academic_year_id
+   and y.school_id=c.school_id and y.status='current'
+  where c.school_id=p_school and c.id=p_class and c.status='active')
+ then raise exception 'Calendar class must be active in current year'; end if;
+ if p_start is null or p_end is null or p_end<=p_start
+ or p_start<now()-interval '1 year'
+ or p_start>now()+interval '2 years'
+ then raise exception 'Invalid calendar date range'; end if;
+ insert into public.school_calendar_events(
+  school_id,title,details,kind,audience,class_id,starts_at,ends_at,
+  location,created_by)
+ values(p_school,btrim(p_title),coalesce(p_details,''),p_kind,p_audience,
+  p_class,p_start,p_end,coalesce(p_location,''),p_actor) returning id into event_id;
+ insert into public.school_communications_audit(school_id,actor_id,event,resource_id)
+ values(p_school,p_actor,'calendar.event_created',event_id);
+ return jsonb_build_object('id',event_id,'scheduled',true);
+end;
+$;
+
+create or replace function public.school_cancel_calendar_event(
+ p_school uuid,p_event uuid,p_reason text,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $
+begin
+ if not public.school_comms_manager_allowed(p_school,p_actor,'announcements.manage')
+ then raise exception 'Calendar management permission required'; end if;
+ if length(btrim(coalesce(p_reason,''))) not between 8 and 500
+ then raise exception 'Provide an audit reason'; end if;
+ update public.school_calendar_events set status='cancelled'
+ where school_id=p_school and id=p_event and status='scheduled';
+ if not found then raise exception 'Active calendar event not found'; end if;
+ insert into public.school_communications_audit(school_id,actor_id,event,resource_id,metadata)
+ values(p_school,p_actor,'calendar.event_cancelled',p_event,
+   jsonb_build_object('reason',p_reason));
+ return jsonb_build_object('cancelled',true);
+end;
+$;
+
 create or replace function public.school_archive_announcement(
  p_school uuid,p_id uuid,p_reason text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
@@ -485,6 +563,8 @@ revoke all on function public.school_add_timetable_period(uuid,uuid,uuid,uuid,in
 revoke all on function public.school_disable_timetable_period(uuid,uuid,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_publish_announcement(uuid,text,text,text,uuid,timestamptz,uuid) from public,anon,authenticated;
 revoke all on function public.school_archive_announcement(uuid,uuid,text,uuid) from public,anon,authenticated;
+revoke all on function public.school_schedule_calendar_event(uuid,text,text,text,text,uuid,timestamptz,timestamptz,text,uuid) from public,anon,authenticated;
+revoke all on function public.school_cancel_calendar_event(uuid,uuid,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_open_family_thread(uuid,uuid,uuid,uuid,uuid) from public,anon,authenticated;
 revoke all on function public.school_send_family_message(uuid,uuid,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_close_family_thread(uuid,uuid,text,uuid) from public,anon,authenticated;
