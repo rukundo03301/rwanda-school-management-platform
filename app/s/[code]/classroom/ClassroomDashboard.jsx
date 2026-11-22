@@ -97,7 +97,8 @@ export default function ClassroomDashboard({code}){
     <div><strong>{school.name}</strong><small>{actor.teacher?"Teacher Workspace":"School Academic Management"}</small></div>
    </div>
    <nav><a href={"/s/"+code+"/portal?role="+(actor.teacher?"teacher":"school_owner")}>School Portal</a>
-    {actor.manager&&<a href={"/s/"+code+"/admin"}>Administration</a>}</nav>
+    {actor.manager&&<a href={"/s/"+code+"/admin"}>Administration</a>}
+    <a href={"/s/"+code+"/reports"}>Assessment Gradebook</a></nav>
   </header>
   <div className="cr-layout">
    <aside className="cr-nav"><span className="cr-nav-eyebrow">ACADEMIC WORKSPACE</span>

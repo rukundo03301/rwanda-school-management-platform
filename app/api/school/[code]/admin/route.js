@@ -46,7 +46,14 @@ export async function GET(request,{params}){
       .eq("auth_user_id",actor.id).maybeSingle());
     admissionsPermissions=Array.isArray(grants?.permissions)?grants.permissions:[];
   }
-  const enrichedActor={...actor,admissionsPermissions};
+  let reportPermissions=[];
+  if(!actor.isOwner){
+    const grants=await checked(db.from("school_report_admin_permissions")
+      .select("permissions").eq("school_id",school.id)
+      .eq("auth_user_id",actor.id).maybeSingle());
+    reportPermissions=Array.isArray(grants?.permissions)?grants.permissions:[];
+  }
+  const enrichedActor={...actor,admissionsPermissions,reportPermissions};
   const data={school:{name:school.name,code:school.school_code,status:school.status,
     logoUrl:brand?.logo_url||null,primaryColor:/^#[0-9a-f]{6}$/i.test(brand?.primary_color||"")?
       brand.primary_color:"#204a78"},

@@ -116,7 +116,8 @@ export default function StudentLearning({code}){
       {!attendance.length&&<p className="lr-empty">No attendance entries have been recorded for your current class yet.</p>}
      </section>}
     </>}
-    <div className="lr-note"><strong>Not yet available:</strong> report cards, exam grades, school-fee balances, teacher messaging and full timetables. These are planned separate secure modules, not fabricated records.</div>
+    <div className="lr-note"><a className="button secondary small" href={"/s/"+code+"/report-card"}>View My Approved Report Cards</a>
+      <p><strong>Not yet available:</strong> government-issued exam certificates, school-fee balances, teacher messaging and full timetables. Only school-approved term reports are included.</p></div>
    </>}
   </div>
  </main>;
