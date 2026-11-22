@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
+import {NESA_PRIMARY_REFERENCE,primaryReferenceForGrade} from "../../../../lib/rwanda-nesa-primary-reference.mjs";
 
 const SECTIONS=[
  {id:"overview",title:"Overview"},
@@ -43,6 +44,7 @@ export default function ReportsManager({code}){
  const [tab,setTab]=useState("overview"),[modal,setModal]=useState(null),[form,setForm]=useState({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false);
  const [termId,setTermId]=useState(""),[classId,setClassId]=useState("");
+ const [referenceGrade,setReferenceGrade]=useState("P4");
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
   if(!c){setLoading(false);setReady(true);return;}
@@ -157,6 +159,21 @@ export default function ReportsManager({code}){
      </article></div>
    </>}
    {tab==="curriculum"&&canManage&&<>
+    <article className="repm-panel">
+     <div className="repm-section-top"><div><h2>Official NESA Primary Assessment Reference</h2>
+      <p>Verified subject and paper-mark allocations for 2025–2026 Term II; this is not the complete REB syllabus and must not be auto-applied to another year.</p></div>
+      <label className="repm-grade-select">Primary grade
+       <select className="input" value={referenceGrade} onChange={e=>setReferenceGrade(e.target.value)}>
+        {["P1","P2","P3","P4","P5","P6"].map(x=><option key={x} value={x}>{x}</option>)}
+       </select></label></div>
+     <div className="table-wrap"><table><thead><tr><th>Official assessed subject</th><th>Paper maximum</th><th>CA-MIS marks maximum</th><th>Assessment notes</th></tr></thead>
+     <tbody>{primaryReferenceForGrade(referenceGrade).map(ref=><tr key={ref.subject}>
+      <td><strong>{ref.subject}</strong></td><td>{ref.paperMax}</td><td><strong>{ref.camisMax}</strong></td>
+      <td>{ref.special||"Use the verified assessment standard for paper-to-CA-MIS conversion"}</td>
+     </tr>)}</tbody></table></div>
+     <p className="repm-source"><a href={NESA_PRIMARY_REFERENCE.sourceUrl} target="_blank" rel="noreferrer">
+       Open NESA {NESA_PRIMARY_REFERENCE.version} Primary Assessment Standards</a>. The school must separately verify the REB subject syllabus, learning units and applicable weekly periods before approving a curriculum mapping.</p>
+    </article>
     <div className="repm-section-top"><div><h2>Curriculum versions</h2><p>Each school chooses real academic sources. Profiles begin as drafts until school-owner review.</p></div>
      <button className="button" disabled={!year} onClick={()=>ownerAction("profile",{track:"general",policyVersion:"NESA assessment guidance, December 2023",
       sourceTitle:"NESA Guidelines on Recording Marks in CA-MIS",
