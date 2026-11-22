@@ -125,6 +125,8 @@ test("SQL privileged functions remain server-only",()=>{
   "school_publish_homework","school_record_attendance","school_invite_student_account",
   "school_claim_student_account","school_submit_homework"];
  for(const name of names)assert.ok(sql.includes("revoke all on function public."+name),"Missing revoke for "+name);
+ assert.match(sql,/grant execute on function public\.school_claim_student_account\(uuid,uuid,uuid,text\)/);
+ assert.doesNotMatch(sql,/grant execute on function public\.school_claim_student_account\(uuid,uuid,uuid,uuid,text\)/);
 });
 
 test("CI stages five migrations locally and never changes hosted APEX",()=>{
