@@ -283,6 +283,10 @@ begin
  if not found then raise exception 'Approve the curriculum source profile first'; end if;
  if track in ('general','professional') and mapping.weekly_periods is null
  then raise exception 'Verified weekly teaching periods are required'; end if;
+ if track in ('general','professional') and not exists(
+   select 1 from public.school_curriculum_units
+   where school_id=p_school and class_id=p_class and subject_id=p_subject)
+ then raise exception 'Record verified syllabus units and key competences before approval'; end if;
  if track='tvet' and mapping.module_credits is null
  then raise exception 'TVET module credits are required'; end if;
  update public.school_curriculum_class_subjects
@@ -400,6 +404,9 @@ declare t public.school_assessment_terms%rowtype;
         profile_track text;
         report_id uuid;
         remark text;
+        learning_notes text;
+        units_json jsonb;
+        attendance_json jsonb;
 begin
  if not public.school_report_owner_authorized(p_school,p_actor)
  then raise exception 'Only the verified school owner may publish student reports'; end if;
@@ -467,6 +474,18 @@ begin
          and a.category='unit' and a.assessment_code=u.unit_code))
    then raise exception 'Missing recorded syllabus unit assessment for subject %',
      item.subject_name; end if;
+   select string_agg(distinct nullif(btrim(learning_feedback),''), '; ')
+   into learning_notes from public.school_assessment_marks
+   where school_id=p_school and student_id=p_student and term_id=p_term
+    and class_id=e.class_id and subject_id=item.subject_id
+    and length(btrim(learning_feedback))>0;
+   select coalesce(jsonb_agg(jsonb_build_object(
+     'unit_code',u.unit_code,'title',u.unit_title,
+     'competence',u.key_competence
+   ) order by u.unit_code),'[]'::jsonb) into units_json
+   from public.school_curriculum_units u
+   where u.school_id=p_school and u.class_id=e.class_id
+    and u.subject_id=item.subject_id;
    total:=round((unit_avg*0.25+project_avg*0.25+exam_avg*0.50)::numeric,2);
    all_earned:=all_earned+total;
    all_max:=all_max+subject_max;
@@ -478,7 +497,8 @@ begin
      'term_total_marks',total,
      'term_percentage',round(100*total/subject_max,2),
      'curriculum_source',item.source_title,'curriculum_source_url',item.source_url,
-     'syllabus_url',item.syllabus_url,'policy_version',item.policy_version
+     'syllabus_url',item.syllabus_url,'policy_version',item.policy_version,
+     'teacher_feedback',coalesce(learning_notes,''),'curriculum_units',units_json
    ));
    nsubjects:=nsubjects+1;
  end loop;
@@ -488,6 +508,15 @@ begin
  if (select count(*) from public.school_class_subjects
      where school_id=p_school and class_id=e.class_id)<>nsubjects
  then raise exception 'Curriculum mappings are incomplete for this class'; end if;
+ select jsonb_build_object(
+   'present',count(*) filter(where status='present'),
+   'absent',count(*) filter(where status='absent'),
+   'late',count(*) filter(where status='late'),
+   'excused',count(*) filter(where status='excused'),
+   'recorded_days',count(*)
+ ) into attendance_json from public.school_attendance_records
+ where school_id=p_school and class_id=e.class_id and student_id=p_student
+   and attendance_on between t.begins_on and t.ends_on;
  insert into public.school_published_reports(
    school_id,term_id,student_id,class_id,report_data,approved_by)
  values(p_school,p_term,p_student,e.class_id,
@@ -501,7 +530,7 @@ begin
     'class_id',e.class_id,'school_id',p_school,
     'subjects',marks,'earned_marks',round(all_earned,2),
     'maximum_marks',all_max,'overall_percentage',round(100*all_earned/all_max,2),
-    'school_remark',remark,
+    'school_remark',remark,'attendance',attendance_json,
     'weights',jsonb_build_object('unit',25,'project',25,'end_term',50)
    ),p_actor)
  returning id into report_id;
