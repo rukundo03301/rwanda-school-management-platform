@@ -92,7 +92,9 @@ test("minor student invitations require verified guardian approval before claimi
 
 test("student/parent homework submissions use enrollment+verified identity, no other child",()=>{
  assert.match(sql,/create or replace function public\.school_submit_homework/);
- assert.match(sql,/class_id=assn\.class_id and status='active'/);
+ assert.match(sql,/e\.class_id=assn\.class_id/);
+ assert.match(sql,/e\.status=\x27active\x27/);
+ assert.match(sql,/st\.status=\x27active\x27/);
  assert.match(sql,/school_student_accounts sa/);
  assert.match(sql,/school_guardian_links g/);
  assert.match(sql,/student_allowed/);
