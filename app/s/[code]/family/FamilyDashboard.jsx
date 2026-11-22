@@ -69,10 +69,11 @@ export default function FamilyDashboard({code}){
          <div className="adm-child-avatar">🎓</div><div><h3>{child.name}</h3><p><strong>Student ID:</strong> {child.studentCode}</p>
          <p><strong>My relationship:</strong> {child.relationship==="legal_guardian"?"Legal guardian":"Parent"}</p>
          <p><strong>Current class:</strong> {child.className||"Not assigned"}</p>
+         <a className="button secondary small" href={"/s/"+code+"/learning?view=family&studentId="+child.id}>View attendance, lessons &amp; homework</a>
          </div></article>)}</div>:
          <div className="adm-empty"><strong>No linked children yet</strong><p>If your school has already verified your relationship, ask it to invite your confirmed email address. Your child will appear only after you accept the invitation.</p></div>}
      </section>
-     <div className="adm-family-next"><strong>Coming in future student and parent modules</strong><p>Attendance, homework due dates, tuition balances, class reports, timetables and teacher messages will be available after each feature passes school-specific privacy and permission checks. They are not live yet.</p></div>
+     <div className="adm-family-next"><strong>Coming in future student and parent modules</strong><p>Attendance, published lessons and homework are available through each verified child’s learning page. Tuition balances, published report cards, timetables and teacher messaging remain later modules.</p></div>
      <a href={"/s/"+code+"/portal?role=parent"}>Return to Parent Portal</a>
    </div>
  </main>;
