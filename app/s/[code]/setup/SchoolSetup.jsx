@@ -108,7 +108,8 @@ export default function SchoolSetup({code}){
      });
      setStep(nextStep);setMessage("Saved successfully. Your school setup is private until publishing.");
      if(exit)window.location.assign("/s/"+code+"/login");
-   }catch(e){setError(e.message);}
+     return true;
+   }catch(e){setError(e.message);return false;}
    finally{setBusy(false);}
  }
  async function upload(file,kind){
@@ -126,7 +127,10 @@ export default function SchoolSetup({code}){
  async function finish(action){
    setBusy(true);setError("");setMessage("");
    try{
-     if(action==="requestReview")await save(5);
+     if(action==="requestReview") {
+       const saved=await save(5);
+       if(!saved)return;
+     }
      await call({action});
      setMessage(action==="requestReview"?"Your school setup has been submitted for platform approval. You can continue editing.":"Your school website is now published.");
      await refresh();
@@ -143,7 +147,7 @@ export default function SchoolSetup({code}){
  if(!authReady||loading)return <main className="shell">Loading your school...</main>;
  if(!client)return <main className="shell"><div className="auth-card">School login is not configured yet.</div></main>;
  if(!session)return <main className="shell"><div className="auth-card"><h1>Sign in to your school</h1><p>Use the private school account your institution invited.</p><a className="button" href={"/s/"+code+"/login"}>School sign in</a></div></main>;
- if(error&&!details)return <main className="shell"><div className="auth-card"><h2>Cannot open this school</h2><div className="notice error">{error}</div><a href={"/s/"+code+"/login"}>Return to sign in</a></div></main>;
+ if(error&&!details)return <main className="shell"><div className="auth-card"><h2>Cannot open this school</h2><div className="notice error">{error}</div><button className="button secondary" onClick={async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login");}}>Sign out and use a different account</button></div></main>;
  if(details?.invited)return <main className="shell"><div className="auth-card">
    <div className="mark">R</div><h1>Welcome to {details.school.name}</h1>
    <p>Your school owner invitation is ready. Your Company ID and School ID have already been generated.</p>
