@@ -576,7 +576,9 @@ grant execute on function public.school_set_comms_permissions(uuid,uuid,text[],t
 grant execute on function public.school_add_timetable_period(uuid,uuid,uuid,uuid,integer,time,time,text,uuid) to service_role;
 grant execute on function public.school_disable_timetable_period(uuid,uuid,text,uuid) to service_role;
 grant execute on function public.school_publish_announcement(uuid,text,text,text,uuid,timestamptz,uuid) to service_role;
-grant execute on function public.school_archive_announcement(uuid,uuid,uuid,text,uuid) to service_role;
+grant execute on function public.school_archive_announcement(uuid,uuid,text,uuid) to service_role;
+grant execute on function public.school_schedule_calendar_event(uuid,text,text,text,text,uuid,timestamptz,timestamptz,text,uuid) to service_role;
+grant execute on function public.school_cancel_calendar_event(uuid,uuid,text,uuid) to service_role;
 grant execute on function public.school_open_family_thread(uuid,uuid,uuid,uuid,uuid) to service_role;
 grant execute on function public.school_send_family_message(uuid,uuid,text,uuid) to service_role;
 grant execute on function public.school_close_family_thread(uuid,uuid,text,uuid) to service_role;
