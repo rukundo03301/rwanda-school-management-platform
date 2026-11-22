@@ -19,6 +19,15 @@ const TRACKS=[
  ["international","International (school-specific rules)"],
  ["higher_education","Higher Education (institutional rules)"]
 ];
+const LEVEL_BANDS={
+ general:[["lower_primary","Lower Primary P1–P3 (LEGRA needs separate engine)"],
+  ["upper_primary","Upper Primary P4–P6"],["ordinary_secondary","Ordinary Level S1–S3"],
+  ["advanced_secondary","Advanced Level S4–S6"]],
+ professional:[["professional","Professional Education"]],
+ tvet:[["tvet","TVET"]],nursery:[["nursery","Nursery"]],
+ international:[["international","International"]],
+ higher_education:[["higher_education","Higher Education"]]
+};
 function Field({label,children}){return <label className="repm-field"><strong>{label}</strong>{children}</label>}
 function Empty({label,description}){return <div className="repm-empty"><strong>{label}</strong><p>{description}</p></div>}
 function Modal({name,close,children}){return <div className="repm-backdrop" role="presentation" onClick={e=>{if(e.target===e.currentTarget)close();}}>
@@ -137,13 +146,13 @@ export default function ReportsManager({code}){
       <li><strong>School owner approves publication</strong><span>Missing marks and unapproved syllabus allocations block release.</span></li>
       <li><strong>Parent and student view</strong><span>Only published reports appear in their separately verified portals.</span></li></ol>
      </article><article className="repm-panel"><h2>Verified assessment rule</h2>
-      <p><b>General & Professional Education</b></p>
+      <p><b>General & Professional Education (supported tracks)</b></p>
       <div className="repm-weights"><div><strong>25%</strong><small>Units</small></div>
        <div><strong>25%</strong><small>Projects</small></div>
        <div><strong>50%</strong><small>End-of-term</small></div></div>
       <p>Subject maximum marks = teaching periods per week × 10. A report's overall percentage weights subjects by their available marks.</p>
       <p className="repm-source">Source: <a href="https://www.nesa.gov.rw/fileadmin/user_upload/NESA/Ressources/Assessment_Standards_and_Guidelines/Guidelines_on_Recording_Marks_in_CA-MIS_December_2023__Signed_.pdf" target="_blank" rel="noreferrer">NESA Guidelines on Recording Marks in CA-MIS (2023)</a></p>
-      <div className="repm-info">TVET, nursery, higher education and international programmes have separate report rules. The general-education calculation is blocked for these tracks until their own approved engines are added.</div>
+      <div className="repm-info">Lower Primary P1–P3 (including LEGRA Kinyarwanda), TVET, nursery, higher education and international programmes require separate verified report rules. Their general-education publication is blocked in this version.</div>
       <p><b>Current academic year:</b> {year?.name||"Not configured"}</p>
      </article></div>
    </>}
@@ -154,7 +163,7 @@ export default function ReportsManager({code}){
       sourceUrl:"https://www.nesa.gov.rw/fileadmin/user_upload/NESA/Ressources/Assessment_Standards_and_Guidelines/Guidelines_on_Recording_Marks_in_CA-MIS_December_2023__Signed_.pdf"})}>+ Curriculum Profile</button></div>
     <article className="repm-panel"><div className="table-wrap"><table><thead><tr><th>Curriculum</th><th>Track</th><th>Source and policy</th><th>Status</th><th>Review</th></tr></thead><tbody>
      {curriculum.map(p=><tr key={p.id}><td><strong>{p.name}</strong><p className="micro">{p.pathway||"No pathway assigned"}</p></td>
-      <td>{p.track.replaceAll("_"," ")}</td><td><a href={p.source_url} target="_blank" rel="noreferrer">{p.source_title}</a>
+      <td>{p.track.replaceAll("_"," ")}<p className="micro">{p.level_band?.replaceAll("_"," ")}</p></td><td><a href={p.source_url} target="_blank" rel="noreferrer">{p.source_title}</a>
        <p className="micro">{p.policy_version}</p></td><td><span className="repm-status">{p.status}</span></td>
       <td>{p.status==="draft"&&actor.owner&&<button className="button small secondary"
         onClick={()=>ownerAction("approveProfile",{profile:p})}>Approve source</button>}</td></tr>)}</tbody></table>
@@ -186,7 +195,7 @@ export default function ReportsManager({code}){
       {teacher&&<button className="button" disabled={!termId||!classId||!classRoster.length} onClick={()=>ownerAction("mark",{
        termId,classId,studentId:classRoster[0]?.studentId,
        subjectId:gradeCourse[0]?.subject_id,category:"unit",assessmentCode:"",
-       score:0})}>+ Record Mark</button>}</div>
+       score:0,rawMaximum:""})}>+ Record Mark</button>}</div>
     <div className="repm-filters"><label>Academic term<select className="input" value={termId} onChange={e=>setTermId(e.target.value)}>
      {terms.map(t=><option key={t.id} value={t.id}>Term {t.term_number}</option>)}</select></label>
      <label>Class<select className="input" value={classId} onChange={e=>setClassId(e.target.value)}>
@@ -195,7 +204,7 @@ export default function ReportsManager({code}){
      <div className="table-wrap"><table><thead><tr><th>Student</th><th>Subject</th><th>Component</th><th>Assessment code</th><th>Marks</th><th>Recorded</th></tr></thead><tbody>
       {visibleMarks.map(m=><tr key={m.id}><td>{roster.find(r=>r.studentId===m.student_id)?.name||"School pupil"}</td>
        <td>{subject(m.subject_id)?.name||"Subject"}</td><td>{m.category.replaceAll("_"," ")}</td>
-       <td>{m.assessment_code}</td><td><strong>{m.score} / {m.maximum_marks}</strong></td>
+       <td>{m.assessment_code}</td><td><strong>{m.raw_score} / {m.raw_maximum}</strong><p className="micro">Curriculum equivalent: {m.score} / {m.maximum_marks}</p></td>
        <td>{safeDate(m.entered_at)}</td></tr>)}</tbody></table>
       {!visibleMarks.length&&<Empty label="No marks entered" description="Approved and assigned teachers can record actual curriculum assessments after the school configures a term."/>}</div></article>
     <article className="repm-panel"><h3>Curriculum units available for marking</h3>
@@ -241,8 +250,13 @@ export default function ReportsManager({code}){
      yearId:year.id,...form});}}>
     <p>School-created source profile, not automatically certified by NESA. Your school owner must verify the current syllabus.</p>
     <Field label="Profile title"><input required className="input" maxLength={120} value={form.name||""} placeholder="e.g. P4 General Curriculum 2026" onChange={e=>setForm({...form,name:e.target.value})}/></Field>
-    <Field label="Education track"><select className="input" value={form.track} onChange={e=>setForm({...form,track:e.target.value})}>
+    <Field label="Education track"><select className="input" value={form.track} onChange={e=>setForm({...form,track:e.target.value,levelBand:""})}>
      {TRACKS.map(t=><option key={t[0]} value={t[0]}>{t[1]}</option>)}</select></Field>
+    <Field label="Education level / band"><select className="input" required value={form.levelBand||""}
+      onChange={e=>setForm({...form,levelBand:e.target.value})}>
+      <option value="">Choose a verified education level</option>
+      {(LEVEL_BANDS[form.track]||[]).map(x=><option key={x[0]} value={x[0]}>{x[1]}</option>)}
+    </select></Field>
     <Field label="Upper-secondary pathway (if relevant)"><select className="input" value={form.pathway||""} onChange={e=>setForm({...form,pathway:e.target.value})}>
      <option value="">Not assigned / not applicable</option>
      {["Mathematics and Sciences","Arts and Humanities","Languages"].map(x=><option key={x}>{x}</option>)}</select></Field>
@@ -311,11 +325,17 @@ export default function ReportsManager({code}){
      {units.filter(u=>u.class_id===form.classId&&u.subject_id===form.subjectId).map(u=><option key={u.id} value={u.unit_code}>{u.unit_code} · {u.unit_title}</option>)}</select></Field>}
     {form.category==="project"&&<Field label="Project reference"><input className="input" required maxLength={30} placeholder="PROJECT-1" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}/></Field>}
     {form.category==="end_term"&&<p className="repm-info">The end-of-term examination is recorded once as TERM for this subject.</p>}
-    <Field label="Actual mark"><input className="input" type="number" step="0.01" min="0" required
-      max={(gradeCourse.find(m=>m.subject_id===form.subjectId)?.weekly_periods||0)*10||undefined}
+    <Field label="Marks earned on this assessment"><input className="input" type="number" step="0.01" min="0" required
+      max={form.rawMaximum||undefined}
       value={form.score??0} onChange={e=>setForm({...form,score:e.target.value})}/></Field>
+    <Field label="Actual assessment maximum (paper marked out of)"><input className="input" required
+      type="number" step="0.01" min="0.01" max="10000"
+      placeholder="e.g. 40 if the exam was out of 40"
+      value={form.rawMaximum||""}
+      onChange={e=>setForm({...form,rawMaximum:e.target.value})}/></Field>
+    <p className="repm-info">Marks will be converted to the verified curriculum subject maximum automatically. For example, 39/40 becomes 78/80 if that subject has a curriculum maximum of 80.</p>
     <Field label="Teacher feedback (optional)"><textarea className="input" maxLength={1500} value={form.feedback||""} onChange={e=>setForm({...form,feedback:e.target.value})}/></Field>
-    <button className="button" disabled={busy||!form.subjectId||!form.studentId} type="submit">Record secure mark</button>
+    <button className="button" disabled={busy||!form.subjectId||!form.studentId||!form.rawMaximum} type="submit">Record secure mark</button>
    </form>}
    {modal==="publish"&&<form onSubmit={e=>{e.preventDefault();act({action:"report.publish",termId:form.termId,studentId:form.studentId,remark:form.remark||""});}}>
     <p>Publish a school's report only after reviewing all official mapped subjects, unit assessments, at least two projects per subject, and the end-of-term examination. Requires MFA.</p>
