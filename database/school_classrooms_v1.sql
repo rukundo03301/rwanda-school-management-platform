@@ -171,7 +171,9 @@ set search_path=pg_catalog,public as $$
   join public.school_memberships m on m.school_id=s.id
   join public.school_teacher_assignments a on a.school_id=m.school_id
    and a.teacher_id=m.auth_user_id
-  where s.id=p_school_id and s.status='active'
+  join public.school_classes c on c.school_id=a.school_id and c.id=a.class_id
+  join public.school_academic_years y on y.school_id=c.school_id and y.id=c.academic_year_id
+  where s.id=p_school_id and s.status='active' and c.status='active' and y.status='current'
    and m.auth_user_id=p_teacher and m.role='teacher' and m.active
    and a.class_id=p_class and a.subject_id=p_subject and a.active)
 $$;
@@ -378,6 +380,10 @@ begin
  if exists(select 1 from public.school_student_accounts
    where school_id=p_school_id and student_id=p_student and active)
  then raise exception 'Student account already active'; end if;
+ -- No two concurrently valid invitations for one student's identity.
+ update public.school_student_account_invites set status='revoked'
+ where school_id=p_school_id and student_id=p_student and status='pending'
+   and email<>normalized_email;
  insert into public.school_student_account_invites(
   school_id,student_id,email,consent_attested,invited_by)
  values(p_school_id,p_student,normalized_email,true,p_actor)
@@ -409,6 +415,15 @@ begin
  then raise exception 'No current school-approved student invitation'; end if;
  if not exists(select 1 from public.school_students where school_id=p_school_id
    and id=p_student and status='active') then raise exception 'Student unavailable'; end if;
+ if exists(select 1 from public.school_students stu
+   where stu.school_id=p_school_id and stu.id=p_student
+     and (stu.date_of_birth is null or stu.date_of_birth>current_date-interval '18 years')
+     and not exists(select 1 from public.school_guardian_links g
+       where g.school_id=p_school_id and g.student_id=p_student and g.active))
+ then raise exception 'A verified guardian link is still required'; end if;
+ if exists(select 1 from public.school_student_accounts
+   where school_id=p_school_id and student_id=p_student and active)
+ then raise exception 'This student account has already been claimed'; end if;
  if exists(select 1 from public.school_student_accounts
    where school_id=p_school_id and auth_user_id=p_user and student_id<>p_student and active)
  then raise exception 'One student account cannot represent multiple students'; end if;
@@ -428,6 +443,34 @@ begin
  return jsonb_build_object('claimed',true,'role','student');
 end;
 $$;
+
+create or replace function public.school_revoke_student_account(
+ p_school_id uuid,p_student uuid,p_reason text,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $
+declare previous_user uuid;
+begin
+ if length(btrim(coalesce(p_reason,'')))<8 then raise exception 'Audit reason required'; end if;
+ if not exists(select 1 from public.platform_schools s
+  join public.school_memberships m on m.school_id=s.id
+  where s.id=p_school_id and s.status='active' and m.auth_user_id=p_actor
+   and m.role='school_owner' and m.active)
+ then raise exception 'Only the school owner may revoke student access'; end if;
+ select auth_user_id into previous_user from public.school_student_accounts
+  where school_id=p_school_id and student_id=p_student and active for update;
+ if not found then raise exception 'Student account is not active'; end if;
+ update public.school_student_accounts set active=false
+ where school_id=p_school_id and student_id=p_student and auth_user_id=previous_user;
+ update public.school_memberships set active=false
+ where school_id=p_school_id and auth_user_id=previous_user and role='student';
+ update public.school_student_account_invites set status='revoked'
+ where school_id=p_school_id and student_id=p_student;
+ insert into public.school_classroom_audit(school_id,actor_id,event,resource_id,metadata)
+ values(p_school_id,p_actor,'student.account_revoked',p_student,
+  jsonb_build_object('reason',p_reason));
+ return jsonb_build_object('revoked',true);
+end;
+$;
 
 create or replace function public.school_submit_homework(
  p_school_id uuid,p_homework uuid,p_response text,p_student_user uuid
@@ -479,6 +522,7 @@ revoke all on function public.school_publish_homework(uuid,uuid,uuid) from publi
 revoke all on function public.school_record_attendance(uuid,uuid,uuid,date,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_invite_student_account(uuid,uuid,text,boolean,uuid) from public,anon,authenticated;
 revoke all on function public.school_claim_student_account(uuid,uuid,uuid,text) from public,anon,authenticated;
+revoke all on function public.school_revoke_student_account(uuid,uuid,text,uuid) from public,anon,authenticated;
 revoke all on function public.school_submit_homework(uuid,uuid,text,uuid) from public,anon,authenticated;
 grant execute on function public.school_teacher_can(uuid,uuid,uuid,uuid) to service_role;
 grant execute on function public.school_assign_teacher(uuid,uuid,uuid,uuid,uuid) to service_role;
@@ -489,4 +533,5 @@ grant execute on function public.school_publish_homework(uuid,uuid,uuid) to serv
 grant execute on function public.school_record_attendance(uuid,uuid,uuid,date,text,uuid) to service_role;
 grant execute on function public.school_invite_student_account(uuid,uuid,text,boolean,uuid) to service_role;
 grant execute on function public.school_claim_student_account(uuid,uuid,uuid,text) to service_role;
+grant execute on function public.school_revoke_student_account(uuid,uuid,text,uuid) to service_role;
 grant execute on function public.school_submit_homework(uuid,uuid,text,uuid) to service_role;
