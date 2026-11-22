@@ -248,6 +248,56 @@ set search_path=pg_catalog,public as $$
  where i.school_id=p_school and i.id=p_invoice and i.status='issued'
 $$;
 
+-- Authoritative per-invoice balances: never calculated from paginated payment lists.
+-- The caller must have active school-specific finance rights OR an active
+-- school-verified parent link to EACH requested invoice.
+create or replace function public.school_finance_invoice_balances(
+ p_school uuid,p_actor uuid,p_invoices uuid[]
+) returns table(invoice_id uuid,paid_rwf text,waived_rwf text,balance_rwf text)
+language plpgsql stable security invoker
+set search_path=pg_catalog,public as $
+declare elevated boolean;
+begin
+ if p_invoices is null or coalesce(array_length(p_invoices,1),0)>1500
+ then raise exception 'Request between zero and 1500 school invoice IDs'; end if;
+ elevated:=public.school_finance_has(p_school,p_actor,'finance.read')
+  or public.school_finance_has(p_school,p_actor,'invoices.issue')
+  or public.school_finance_has(p_school,p_actor,'payments.record')
+  or public.school_finance_has(p_school,p_actor,'payments.approve');
+ if not elevated and exists(
+  select 1 from public.school_fee_invoices i
+  where i.school_id=p_school and i.id=any(p_invoices)
+   and not public.school_finance_parent_link(p_school,p_actor,i.student_id))
+ then raise exception 'A linked guardian may request only their own pupil invoices'; end if;
+ if not elevated and not exists(
+  select 1 from public.school_memberships m
+  where m.school_id=p_school and m.auth_user_id=p_actor
+    and m.role='parent' and m.active)
+ then raise exception 'School finance statement access is not approved'; end if;
+ return query
+ with p as(
+  select pay.invoice_id,sum(pay.amount_rwf)::bigint amount
+  from public.school_fee_payments pay
+  where pay.school_id=p_school and pay.status='posted'
+   and pay.invoice_id=any(p_invoices)
+  group by pay.invoice_id
+ ), c as(
+  select cr.invoice_id,sum(cr.amount_rwf)::bigint amount
+  from public.school_fee_credits cr
+  where cr.school_id=p_school and cr.invoice_id=any(p_invoices)
+  group by cr.invoice_id
+ )
+ select i.id,coalesce(p.amount,0)::text,coalesce(c.amount,0)::text,
+  (case when i.status='cancelled' then 0::bigint
+   else greatest(0,i.amount_rwf-coalesce(p.amount,0)-coalesce(c.amount,0))
+   end)::text
+ from public.school_fee_invoices i
+ left join p on p.invoice_id=i.id left join c on c.invoice_id=i.id
+ where i.school_id=p_school and i.id=any(p_invoices)
+  and (elevated or public.school_finance_parent_link(p_school,p_actor,i.student_id));
+end;
+$;
+
 create or replace function public.school_finance_set_permissions(
  p_school uuid,p_target uuid,p_permissions text[],p_reason text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
@@ -659,6 +709,7 @@ revoke all on function public.school_finance_has(uuid,uuid,text) from public,ano
 revoke all on function public.school_finance_is_owner(uuid,uuid) from public,anon,authenticated;
 revoke all on function public.school_finance_parent_link(uuid,uuid,uuid) from public,anon,authenticated;
 revoke all on function public.school_finance_remaining(uuid,uuid) from public,anon,authenticated;
+revoke all on function public.school_finance_invoice_balances(uuid,uuid,uuid[]) from public,anon,authenticated;
 revoke all on function public.school_finance_set_permissions(uuid,uuid,text[],text,uuid) from public,anon,authenticated;
 revoke all on function public.school_fee_create_catalog(uuid,uuid,uuid,text,text,text,bigint,date,uuid) from public,anon,authenticated;
 revoke all on function public.school_fee_disable_catalog(uuid,uuid,text,uuid) from public,anon,authenticated;
@@ -675,6 +726,7 @@ grant execute on function public.school_finance_has(uuid,uuid,text) to service_r
 grant execute on function public.school_finance_is_owner(uuid,uuid) to service_role;
 grant execute on function public.school_finance_parent_link(uuid,uuid,uuid) to service_role;
 grant execute on function public.school_finance_remaining(uuid,uuid) to service_role;
+grant execute on function public.school_finance_invoice_balances(uuid,uuid,uuid[]) to service_role;
 grant execute on function public.school_finance_set_permissions(uuid,uuid,text[],text,uuid) to service_role;
 grant execute on function public.school_fee_create_catalog(uuid,uuid,uuid,text,text,text,bigint,date,uuid) to service_role;
 grant execute on function public.school_fee_disable_catalog(uuid,uuid,text,uuid) to service_role;
