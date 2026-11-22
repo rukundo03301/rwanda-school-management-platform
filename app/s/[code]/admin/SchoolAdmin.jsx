@@ -159,13 +159,13 @@ export default function SchoolAdmin({code}){
              <p><strong>1. School identity</strong><span>Logo, mission, vision, announcements and homepage.</span></p>
              <p><strong>2. Academic foundation</strong><span>Create your academic year, class names and subjects.</span></p>
              <p><strong>3. School team</strong><span>Invite school administrators, teachers and staff securely.</span></p>
-             <p><strong>4. Student enrollment</strong><span>Next module; no student records are created in this release.</span></p>
+             <p><strong>4. Student enrollment</strong><span>Manage approved student admissions and verified families.</span></p>
            </div>
            <div className="row" style={{marginTop:15}}>
              {owner&&<a className="button secondary small" href={"/s/"+code+"/setup"}>Edit School Website</a>}
              {allowed("academics.manage")&&<button className="button small" onClick={()=>setTab("academics")}>Academic Setup</button>}
              {(owner||actor.admissionsPermissions?.some(p=>["admissions.read","admissions.manage","enrollments.manage","guardians.manage"].includes(p)))&&
-               <a className="button secondary small" href={"/s/"+code+"/admissions"}>Admissions & Students</a>
+               <a className="button secondary small" href={"/s/"+code+"/admissions"}>Admissions & Students</a>}
              {allowed("academics.manage")&&<a className="button secondary small" href={"/s/"+code+"/teaching-admin"}>Assign Teachers</a>}
            </div>
          </section>
