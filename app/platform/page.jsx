@@ -33,30 +33,100 @@ function Field({label,children}) { return <label className="field">{label}{child
 function Login({client,onLogin}) {
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
+  const [showPassword,setShowPassword]=useState(false);
   const [mode,setMode]=useState("login");
   const [loading,setLoading]=useState(false);
   const [message,setMessage]=useState("");
+  const [problem,setProblem]=useState("");
   async function submit(e) {
-    e.preventDefault();setLoading(true);setMessage("");
-    const res = mode==="login"
-      ? await client.auth.signInWithPassword({email,password})
-      : await client.auth.signUp({email,password});
-    setLoading(false);
-    if(res.error)setMessage(res.error.message);
-    else if(mode==="signup")setMessage("Registration requested. Confirm the verification email, then sign in. Platform access requires approval.");
-    else onLogin(res.data.session);
+    e.preventDefault();setLoading(true);setMessage("");setProblem("");
+    try {
+      if(mode==="forgot"){
+        const {error}=await client.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin+"/platform/reset-password"
+        });
+        if(error)throw error;
+        setMessage("If this email has an account, you will receive instructions to reset your password. Check spam and your inbox.");
+      } else if(mode==="signup"){
+        const {error}=await client.auth.signUp({
+          email:email.trim(),password,
+          options:{emailRedirectTo:window.location.origin+"/platform"}
+        });
+        if(error)throw error;
+        setMessage("If registration is eligible, check your email for confirmation. Access remains pending until the platform owner approves it.");
+        setMode("login");
+        setPassword("");
+      } else {
+        const {data,error}=await client.auth.signInWithPassword({email:email.trim(),password});
+        if(error)throw error;
+        onLogin(data.session);
+      }
+    }catch(e){setProblem(e.message||"Unable to complete authentication. Please try again.");}
+    finally{setLoading(false);}
+  }
+  async function signInWithGoogle(){
+    setProblem("");setMessage("");setLoading(true);
+    try {
+      const {error}=await client.auth.signInWithOAuth({
+        provider:"google",
+        options:{redirectTo:window.location.origin+"/platform"}
+      });
+      if(error)throw error;
+      // Supabase initiates browser navigation to the provider.
+    } catch(e){setLoading(false);setProblem(e.message||"Google sign-in is not available.");}
   }
   return <main className="shell"><div className="auth-card">
-    <div className="mark">R</div><h1>Platform Owner Console</h1>
-    <p>Secure administration for your Rwanda education platform. Accounts must be approved before tenant information becomes visible.</p>
-    {message&&<div className="notice info" role="status">{message}</div>}
+    <div className="mark">R</div>
+    <h1>{mode==="forgot"?"Reset your password":mode==="signup"?"Request a platform account":"Welcome back"}</h1>
+    <p>{mode==="forgot"?"Enter your account email. We'll send a private password reset link.":mode==="signup"?"Only approved platform staff and the verified platform owner can use this console.":"Sign in to manage school tenants, subscriptions, support tickets and your team."}</p>
+    {problem&&<div className="notice error" role="alert">{problem}</div>}
+    {message&&<div className="notice ok" role="status">{message}</div>}
     <form onSubmit={submit}>
-      <Field label="Account email"><input className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></Field>
-      <Field label="Password"><input className="input" type="password" required minLength={8} autoComplete={mode==="login"?"current-password":"new-password"} value={password} onChange={e=>setPassword(e.target.value)}/></Field>
-      <button className="button" disabled={loading} type="submit">{loading?"Please wait...":mode==="login"?"Sign in securely":"Create account"}</button>
+      <Field label="Email address"><input className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></Field>
+      {mode!=="forgot"&&<Field label="Password">
+        <div className="password-row">
+          <input className="input" type={showPassword?"text":"password"} required minLength={8}
+            autoComplete={mode==="login"?"current-password":"new-password"} value={password}
+            onChange={e=>setPassword(e.target.value)} placeholder="Enter your password"/>
+          <button type="button" className="button secondary small" aria-label={showPassword?"Hide password":"Show password"} onClick={()=>setShowPassword(x=>!x)}>{showPassword?"Hide":"Show"}</button>
+        </div>
+      </Field>}
+      <button className="button" disabled={loading} type="submit">
+        {loading?"Please wait…":mode==="login"?"Sign in with email":mode==="signup"?"Request account":"Email reset instructions"}
+      </button>
     </form>
-    <p style={{marginTop:18,marginBottom:0}}><button className="button flat" onClick={()=>{setMode(mode==="login"?"signup":"login");setMessage("");}}>{mode==="login"?"Need an account? Register":"Already have an account? Sign in"}</button></p>
+    {mode==="login"&&<>
+      <div className="auth-divider"><span>or</span></div>
+      <button className="button secondary google-login" disabled={loading} onClick={signInWithGoogle}>
+        <span aria-hidden="true" style={{fontWeight:800,color:"#4285f4",fontSize:17}}>G</span> Continue with Google
+      </button>
+      <div className="auth-links">
+        <button className="button flat" onClick={()=>{setMode("forgot");setProblem("");setMessage("");}}>Forgot password?</button>
+        <button className="button flat" onClick={()=>{setMode("signup");setProblem("");setMessage("");}}>Create staff account</button>
+      </div>
+    </>}
+    {mode!=="login"&&<button style={{marginTop:14}} className="button flat" onClick={()=>{setMode("login");setProblem("");setMessage("");}}>← Back to sign in</button>}
+    <p className="micro" style={{marginTop:22,marginBottom:0}}>Google login requires an enabled Google provider. Every account still needs approved owner or staff access. The sign-in method never grants privileges.</p>
   </div></main>;
+}
+
+function PermissionToggleTable({permissions,onChange,disabled=false}) {
+  return <div className="table-wrap">
+    <table className="permission-table">
+      <thead><tr><th>Module</th><th>Permission</th><th style={{textAlign:"center"}}>Access</th></tr></thead>
+      <tbody>{ALL_PERMISSIONS.map(permission=><tr key={permission}>
+        <td>{permission.split(".")[0].replace("billing","Payments").replace("tenants","Tenants").replace("tickets","Support").replace("staff","Staff").replace("audit","Audit")}</td>
+        <td>{({ "tenants.read":"View tenants and IDs","tenants.create":"Register new school","tenants.lifecycle":"Pause / activate tenants","tickets.read":"View support tickets","tickets.manage":"Manage and assign tickets","billing.read":"View RWF revenue","billing.methods":"Configure payment methods","staff.read":"View team directory","staff.manage":"Manage staff (owner approval still required)","audit.read":"View audit records" })[permission]||permission}
+          <div className="micro">{permission}</div></td>
+        <td style={{textAlign:"center"}}>
+          <label className="switch">
+            <input type="checkbox" disabled={disabled} checked={permissions.includes(permission)} onChange={e=>onChange(permission,e.target.checked)} aria-label={"Allow "+permission}/>
+            <span className="switch-track" aria-hidden="true"/>
+          </label>
+        </td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
 }
 
 export default function PlatformPage() {
