@@ -356,17 +356,11 @@ declare normalized_email text;
         student_dob date;
         new_id uuid;
 begin
- if not (
-  exists(select 1 from public.platform_schools s join public.school_memberships m
-    on m.school_id=s.id
-    where s.id=p_school_id and s.status='active' and m.auth_user_id=p_actor
-      and m.role='school_owner' and m.active)
-  or exists(select 1 from public.platform_schools s
-    join public.school_memberships m on m.school_id=s.id
-    join public.school_admin_permissions ap on ap.school_id=m.school_id and ap.auth_user_id=m.auth_user_id
-    where s.id=p_school_id and s.status='active' and m.auth_user_id=p_actor
-      and m.role='school_admin' and m.active and 'academics.manage'=any(ap.permissions))
- ) then raise exception 'Only an authorized school manager may invite students'; end if;
+ if not exists(select 1 from public.platform_schools s
+   join public.school_memberships m on m.school_id=s.id
+   where s.id=p_school_id and s.status='active'
+     and m.auth_user_id=p_actor and m.role='school_owner' and m.active)
+ then raise exception 'Only the verified school owner can invite a student account'; end if;
  if p_consent is distinct from true then raise exception 'School identity and consent attestation required'; end if;
  select date_of_birth into student_dob from public.school_students
   where school_id=p_school_id and id=p_student and status='active';
