@@ -1,17 +1,19 @@
 # Rwanda School Management Platform
 
-Cloud-based, multi-tenant school management platform for Rwanda. Intended for nursery, primary, secondary, TVET and universities. Each institution has its own official branding, school-specific homepage, roles and tenant-owned records. **School tuition, subscriptions and financial reporting use Rwandan francs (RWF).**
+Cloud-based, multi-tenant school management platform for Rwanda. Intended for nursery, primary, secondary, TVET and universities. Each institution has its own official branding, school-specific homepage, roles and tenant-owned records. **All school finance amounts and private owner payment tracking use Rwandan francs (RWF).**
 
 ## Development status
 
 **First implemented slice: Platform Owner Control Center** (feature branch \`feature/platform-owner-console-v1\`). This is code under development, not a released or deployed service. The owner console lets authorized platform operators:
 
 - View tenants and auto-generated Company/School IDs, create new tenant applications, pause/reactivate/suspend/archive/request deletion.
-- Read subscription and settlement records in RWF (no fabricated sample balances).
+- Set each school's private monthly RWF fee and first due date; manually mark payments received, restart a one-month countdown, and see upcoming/overdue schools.
 - View/create/assign/resolve platform support tickets.
 - Approve verified platform staff access requests, assign granular permissions and revoke access.
-- Manage available subscription payment-method options (provider integration still required).
+- Keep internal payment channel labels; no payment checkout, automatic invoicing, or automatic charges to school tenants.
 - Review audit history; sensitive actions require MFA.
+- Create each school's separate logo/hero-image homepage and approved announcements, without showing any private billing to the school.
+- Run an optional, private GitHub Actions daily email digest of overdue and upcoming school fees (Brevo credentials and activation required).
 
 The console login supports email/password and a configurable Google OAuth provider, plus password recovery and MFA. Staff permissions are editable through a table of ON/OFF switches. The app uses Next.js, Supabase Auth and server-side protected API routes. All protected data access is through verified server-side identity and least-privilege staff permissions. Existing schools' student/student-fee data is NOT being accessed by platform support.
 
@@ -34,9 +36,9 @@ Open \`http://localhost:3000/platform\`. Production builds: \`npm run build\`. A
 - \`NEXT_PUBLIC_SUPABASE_URL\`: verified Supabase project API URL
 - \`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY\`: Supabase frontend publishable key
 - \`SUPABASE_SECRET_KEY\`: Supabase secret/service-role key, **server only**
-- \`PLATFORM_OWNER_EMAIL\`: confirmed Supabase Auth email of the platform owner, set as a protected server variable
+- \`PLATFORM_OWNER_USER_ID\`: immutable UUID of the confirmed Supabase Auth account designated as platform owner
 
-The verified owner email bootstraps platform ownership. Other users must request access and be approved by the owner; selecting a role does not grant permissions.
+The verified owner's immutable Auth UUID bootstraps platform ownership. Other users must request access and be approved by the owner; selecting a role does not grant permissions.
 
 ### Supabase GitHub-first migration workflow
 
@@ -45,6 +47,10 @@ Use the official Supabase CLI: \`supabase migration new platform_owner_console\`
 Project currently designated: APEX (\`stgqhkhfpnqmsiyrvvhe\`). This existing project name does not affect school/company IDs.
 
 See [Release Readiness](docs/OWNER_CONSOLE_RELEASE_READINESS.md) for the full test and release gates.
+
+## Owner-only monthly payment reminders
+
+Read [Private Monthly Payments and Email Reminders](docs/PRIVATE_MONTHLY_PAYMENTS_AND_REMINDERS.md). The system never sends payment alerts to the schools. The operator manually records monthly receipts; the database computes the following month's date and the email job lists due-soon/overdue schools. A Brevo verified sender, API key, GitHub Actions secrets, and an explicit enable flag are required before any email can be sent.
 
 ## Product specifications
 
@@ -55,5 +61,5 @@ See [Release Readiness](docs/OWNER_CONSOLE_RELEASE_READINESS.md) for the full te
 
 ## Scope boundaries
 
-Actual payment initiation, MTN Mobile Money/webhook processing, bank statements, school-managed ticket submissions, physical tenant deletion, school academics and native mobile builds are **not yet implemented**. These require separate tested increments. The first release prioritizes the platform owner's management plane.
+Actual payment initiation, real Mobile Money/bank verification, school-managed ticket submissions, physical tenant deletion, school authentication, school academics and native mobile builds are **not yet implemented**. These require separate tested increments. The first release prioritizes the platform owner's management plane.
 
