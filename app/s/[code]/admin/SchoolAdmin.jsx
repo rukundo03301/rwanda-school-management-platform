@@ -128,6 +128,8 @@ export default function SchoolAdmin({code}){
        {(owner||["admissions.read","admissions.manage","enrollments.manage","guardians.manage"]
          .some(p=>actor.admissionsPermissions?.includes(p)))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/admissions"}><span aria-hidden="true">✧</span>Admissions & Students</a>}
+       {(owner||actor.permissions?.includes("academics.manage"))&&
+         <a className="school-admin-nav-link" href={"/s/"+code+"/classroom"}><span aria-hidden="true">▦</span>Classrooms & Teachers</a>}
      </nav>
      <div className="school-admin-sidebottom">
        <a href={"/s/"+code} target="_blank" rel="noreferrer">School Homepage</a>
