@@ -1,0 +1,33 @@
+name: Private Owner School Fee Reminder
+on:
+  schedule:
+    # 07:17 in Kigali, Rwanda (UTC+02) each day; scheduled runs may be delayed.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-owner-fee-email
+  cancel-in-progress: false
+jobs:
+  owner-fee-reminders:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Send private owner payment digest if any school is approaching due
+        run: node scripts/send-owner-due-reminders.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+          PLATFORM_OWNER_ALERT_EMAIL: ${{ secrets.PLATFORM_OWNER_ALERT_EMAIL }}
+          ENABLE_OWNER_EMAIL_REMINDERS: ${{ vars.ENABLE_OWNER_EMAIL_REMINDERS }}
+# Safe in draft feature branch: scheduled workflows run on default branch only.
+# Requires migration, provider credentials, verified sender and explicit ENABLE flag.

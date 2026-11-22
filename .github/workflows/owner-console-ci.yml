@@ -1,0 +1,51 @@
+name: Platform Owner Console CI
+on:
+  pull_request:
+  push:
+    branches:
+      - feature/platform-owner-console-v1
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned direct dependencies (lockfile pending)
+        run: npm install --no-audit --no-fund
+      - name: Unit and static security checks
+        run: npm test
+      - name: Compile production web application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://stgqhkhfpnqmsiyrvvhe.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-for-build-only
+# NO database deployment in this workflow.
+# Do not add a second migration deployer if Supabase native GitHub integration is enabled.
+
+  database-schema-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.0.0
+      - name: Generate local-only migration using Supabase CLI
+        run: |
+          supabase --version
+          supabase init
+          supabase migration new platform_owner_console
+          cp database/platform_owner_console.sql "$(find supabase/migrations -maxdepth 1 -name '*_platform_owner_console.sql' | head -n 1)"
+      - name: Start isolated Supabase and apply migration
+        run: |
+          supabase start
+          supabase db reset
+      - name: Stop local stack
+        if: always()
+        run: supabase stop || true
+# This job uses local Docker only. No project ref, remote credentials or --remote flag.
