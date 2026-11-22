@@ -60,7 +60,14 @@ export async function GET(request,{params}){
       .eq("auth_user_id",actor.id).maybeSingle());
     communicationPermissions=Array.isArray(grants?.permissions)?grants.permissions:[];
   }
-  const enrichedActor={...actor,admissionsPermissions,reportPermissions,communicationPermissions};
+  let financePermissions=[];
+  if(!actor.isOwner){
+    const grants=await checked(db.from("school_finance_permissions")
+      .select("permissions").eq("school_id",school.id)
+      .eq("auth_user_id",actor.id).maybeSingle());
+    financePermissions=Array.isArray(grants?.permissions)?grants.permissions:[];
+  }
+  const enrichedActor={...actor,admissionsPermissions,reportPermissions,communicationPermissions,financePermissions};
   const data={school:{name:school.name,code:school.school_code,status:school.status,
     logoUrl:brand?.logo_url||null,primaryColor:/^#[0-9a-f]{6}$/i.test(brand?.primary_color||"")?
       brand.primary_color:"#204a78"},
