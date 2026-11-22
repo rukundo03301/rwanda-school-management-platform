@@ -253,6 +253,7 @@ declare c uuid;
         a uuid;
         st uuid;
         fee uuid;
+        invoice_id uuid;
         current_year integer;
         start_day date;
         end_day date;
@@ -349,7 +350,14 @@ begin
  insert into public.school_fee_invoices(
   school_id,fee_id,academic_year_id,class_id,student_id,
   category,description,term_label,amount_rwf,due_on,issued_by)
- values(s.id,fee,yr,cl,st,'tuition','Demo Term Tuition','Term 3',90000,due_day,p_actor);
+ values(s.id,fee,yr,cl,st,'tuition','Demo Term Tuition','Term 3',90000,due_day,p_actor)
+ returning id into invoice_id;
+ -- An explicitly PENDING fake claim; no funds moved, no receipt generated.
+ insert into public.school_fee_payments(
+  school_id,invoice_id,amount_rwf,method,reference,paid_on,source,payer_note,proposed_by)
+ values(s.id,invoice_id,25000,'mtn_momo','DEMO-'||s.school_code||'-NOT-REAL',
+  (now() at time zone 'Africa/Kigali')::date,
+  'school_operator','FICTIONAL - not a settled Mobile Money payment',p_actor);
  insert into public.platform_tickets(
   school_id,title,description,priority,created_by)
  values(s.id,'DEMO: Sample school support request',
