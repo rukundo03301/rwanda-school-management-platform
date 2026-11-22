@@ -17,10 +17,10 @@ create index if not exists school_owner_invites_email_idx on public.school_owner
 create table if not exists public.school_memberships (
   school_id uuid not null references public.platform_schools(id) on delete restrict,
   auth_user_id uuid not null references auth.users(id) on delete restrict,
-  role text not null check(role in ('school_owner','school_admin')),
+  role text not null check(role in ('school_owner','school_admin','teacher','staff','parent','student')),
   active boolean not null default true,
   joined_at timestamptz not null default now(),
-  primary key(school_id,auth_user_id)
+  primary key(school_id,auth_user_id,role)
 );
 create index if not exists school_memberships_user_idx on public.school_memberships(auth_user_id);
 
@@ -131,8 +131,7 @@ begin
  end if;
  insert into public.school_memberships(school_id,auth_user_id,role,active)
  values(p_school_id,p_auth_user_id,'school_owner',true)
- on conflict(school_id,auth_user_id) do update set active=true
-   where public.school_memberships.role='school_owner';
+ on conflict(school_id,auth_user_id,role) do update set active=true;
  update public.school_owner_invites set status='claimed',claimed_at=now(),claimed_by=p_auth_user_id
  where id=invitation.id and status='pending';
  insert into public.platform_audit(actor_id,event,resource_id,metadata)
