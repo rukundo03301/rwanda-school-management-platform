@@ -407,6 +407,8 @@ declare t public.school_assessment_terms%rowtype;
         learning_notes text;
         units_json jsonb;
         attendance_json jsonb;
+        class_label text;
+        year_label text;
 begin
  if not public.school_report_owner_authorized(p_school,p_actor)
  then raise exception 'Only the verified school owner may publish student reports'; end if;
@@ -429,6 +431,10 @@ begin
  if not found then raise exception 'No current-year enrollment for the student'; end if;
  select * into st from public.school_students
  where school_id=p_school and id=p_student;
+ select concat_ws(' · ',name,nullif(section,'')) into class_label
+ from public.school_classes where school_id=p_school and id=e.class_id;
+ select name into year_label from public.school_academic_years
+ where school_id=p_school and id=t.academic_year_id;
  if exists(select 1 from public.school_published_reports
  where school_id=p_school and student_id=p_student and term_id=p_term)
  then raise exception 'Report already exists; use formal withdrawal and revision process'; end if;
@@ -525,9 +531,9 @@ begin
     'guideline','NESA 2023 CA-MIS marking guidelines; no NESA endorsement implied',
     'student_id',p_student,'student_code',st.student_code,
     'student_name',st.first_name||' '||st.last_name,
-    'academic_year_id',t.academic_year_id,
+    'academic_year_id',t.academic_year_id,'academic_year',year_label,
     'term',t.term_number,'term_begins',t.begins_on,'term_ends',t.ends_on,
-    'class_id',e.class_id,'school_id',p_school,
+    'class_id',e.class_id,'class_name',class_label,'school_id',p_school,
     'subjects',marks,'earned_marks',round(all_earned,2),
     'maximum_marks',all_max,'overall_percentage',round(100*all_earned/all_max,2),
     'school_remark',remark,'attendance',attendance_json,
