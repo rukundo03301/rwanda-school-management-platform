@@ -69,3 +69,10 @@ Actual payment initiation, real Mobile Money/bank verification, school-managed t
 See [School owner onboarding flow](docs/SCHOOL_ONBOARDING_MODULE_1B.md): verified school owner invitations; unique Company/School IDs; branded school-specific sign-in; 5-step saved setup; real logo/photo uploads; separate private homepage drafts and public publication; explicit review and platform activation.
 
 This module is a draft PR based on the earlier owner-console feature branch. No production Supabase deployment, mobile app, or school-role academic system has been claimed.
+
+
+## School homepage and role-specific entry (Module 1B)
+
+An active school's public homepage uses its own official brand and approved content. The school may publish its About statement, **Mission**, **Vision**, **Leadership/School Owner profile** (with approved photograph), contact details and up to three school announcements or advertisements. The portal login prominently asks the user to choose **School Owner / Administrator / Teacher / Staff / Parent / Student**. This is a navigation choice only: access still requires verified school-bound membership and relevant record permissions. The school owner setup portal works in development; teacher, staff, parent and student operational dashboards remain future modules.
+
+The platform's monthly RWF fees and owner reminders do **not** appear on school sites or school member dashboards. See [School Module 1B flow](docs/SCHOOL_ONBOARDING_MODULE_1B.md).
