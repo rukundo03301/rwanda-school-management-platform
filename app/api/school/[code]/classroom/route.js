@@ -25,7 +25,7 @@ async function teacherData(db,school,user){
  if(!scopedAssignments.length)return {school,mode:"teacher",assignments:[],classes:[],
   subjects:[],roster:[],enrollments:[],lessons:[],homework:[],attendance:[],submissions:[],currentYear};
  const assignmentIds=scopedAssignments.map(x=>x.id);
- const [subjects,enrollments,lessons,homework,attendance]=await Promise.all([
+ const [subjects,enrollments,lessons,homework]=await Promise.all([
   checked(db.from("school_subjects").select("id,name,code")
    .eq("school_id",school.id).in("id",subjectIds).limit(100)),
   checked(db.from("school_student_enrollments")
@@ -39,12 +39,12 @@ async function teacherData(db,school,user){
   checked(db.from("school_homework")
    .select("id,assignment_id,title,instructions,due_on,published_at")
    .eq("school_id",school.id).in("assignment_id",assignmentIds)
-   .order("due_on",{ascending:false}).limit(200)),
-  checked(db.from("school_attendance")
-   .select("id,assignment_id,enrollment_id,attendance_on,state")
-   .eq("school_id",school.id).in("assignment_id",assignmentIds)
-   .order("attendance_on",{ascending:false}).limit(300))
+   .order("due_on",{ascending:false}).limit(200))
  ]);
+ const attendance=enrollments.length?await checked(db.from("school_attendance")
+  .select("id,assignment_id,enrollment_id,attendance_on,state")
+  .eq("school_id",school.id).in("enrollment_id",enrollments.map(e=>e.id))
+  .order("attendance_on",{ascending:false}).limit(300)):[];
  const studentIds=[...new Set(enrollments.map(e=>e.student_id))];
  const roster=studentIds.length?await checked(db.from("school_students")
   .select("id,student_code,first_name,last_name,status")
@@ -52,7 +52,7 @@ async function teacherData(db,school,user){
  const homeworkIds=homework.map(x=>x.id);
  const submissions=homeworkIds.length?await checked(db.from("school_homework_submissions")
   .select("id,homework_id,student_id,response_text,submitted_at")
-  .eq("school_id",school.id).in("homework_id",homeworkIds)
+  .eq("school_id",school.id).in("homework_id",homeworkIds).in("student_id",studentIds.length?studentIds:["00000000-0000-0000-0000-000000000000"])
   .order("submitted_at",{ascending:false}).limit(500)):[];
  return {school,mode:"teacher",currentYear,assignments:scopedAssignments,classes,subjects,
    roster,enrollments,lessons,homework,attendance,submissions,
@@ -84,8 +84,9 @@ async function managerData(db,school,actor,academicManager,studentAccessManager)
   .eq("status","active").limit(250)):[];
  return {school,mode:"manage",actor:{id:actor.id,isOwner:actor.isOwner,
    academicManager,studentAccessManager},currentYear,
-   classes,subjects,classSubjects,assignments:assigned,
-   teachers:activeTeachers,students,
+   classes:academicManager?classes:[],subjects:academicManager?subjects:[],
+   classSubjects:academicManager?classSubjects:[],assignments:academicManager?assigned:[],
+   teachers:academicManager?activeTeachers:[],students,
    limited:classes.length===250||students.length===250};
 }
 export async function GET(request,{params}){
