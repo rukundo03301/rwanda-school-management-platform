@@ -76,9 +76,9 @@ export async function POST(request) {
       const reason = safeText(body.reason, 500);
       if (reason.length < 8) throw new ApiError(400,"Enter a meaningful reason (at least 8 characters).");
       const target = String(body.status || "");
-      const current = await checked(db.from("platform_schools").select("status").eq("id",schoolId).single());
+      const current = await checked(db.from("platform_schools").select("status,school_code").eq("id",schoolId).single());
       if (!canTransition(current.status,target)) throw new ApiError(400, "This tenant status change is not permitted.");
-      if (target === "deletion_requested") { requireOwner(actor); requireAal2(token); }
+      if (target === "deletion_requested") { requireOwner(actor); requireAal2(token); if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
       result = await checked(db.rpc("platform_change_school_state", {
         p_school_id: schoolId, p_target: target, p_reason: reason, p_actor: actor.id
       }));
@@ -98,6 +98,18 @@ export async function POST(request) {
       if (!["open","in_progress","resolved"].includes(status)) throw new ApiError(400,"Invalid ticket status.");
       result = await checked(db.from("platform_tickets").update({status,updated_at:new Date().toISOString()}).eq("id",id).select("id").single());
       await audit(db,actor,"ticket.status_changed",id,{status});
+    } else if (action === "ticket.assign") {
+      requirePermission(actor,"tickets.manage");
+      requirePermission(actor,"staff.read");
+      const id=validateUuid(body.id,"ticket");
+      const assigneeId=validateUuid(body.assigneeId,"staff");
+      const staff=await checked(db.from("platform_staff").select("active,permissions")
+        .eq("auth_user_id",assigneeId).single());
+      if (!staff.active || !staff.permissions.includes("tickets.manage")) throw new ApiError(400,"Select an active colleague with ticket management permission.");
+      result=await checked(db.from("platform_tickets").update({
+        assigned_to:assigneeId,status:"in_progress",updated_at:new Date().toISOString()
+      }).eq("id",id).select("id").single());
+      await audit(db,actor,"ticket.assigned",id,{assigned_to:assigneeId});
     } else if (action === "staff.approve") {
       requireOwner(actor); requireAal2(token);
       const requestId = validateUuid(body.id,"request");
