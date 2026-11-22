@@ -133,6 +133,18 @@ test("full-school database summary excludes cancelled invoices and counts overdu
  assert.match(api,/school_finance_summary/);
  assert.match(api,/partialLists:true/);
 });
+test("ledger hardening avoids invoice cancellation races and exactness loss",()=>{
+ assert.match(db,/status='issued' for share/);
+ assert.match(db,/c\.status='active'/);
+ assert.match(db,/invoiced_rwf',gross::text/);
+ assert.match(db,/collected_rwf',total_paid::text/);
+ assert.match(db,/outstanding_rwf',balance::text/);
+ const huge={id:"a",amount_rwf:"9007199254740993",due_on:"2026-01-01",status:"issued"};
+ // Large independently read bigint totals never require a JavaScript float.
+ assert.equal(invoiceMath(huge,[],[]).balance_rwf,"9007199254740993");
+ assert.match(displayRwf(huge.amount_rwf),/RWF$/);
+});
+
 test("all private school finance tables/sequence permissions revoke direct browser privileges",()=>{
  for(const table of ["school_finance_permissions","school_fee_catalog",
   "school_fee_invoices","school_fee_payments","school_fee_receipts",
