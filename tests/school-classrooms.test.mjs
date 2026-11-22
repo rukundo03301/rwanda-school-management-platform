@@ -34,6 +34,9 @@ test("teacher actions are limited to active school, assigned class and subject, 
  assert.match(role,/schoolVerifiedContext\(request,code\)/);
  assert.match(role,/eq\("auth_user_id",user\.id\)/);
  assert.match(classroom,/eq\("teacher_id",actorId\)/);
+ assert.match(classroom,/const pairs=new Set\(teacherAssignments\.map/);
+ assert.match(classroom,/homework=homework\.filter\(h=>pairs\.has/);
+ assert.match(classroom,/lessons=lessons\.filter\(l=>pairs\.has/);
  assert.match(classroom,/eq\("school_id",school\.id\)/);
  assert.match(classroom,/role\.teacher/);
 });
