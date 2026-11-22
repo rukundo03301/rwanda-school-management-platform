@@ -447,7 +447,7 @@ $$;
 create or replace function public.school_revoke_student_account(
  p_school_id uuid,p_student uuid,p_reason text,p_actor uuid
 ) returns jsonb language plpgsql security invoker
-set search_path=pg_catalog,public as $
+set search_path=pg_catalog,public as $$
 declare previous_user uuid;
 begin
  if length(btrim(coalesce(p_reason,'')))<8 then raise exception 'Audit reason required'; end if;
@@ -470,7 +470,7 @@ begin
   jsonb_build_object('reason',p_reason));
  return jsonb_build_object('revoked',true);
 end;
-$;
+$$;
 
 create or replace function public.school_submit_homework(
  p_school_id uuid,p_homework uuid,p_response text,p_student_user uuid
