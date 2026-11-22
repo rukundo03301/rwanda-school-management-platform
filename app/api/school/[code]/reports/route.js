@@ -59,7 +59,7 @@ export async function GET(request,{params}){
   const allowedCourses=courseMappings.filter(m=>
     (manage||readReports)||allowedPairs.has(m.class_id+"#"+m.subject_id));
   const units=classSet.size?await checked(db.from("school_curriculum_units")
-    .select("id,class_id,subject_id,unit_code,unit_title,key_competence,learning_outcomes")
+    .select("id,class_id,subject_id,unit_code,term_number,unit_title,key_competence,learning_outcomes")
     .eq("school_id",school.id).in("class_id",[...classSet]).limit(1500)):[];
   const visibleUnits=units.filter(u=>(manage||readReports)||allowedPairs.has(u.class_id+"#"+u.subject_id));
   let roster=[],marks=[],publishedReports=[],adminGrants=[];
@@ -199,8 +199,12 @@ export async function POST(request,{params}){
       .eq("class_id",classId).eq("subject_id",subjectId).maybeSingle());
     if(!mapping||mapping.approved_at)
       throw new ApiError(400,"Add syllabus units before the owner approves the subject mapping");
+    const termNumber=Number(body.termNumber);
+    if(!Number.isInteger(termNumber)||termNumber<1||termNumber>3)
+      throw new ApiError(400,"Specify which school term teaches this syllabus unit");
     result=await checked(db.from("school_curriculum_units").insert({
       school_id:school.id,class_id:classId,subject_id:subjectId,
+      term_number:termNumber,
       unit_code:reportText(body.unitCode,30),
       unit_title:reportText(body.unitTitle,180,{min:3}),
       key_competence:reportText(body.competence,2000,{min:3}),
