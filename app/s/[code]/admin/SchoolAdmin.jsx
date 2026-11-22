@@ -128,6 +128,8 @@ export default function SchoolAdmin({code}){
        {(owner||["admissions.read","admissions.manage","enrollments.manage","guardians.manage"]
          .some(p=>actor.admissionsPermissions?.includes(p)))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/admissions"}><span aria-hidden="true">✧</span>Admissions & Students</a>}
+       {allowed("academics.manage")&&<a className="school-admin-nav-link" href={"/s/"+code+"/teaching-admin"}>
+        <span aria-hidden="true">▦</span>Teacher Assignments</a>}
      </nav>
      <div className="school-admin-sidebottom">
        <a href={"/s/"+code} target="_blank" rel="noreferrer">School Homepage</a>
@@ -163,7 +165,8 @@ export default function SchoolAdmin({code}){
              {owner&&<a className="button secondary small" href={"/s/"+code+"/setup"}>Edit School Website</a>}
              {allowed("academics.manage")&&<button className="button small" onClick={()=>setTab("academics")}>Academic Setup</button>}
              {(owner||actor.admissionsPermissions?.some(p=>["admissions.read","admissions.manage","enrollments.manage","guardians.manage"].includes(p)))&&
-               <a className="button secondary small" href={"/s/"+code+"/admissions"}>Admissions & Students</a>}
+               <a className="button secondary small" href={"/s/"+code+"/admissions"}>Admissions & Students</a>
+             {allowed("academics.manage")&&<a className="button secondary small" href={"/s/"+code+"/teaching-admin"}>Assign Teachers</a>}
            </div>
          </section>
          <section className="panel"><h2>Current academic year</h2>
