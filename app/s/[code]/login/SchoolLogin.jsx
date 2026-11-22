@@ -86,7 +86,7 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
        <label className="field">Email address<input className="input" required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
        {mode==="login"&&<label className="field">Password<input className="input" required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
        <button className="button" type="submit" disabled={!client||busy||unavailable||(mode==="login"&&!role)} style={{width:"100%"}}>{busy?"Please wait…":mode==="login"?"Sign in to your school":"Email reset link"}</button>
-     </form>
+     </form>}
      {mode==="login"&&!signedIn&&<>
        <div className="auth-divider"><span>or</span></div>
        <button className="button secondary" style={{width:"100%"}} disabled={!client||busy||unavailable||!role} onClick={google}>Continue with Google</button>
