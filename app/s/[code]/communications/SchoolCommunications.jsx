@@ -16,8 +16,9 @@ const AUDIENCES=[
  {id:"class",label:"One school class"}
 ];
 const EVENT_KINDS=["exam","meeting","holiday","activity","closure","other"];
-const kigaliNow=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",
- month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date()).replace(" ","T");
+const kigaliLocal=(date)=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",
+ month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(date).replace(" ","T");
+const kigaliNow=()=>kigaliLocal(new Date());
 const prettyDate=d=>d?new Date(d).toLocaleString("en-RW",{
  timeZone:"Africa/Kigali",dateStyle:"medium",timeStyle:"short"}):"—";
 const prettyTime=t=>typeof t==="string"?t.slice(0,5):"—";
@@ -201,7 +202,7 @@ export default function SchoolCommunications({code}){
        </div>
        <h4>Homework deadlines</h4>
        {child.upcomingHomework.length?<ul>{child.upcomingHomework.slice(0,5).map((h,i)=><li key={i}>
-        <b>{h.title}</b><span>{prettyDate(h.dueAt)}</span></li>)}</ul>:
+        <b>{h.title}</b><span>{h.submitted?"✓ Submitted · ":"Due · "}{prettyDate(h.dueAt)}</span></li>)}</ul>:
         <p className="muted">No published assignments in the loaded date window.</p>}
        <h4>Attendance recorded by the school</h4>
        {child.recordedAttendance.length?<div className="scom-attendance">
@@ -276,7 +277,7 @@ export default function SchoolCommunications({code}){
      <div className="scom-section-head"><div><h2>School events and important dates</h2>
       <p>Examinations, meetings, holidays, closures and activities are limited to their approved audiences.</p></div>
       {actor.managerAnnouncements&&<button className="button" onClick={()=>open("event",{kind:"meeting",
-       audience:"all",startsLocal:kigaliNow(),endsLocal:kigaliNow()})}>+ New Event</button>}</div>
+       audience:"all",startsLocal:kigaliNow(),endsLocal:kigaliLocal(new Date(Date.now()+3600000))})}>+ New Event</button>}</div>
      <div className="scom-event-list">{data.events.map(e=><article className="scom-event" key={e.id}>
        <div className="scom-event-date"><small>{new Date(e.starts_at).toLocaleString("en-RW",
         {timeZone:"Africa/Kigali",month:"short"}).toUpperCase()}</small>
