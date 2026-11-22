@@ -107,3 +107,31 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
 .switch input:checked+.switch-track::after{transform:translate(23px,3px)}
 .switch input:focus-visible+.switch-track{outline:3px solid #7ab7ff;outline-offset:3px}
 .switch input:disabled+.switch-track{opacity:.5;cursor:not-allowed}
+
+/* Public school-owned marketing page — intentionally contains no platform billing */
+.site-landing {font-family:"DM Sans",system-ui,sans-serif;background:#fff;color:#14253b;min-height:100vh;--school-color:#204a78}
+.site-header {display:flex;align-items:center;justify-content:space-between;gap:24px;max-width:1250px;margin:auto;padding:22px 26px}
+.site-header nav{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.site-header nav a{color:#34485c;text-decoration:none;font-weight:600;font-size:13px}
+.site-header nav a:hover{color:var(--school-color);text-decoration:underline}
+.site-brand{display:flex;align-items:center;gap:13px;font-size:16px}
+.site-brand strong{display:block;font-family:Manrope,sans-serif;font-weight:800;letter-spacing:-.02em}
+.site-brand small{display:block;color:#79899c;font-size:11px;margin-top:3px}
+.site-icon{width:54px;height:54px;border:2px solid var(--school-color);color:var(--school-color);border-radius:15px;display:grid;place-items:center;font-size:28px}
+.site-hero{background:linear-gradient(125deg,var(--school-color),#112b45);background-size:cover;background-position:center;min-height:460px;display:flex;align-items:center;padding:90px max(calc((100vw - 1190px)/2),6vw);color:white}
+.site-hero-content{max-width:680px}
+.site-hero h1{font-size:clamp(34px,6vw,70px);margin:20px 0;font-weight:800;color:white;letter-spacing:-.05em;line-height:1.1}
+.site-hero p{font-size:18px;max-width:620px;color:#f0f5ff;line-height:1.6}
+.site-eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:800}
+.site-cta{background:white;color:var(--school-color);border-radius:8px;padding:14px 22px;display:inline-block;margin-top:18px;font-weight:800;text-decoration:none}
+.site-announcement{padding:12px 26px;text-align:center;background:#fff4d7;color:#644512;font-weight:700}
+.site-section{padding:85px max(calc((100vw - 1190px)/2),6vw);min-height:240px}
+.site-section h2{font-size:clamp(27px,4vw,39px);margin:13px 0 18px}
+.site-section p{color:#556579;max-width:750px;font-size:17px;line-height:1.75;white-space:pre-wrap}
+.site-section .site-eyebrow{color:var(--school-color)}
+.site-alt{background:#f5f8fc}
+.site-footer{padding:30px 6vw;text-align:center;background:#10253b;color:#dbe4f1;font-size:13px}
+.site-maintenance{padding:135px 26px;text-align:center;min-height:65vh}
+.site-maintenance h1{font-size:clamp(28px,5vw,45px);margin-bottom:14px}
+.site-maintenance p{max-width:640px;margin:0 auto;color:#617085;line-height:1.65}
+@media(max-width:760px){.site-header{padding:16px;align-items:flex-start;flex-direction:column;gap:14px}.site-header nav{gap:16px}.site-section{padding:52px 20px}.site-hero{padding:75px 20px;min-height:400px}}
