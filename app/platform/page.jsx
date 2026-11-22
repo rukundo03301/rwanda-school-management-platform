@@ -139,6 +139,7 @@ export default function PlatformPage() {
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
   const [busy,setBusy]=useState(false);
+  const [uploading,setUploading]=useState(false);
   const [query,setQuery]=useState("");
   const [filter,setFilter]=useState("all");
   const [modal,setModal]=useState(null);
@@ -181,6 +182,28 @@ export default function PlatformPage() {
     try{await api(body,endpoint);setModal(null);setForm({});await refresh();setNotice("Change saved and verified by the API.");}
     catch(e){setError(e.message); }
     finally{setBusy(false);}
+  }
+  async function uploadBrandImage(file,kind) {
+    if(!file)return;
+    if(!form.tenant?.id){setError("Choose a school first.");return;}
+    setUploading(true);setError("");
+    try{
+      const {data:sessionData}=await client.auth.getSession();
+      const token=sessionData?.session?.access_token;
+      if(!token)throw new Error("Sign in to upload");
+      const fd=new FormData();
+      fd.append("schoolId",form.tenant.id);
+      fd.append("kind",kind);
+      fd.append("image",file);
+      const response=await fetch("/api/platform/upload",{
+        method:"POST",headers:{"Authorization":"Bearer "+token},body:fd
+      });
+      const body=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(body.error||"Upload failed");
+      setForm(current=>({...current,[kind==="logo"?"logoUrl":"heroUrl"]:body.url}));
+      setNotice("Image uploaded. Save the school site details to publish changes.");
+    }catch(e){setError(e.message);}
+    finally{setUploading(false);}
   }
   const allowed=(permission)=>Boolean(data?.actor?.isOwner || data?.actor?.permissions?.includes(permission));
   const tenants=(data?.tenants||[]).filter(t=>{
@@ -232,7 +255,7 @@ export default function PlatformPage() {
         <div className="notice info">Monthly amounts and countdowns belong only to authorized platform staff. Schools do not see this billing ledger. These records represent what you entered manually, not verified bank or Mobile Money balances.</div>
       </>}
       {tab==="tenants"&&<>
-        <Header title="Tenants" description="Each school has a separate School ID and Company ID." action={allowed("tenants.create")?<button className="button" onClick={()=>open("newTenant")}>+ Register school</button>:null}/>
+        <Header title="Tenants" description="Own every tenant, private monthly payment date, school identity and lifecycle controls." action={allowed("tenants.create")?<div className="row"><button className="button secondary" onClick={()=>open("addSchool")}>+ School in existing company</button><button className="button" onClick={()=>open("newTenant")}>+ Register school</button></div>:null}/>
         <div className="panel">
           <div className="panel-header"><div className="row"><input aria-label="Search tenants" className="input" style={{width:260}} placeholder="Search school, ID or owner" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Tenant status" className="input" style={{width:150}} value={filter} onChange={e=>setFilter(e.target.value)}>{["all",...Object.keys(LIFECYCLE)].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div><span className="muted">{tenants.length} results</span></div>
           <TenantTable tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
@@ -282,7 +305,7 @@ export default function PlatformPage() {
           </tbody></table>{!data.methods.length&&<Empty title="No payment methods configured" description="Add labels such as MTN Mobile Money or bank transfer. Provider integrations must be completed separately."/>}</div></div>
       </>}
       {tab==="staff"&&<>
-        <Header title="Platform staff access" description="Approve staff and grant only the permissions they need."/>
+        <Header title="Platform staff access" description="Approve staff and grant only the permissions they need." action={data.actor.isOwner?<button className="button" onClick={()=>open("inviteStaff",{role:"support",permissions:[...ROLE_DEFAULTS.support]})}>+ Invite staff</button>:null}/>
         {data.actor.isOwner&&<div className="panel"><div className="panel-header"><h2>Access requests</h2><span className="micro">{data.requests.length} pending</span></div>
           {(data.requests||[]).map(r=><div key={r.id} className="panel" style={{background:"#f8fafc",marginBottom:9}}><div className="row" style={{justifyContent:"space-between"}}><div><strong>{r.email}</strong><p className="section-subtitle">{r.reason}</p></div><button className="button small" onClick={()=>open("approveStaff",{request:r,role:"support",permissions:[...ROLE_DEFAULTS.support]})}>Review access</button></div></div>)}
           {!data.requests.length&&<Empty title="No pending requests" description="Staff register and request access; only you can approve their permissions."/>}
@@ -310,7 +333,63 @@ export default function PlatformPage() {
         <Field label="School owner's email"><input className="input" type="email" required value={form.ownerEmail||""} onChange={e=>setForm({...form,ownerEmail:e.target.value})}/></Field>
         <div className="modal-footer"><button type="submit" className="button" disabled={busy}>Register school</button></div>
       </form>}
-      {modal==="state"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.state",id:form.tenant.id,status:form.status,reason:form.reason,confirmSchoolCode:form.confirmSchoolCode});}}>
+      {modal==="addSchool"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.addSchool",companyId:form.companyId,schoolName:form.schoolName,ownerEmail:form.ownerEmail});}}>
+        <p className="muted">A second school shares its company's existing Company ID, while receiving its own new School ID.</p>
+        <Field label="Existing school company"><select className="input" required value={form.companyId||""} onChange={e=>setForm({...form,companyId:e.target.value})}><option value="">Choose existing company</option>{[...new Map(data.tenants.map(t=>[t.company_id,{id:t.company_id,name:t.platform_companies?.name||"Company",code:t.platform_companies?.company_code||""}])).values()].map(c=><option key={c.id} value={c.id}>{c.name} · {c.code}</option>)}</select></Field>
+        <Field label="New school name"><input className="input" required maxLength={120} value={form.schoolName||""} onChange={e=>setForm({...form,schoolName:e.target.value})}/></Field>
+        <Field label="School owner's email"><input className="input" required type="email" value={form.ownerEmail||""} onChange={e=>setForm({...form,ownerEmail:e.target.value})}/></Field>
+        <div className="modal-footer"><button className="button" disabled={busy} type="submit">Create school under company</button></div>
+      </form>}
+      {modal==="terms"&&<form onSubmit={e=>{e.preventDefault();action({action:"fee.terms",schoolId:form.tenant.id,monthlyAmountRwf:Number(form.monthlyAmountRwf),firstDueOn:form.firstDueOn});}}>
+        <p className="muted">Private monthly fee terms for <strong>{form.tenant.name}</strong>. Schools never see these internal settings.</p>
+        <Field label="Monthly fee (RWF)"><input className="input" type="number" min="0" step="1" required value={form.monthlyAmountRwf??""} onChange={e=>setForm({...form,monthlyAmountRwf:e.target.value})}/></Field>
+        <Field label="First monthly due date"><input className="input" type="date" required value={form.firstDueOn||""} onChange={e=>setForm({...form,firstDueOn:e.target.value})}/></Field>
+        <p className="micro">After recording a payment, changing the monthly fee will preserve the payment history and the current next due date.</p>
+        <div className="modal-footer"><button className="button" disabled={busy} type="submit">Save private fee settings</button></div>
+      </form>}
+      {modal==="paid"&&<form onSubmit={e=>{e.preventDefault();action({action:"fee.paid",schoolId:form.tenant.id,amountRwf:Number(form.amountRwf),paidOn:form.paidOn,method:form.method||"mobile_money",reference:form.reference||"",notes:form.notes||""});}}>
+        <p className="muted">Confirm that you personally received payment from <strong>{form.tenant.name}</strong>. This does not collect money or notify the school.</p>
+        <Field label="Amount actually received (RWF)"><input className="input" type="number" min="1" step="1" required value={form.amountRwf??""} onChange={e=>setForm({...form,amountRwf:e.target.value})}/></Field>
+        <Field label="Date payment received"><input className="input" type="date" required max={kigaliDate()} value={form.paidOn||""} onChange={e=>setForm({...form,paidOn:e.target.value})}/></Field>
+        <Field label="How you received payment"><select className="input" value={form.method||"mobile_money"} onChange={e=>setForm({...form,method:e.target.value})}><option value="mobile_money">Mobile Money</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="other">Other</option></select></Field>
+        <Field label="Reference (optional)"><input className="input" maxLength={120} value={form.reference||""} onChange={e=>setForm({...form,reference:e.target.value})}/></Field>
+        <Field label="Private notes (optional)"><textarea className="input" maxLength={500} value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})}/></Field>
+        <div className="notice info">When you mark paid, the next due date becomes one calendar month after the received date. The receipt stays in your private audit ledger.</div>
+        <div className="modal-footer"><button type="submit" className="button" disabled={busy}>Confirm paid and restart clock</button></div>
+      </form>}
+      {modal==="voidPayment"&&<form onSubmit={e=>{e.preventDefault();action({action:"fee.void",id:form.payment.id,reason:form.reason});}}>
+        <p>Correct a mistaken manual payment entry. The original entry will remain visible in your audit ledger.</p>
+        <Field label="Why should this payment entry be corrected?"><textarea className="input" required minLength={8} value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
+        <div className="modal-footer"><button type="submit" className="button danger" disabled={busy}>Void mistaken entry</button></div>
+      </form>}
+      {modal==="brand"&&<form onSubmit={e=>{e.preventDefault();action({
+          action:"tenant.brand",schoolId:form.tenant.id,tagline:form.tagline,aboutText:form.aboutText,announcement:form.announcement,
+          logoUrl:form.logoUrl,heroUrl:form.heroUrl,primaryColor:form.primaryColor,contactEmail:form.contactEmail,
+          contactPhone:form.contactPhone,isPublished:form.isPublished
+        });}}>
+        <p className="muted">The school will have its own logo, photographs and welcome page. Preview the school site before publishing.</p>
+        <Field label="School logo"><input className="input" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>uploadBrandImage(e.target.files?.[0],"logo")}/></Field>
+        {form.logoUrl&&<img src={form.logoUrl} alt="Uploaded school logo preview" style={{height:90,width:90,objectFit:"contain"}}/>}
+        <Field label="Homepage hero/campus photo"><input className="input" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>uploadBrandImage(e.target.files?.[0],"hero")}/></Field>
+        {form.heroUrl&&<img src={form.heroUrl} alt="Uploaded campus photo preview" style={{height:110,width:"100%",objectFit:"cover",borderRadius:8}}/>}
+        <Field label="School tagline"><input className="input" maxLength={160} value={form.tagline||""} onChange={e=>setForm({...form,tagline:e.target.value})}/></Field>
+        <Field label="Welcome / About text"><textarea className="input" maxLength={2000} value={form.aboutText||""} onChange={e=>setForm({...form,aboutText:e.target.value})}/></Field>
+        <Field label="Homepage announcement (optional)"><textarea className="input" maxLength={300} value={form.announcement||""} onChange={e=>setForm({...form,announcement:e.target.value})}/></Field>
+        <Field label="Primary brand color"><input className="input" type="color" value={form.primaryColor||"#204a78"} onChange={e=>setForm({...form,primaryColor:e.target.value})}/></Field>
+        <Field label="Official school email"><input className="input" type="email" value={form.contactEmail||""} onChange={e=>setForm({...form,contactEmail:e.target.value})}/></Field>
+        <Field label="Official school telephone"><input className="input" type="tel" maxLength={60} value={form.contactPhone||""} onChange={e=>setForm({...form,contactPhone:e.target.value})}/></Field>
+        <label className="row" style={{marginBottom:14}}><input type="checkbox" checked={Boolean(form.isPublished)} onChange={e=>setForm({...form,isPublished:e.target.checked})}/> Publish the public school homepage when school is active</label>
+        <div className="row"><a href={"/s/"+form.tenant.school_code} target="_blank" rel="noreferrer">Preview website</a><small className="micro">Live view uses the last saved version.</small></div>
+        <div className="modal-footer"><button disabled={busy||uploading} type="submit" className="button">{uploading?"Uploading…":"Save school website"}</button></div>
+      </form>}
+      {modal==="inviteStaff"&&<form onSubmit={e=>{e.preventDefault();action({action:"staff.invite",email:form.email,role:form.role,permissions:form.permissions});}}>
+        <p className="muted">Invite a staff member. They must verify their identity; their permissions are yours to control.</p>
+        <Field label="Staff email"><input className="input" type="email" required value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})}/></Field>
+        <Field label="Staff role"><select className="input" value={form.role} onChange={e=>setForm({...form,role:e.target.value,permissions:[...ROLE_DEFAULTS[e.target.value]]})}>{Object.keys(ROLE_DEFAULTS).map(role=><option key={role} value={role}>{role}</option>)}</select></Field>
+        <PermissionToggleTable permissions={form.permissions} onChange={(p,enabled)=>setForm({...form,permissions:enabled?[...form.permissions,p]:form.permissions.filter(x=>x!==p)})}/>
+        <div className="modal-footer"><button type="submit" disabled={busy} className="button">Send staff invitation</button></div>
+      </form>}
+            {modal==="state"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.state",id:form.tenant.id,status:form.status,reason:form.reason,confirmSchoolCode:form.confirmSchoolCode});}}>
         <p className="muted">{form.tenant.name} · <kbd>{form.tenant.school_code}</kbd></p>
         <p>Current state: <Pill>{form.tenant.status}</Pill></p>
         <Field label="Change tenant status"><select className="input" required value={form.status||""} onChange={e=>setForm({...form,status:e.target.value})}><option value="">Select action</option>{(LIFECYCLE[form.tenant.status]||[]).map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></Field>
@@ -386,4 +465,4 @@ function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,onState,o
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
-function modalTitle(mode){return ({newTenant:"Register a new school",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
+function modalTitle(mode){return ({newTenant:"Register a new school",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
