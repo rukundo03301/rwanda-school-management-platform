@@ -268,33 +268,6 @@ grant execute on function public.platform_configure_payment_method(uuid,boolean,
 -- must be separately specified and tested in later modules.
 
 
--- Aggregations use the full database, never a paginated subset.
-create or replace function public.platform_owner_stats()
-returns jsonb language sql stable security invoker
-set search_path=pg_catalog,public
-as $fn$
-  select jsonb_build_object(
-    'tenants', (select count(*) from public.platform_schools),
-    'onboarding', (select count(*) from public.platform_schools where status='onboarding'),
-    'active', (select count(*) from public.platform_schools where status='active'),
-    'paused', (select count(*) from public.platform_schools where status='paused'),
-    'suspended', (select count(*) from public.platform_schools where status='suspended'),
-    'archived', (select count(*) from public.platform_schools where status='archived'),
-    'deletion_requested', (select count(*) from public.platform_schools where status='deletion_requested'),
-    'ticketsOpen', (select count(*) from public.platform_tickets where status<>'resolved'),
-    'billedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_invoices where status<>'void'),
-    'collectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_payments where status='settled'),
-    'manualCollectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_manual_payments where state='recorded'),
-    'monthlyExpectedRwf', (select coalesce(sum(monthly_fee_rwf),0) from public.platform_fee_terms),
-    'pastDue', (select count(*) from public.platform_fee_terms where next_due_on < (now() at time zone 'Africa/Kigali')::date),
-    'dueToday', (select count(*) from public.platform_fee_terms where next_due_on = (now() at time zone 'Africa/Kigali')::date)
-  );
-$fn$;
-
-revoke all on function public.platform_owner_stats() from public, anon, authenticated;
-grant execute on function public.platform_owner_stats() to service_role;
-
-
 -- Owner-controlled granular staff permissions. Only the server's service_role
 -- may invoke this function. The HTTP API checks the verified owner and AAL2.
 create or replace function public.platform_update_staff_permissions(
@@ -528,3 +501,32 @@ insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
  on conflict(id) do update set public=true,file_size_limit=5242880,
    allowed_mime_types=array['image/webp'];
 -- No browser/anon INSERT/UPDATE/DELETE policy: uploads are server-only.
+
+
+-- Aggregations use the full database, never a paginated subset.
+create or replace function public.platform_owner_stats()
+returns jsonb language sql stable security invoker
+set search_path=pg_catalog,public
+as $fn$
+  select jsonb_build_object(
+    'tenants', (select count(*) from public.platform_schools),
+    'onboarding', (select count(*) from public.platform_schools where status='onboarding'),
+    'active', (select count(*) from public.platform_schools where status='active'),
+    'paused', (select count(*) from public.platform_schools where status='paused'),
+    'suspended', (select count(*) from public.platform_schools where status='suspended'),
+    'archived', (select count(*) from public.platform_schools where status='archived'),
+    'deletion_requested', (select count(*) from public.platform_schools where status='deletion_requested'),
+    'ticketsOpen', (select count(*) from public.platform_tickets where status<>'resolved'),
+    'billedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_invoices where status<>'void'),
+    'collectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_payments where status='settled'),
+    'manualCollectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_manual_payments where state='recorded'),
+    'monthlyExpectedRwf', (select coalesce(sum(monthly_fee_rwf),0) from public.platform_fee_terms),
+    'pastDue', (select count(*) from public.platform_fee_terms where next_due_on < (now() at time zone 'Africa/Kigali')::date),
+    'dueToday', (select count(*) from public.platform_fee_terms where next_due_on = (now() at time zone 'Africa/Kigali')::date)
+  );
+$fn$;
+
+revoke all on function public.platform_owner_stats() from public, anon, authenticated;
+grant execute on function public.platform_owner_stats() to service_role;
+
+
