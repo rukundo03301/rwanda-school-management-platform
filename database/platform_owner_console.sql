@@ -362,8 +362,8 @@ begin
   if length(coalesce(p_reference,''))>120 or length(coalesce(p_notes,''))>500 then raise exception 'Payment notes too long'; end if;
   select * into terms from public.platform_fee_terms where school_id=p_school_id for update;
   if not found or terms.monthly_fee_rwf <= 0 then raise exception 'Set a monthly fee before marking paid'; end if;
-  if p_amount_rwf is null or p_amount_rwf < terms.monthly_fee_rwf then
-    raise exception 'Payment is below required monthly amount; do not mark a partial as fully paid';
+  if p_amount_rwf is null or p_amount_rwf <> terms.monthly_fee_rwf then
+    raise exception 'Payment must match the agreed monthly amount; partials/advances require separate allocation';
   end if;
   if terms.last_paid_on is not null and p_paid_on <= terms.last_paid_on then
     raise exception 'Payment date must be after last recorded paid date';
@@ -498,8 +498,8 @@ as $fn$
     'ticketsOpen', (select count(*) from public.platform_tickets where status<>'resolved'),
     'manualCollectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_manual_payments where state='recorded'),
     'monthlyExpectedRwf', (select coalesce(sum(monthly_fee_rwf),0) from public.platform_fee_terms),
-    'pastDue', (select count(*) from public.platform_fee_terms where next_due_on < (now() at time zone 'Africa/Kigali')::date),
-    'dueToday', (select count(*) from public.platform_fee_terms where next_due_on = (now() at time zone 'Africa/Kigali')::date)
+    'pastDue', (select count(*) from public.platform_fee_terms where monthly_fee_rwf > 0 and next_due_on < (now() at time zone 'Africa/Kigali')::date),
+    'dueToday', (select count(*) from public.platform_fee_terms where monthly_fee_rwf > 0 and next_due_on = (now() at time zone 'Africa/Kigali')::date)
   );
 $fn$;
 
