@@ -1,6 +1,7 @@
 import { authenticate, requirePermission, requireOwner, requireAal2, validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
 import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput } from "../../../lib/access.mjs";
 import { validateManualPayment,parseDate } from "../../../lib/billing-clock.mjs";
+import {validSchoolCodeConfirmation,removeTenantStorage,TENANT_DELETE_PHRASE} from "../../../lib/tenant-purge.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function GET(request) {
     const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], onboardingReviews: [], audit: [] };
     if (can("tenants.read")) {
       data.tenants = await checked(db.from("platform_schools")
-        .select("id,school_code,name,owner_email,status,created_at,updated_at,company_id,platform_companies(company_code,name)")
+        .select("id,school_code,name,owner_email,status,is_demo,legal_hold,created_at,updated_at,company_id,platform_companies(company_code,name)")
         .order("created_at", { ascending: false }).limit(200));
     }
     if (can("billing.read")) {
@@ -85,7 +86,49 @@ export async function POST(request) {
     const action = String(body?.action || "");
     let result = null;
 
-    if (action === "tenant.create") {
+    if (action === "tenant.demo.create") {
+      requireOwner(actor); requireAal2(token);
+      result=await checked(db.rpc("platform_create_demo_school",{p_actor:actor.id}));
+    } else if (action === "tenant.purge.preview") {
+      requireOwner(actor);
+      const id=validateUuid(body.schoolId,"school");
+      result=await checked(db.rpc("platform_preview_tenant_purge",{p_school:id}));
+    } else if (action === "tenant.purge") {
+      requireOwner(actor);requireAal2(token);
+      const schoolId=validateUuid(body.schoolId,"school");
+      const confirmCode=String(body.confirmSchoolCode||"");
+      const confirmPhrase=String(body.confirmPhrase||"");
+      const reason=safeText(body.reason,500);
+      if(reason.length<12)throw new ApiError(400,"Enter a clear deletion reason of at least 12 characters");
+      if(confirmPhrase!==TENANT_DELETE_PHRASE)
+        throw new ApiError(400,"Type the exact permanent-deletion confirmation phrase");
+      const before=await checked(db.rpc("platform_preview_tenant_purge",{p_school:schoolId}));
+      if(!validSchoolCodeConfirmation(before.school_code,confirmCode,confirmPhrase))
+        throw new ApiError(400,"Type the exact School ID and full deletion phrase");
+      if(before.legal_hold)throw new ApiError(409,
+        "Deletion blocked: school is under a legal hold. Review legal retention obligations.");
+      // Immediately block school users while objects are removed. If file
+      // cleanup fails, the tenant remains deletion_requested for safe retry.
+      if(before.status!=="deletion_requested"){
+        await checked(db.rpc("platform_change_school_state",{
+          p_school_id:schoolId,p_target:"deletion_requested",
+          p_reason:"Permanent data purge requested: "+reason,p_actor:actor.id
+        }));
+      }
+      const prepared=await checked(db.rpc("platform_preview_tenant_purge",{p_school:schoolId}));
+      const storageRemoved=await removeTenantStorage(db,prepared,schoolId);
+      const verifiedFiles=await checked(db.rpc("platform_preview_tenant_purge",{p_school:schoolId}));
+      if(Number(verifiedFiles.stored_files)!==0)
+        throw new ApiError(409,"School storage still contains objects. Database purge was not run. Retry after resolving storage.");
+      const deleted=await checked(db.rpc("platform_purge_tenant_data",{
+        p_school:schoolId,p_school_code:confirmCode,p_actor:actor.id
+      }));
+      const remaining=await checked(db.from("platform_schools")
+        .select("id").eq("id",schoolId).maybeSingle());
+      if(remaining)throw new ApiError(500,"School record remains; deletion cannot be confirmed");
+      result={...deleted,storage_objects_removed:storageRemoved,
+        school_code:confirmCode,verification:"school_removed_and_storage_empty"};
+    } else if (action === "tenant.create") {
       requirePermission(actor,"tenants.create");
       const payload = validateTenantInput(body);
       result = await checked(db.rpc("platform_register_school", {
