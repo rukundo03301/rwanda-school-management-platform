@@ -97,3 +97,12 @@ A school owner or authorized admissions administrator can record a real applicat
 All child-related records are school-scoped and protected by server authentication and private database access. The module intentionally does not implement attendance, grades, homework, tuition, teacher rosters or student self-registration.
 
 See [Student Admissions Module 3](docs/STUDENT_ADMISSIONS_MODULE_3.md). This remains a draft, GitHub-only module with no changes deployed to APEX or released phone apps.
+
+
+## Module 4: Teaching, Attendance, Homework and Linked-Child Learning
+
+The next school-specific module introduces verified teacher ↔ class ↔ subject assignment, daily attendance, lesson planning, published homework and text submissions. School owners and explicitly authorized academic administrators may assign teachers; a teacher can only open their actual assigned class. Independently verified student accounts are linked to an enrolled student with school approval, and minors require explicit consent from a previously verified linked guardian. Parents see and respond to homework only for their linked children.
+
+Private routes: school-specific Teaching Setup, My Classroom, My Learning, and the Parent learning view. All newly created teaching/child tables have RLS and no direct anon/authenticated grants. No platform owner tenant payment data is exposed to these school users.
+
+See docs/TEACHING_LEARNING_MODULE_4.md. This is GitHub development code, NOT an APEX/Vercel/mobile production deployment.

@@ -386,3 +386,54 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
 @media(max-width:1060px){.adm-metrics{grid-template-columns:repeat(2,1fr)}.adm-two-cols{grid-template-columns:1fr}.adm-layout{gap:14px;grid-template-columns:185px minmax(0,1fr)}}
 @media(max-width:760px){.adm-header{flex-direction:column;align-items:flex-start;padding:16px}.adm-layout{display:block;padding:15px}.adm-side{position:static;display:flex;flex-direction:row;flex-wrap:wrap;margin-bottom:16px;padding:10px}.adm-side-label,.adm-side-foot{display:none}.adm-side>button{padding:10px 12px}.adm-section-title{align-items:flex-start;flex-direction:column}.adm-modal{padding:18px}.adm-family-header{padding:13px 15px}.adm-family-header span{display:none}.adm-family-content{padding:30px 15px}.adm-family-invite{flex-direction:column;align-items:flex-start}}
 @media(max-width:420px){.adm-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.adm-metric{padding:13px}.adm-metric strong{font-size:22px}.adm-field-grid{grid-template-columns:1fr}.adm-modal-wrap{padding:6px}}
+
+
+/* Module 4: responsive school-specific teaching, attendance and learner surfaces */
+.tl-shell{min-height:100vh;background:#f5f8fc;color:#17324c;--school-color:#245b93}
+.tl-header{background:#fff;border-bottom:1px solid #e2e9f0;padding:20px max(25px,6vw);display:flex;align-items:center;justify-content:space-between;gap:20px}
+.tl-header a{font-size:12px;text-decoration:none;font-weight:750;color:#306392}
+.tl-header strong{font-size:14px;font-family:Manrope,sans-serif;text-align:center}
+.tl-header span{font-size:11px;color:#607a94;font-weight:700}
+.tl-container{max-width:1250px;padding:38px 25px 70px;margin:0 auto}
+.tl-container>h1{font-size:clamp(27px,4vw,38px);font-weight:800;margin:7px 0 12px;letter-spacing:-.035em}
+.tl-container>.muted{font-size:14px;max-width:850px;line-height:1.7;margin-bottom:23px}
+.tl-grid{display:grid;grid-template-columns:1fr 1fr;gap:19px}
+.tl-panel{background:white;border:1px solid #e0e8f0;border-radius:15px;padding:24px;margin:19px 0;min-width:0;box-shadow:0 9px 30px #1a3f5a09}
+.tl-panel h2{font-size:19px;margin:0 0 15px}
+.tl-panel h3{font-size:15px;margin:0 0 12px}
+.tl-panel p{font-size:13px;line-height:1.7}
+.tl-panel .field{margin-bottom:16px;display:grid;gap:7px;font-size:12px;font-weight:700}
+.tl-panel .table-wrap{max-width:100%;overflow:auto}
+.tl-panel td{font-size:12px;vertical-align:middle}
+.tl-panel th{font-size:11px;white-space:nowrap}
+.tl-formrow{display:flex;align-items:end;gap:13px;flex-wrap:wrap;margin:18px 0}
+.tl-formrow .field{flex:1;min-width:200px}
+.tl-selector{display:flex;justify-content:space-between;align-items:center;gap:30px}
+.tl-selector .field{flex:1;max-width:700px;margin:0}
+.tl-selector>div{display:grid;justify-items:center;gap:2px}
+.tl-selector>div strong{font-size:28px;color:var(--school-color)}
+.tl-selector>div small{font-size:11px;color:#667d93}
+.tl-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:7px;border-bottom:1px solid #dfe9f2;margin:18px 0 23px}
+.tl-tabs button{border:0;border-bottom:3px solid transparent;padding:12px 17px;background:transparent;color:#71859b;font-weight:750;font-size:12px;cursor:pointer}
+.tl-tabs button.active{border-color:var(--school-color);color:var(--school-color)}
+.tl-tabs button:hover{background:#e9f2fc}
+.tl-tabs button:focus-visible{outline:2px solid #469ae3}
+.tl-entry{padding:19px 0;border-top:1px solid #e8eef4}
+.tl-entry:first-of-type{margin-top:10px}
+.tl-entry>b,.tl-entry .tl-itemtop strong{color:#234a72;font-size:15px}
+.tl-entry small{display:block;font-size:11px;color:#7b8b99;margin:6px 0}
+.tl-entry p{color:#687e92;white-space:pre-wrap}
+.tl-itemtop{display:flex;justify-content:space-between;gap:20px;align-items:baseline}
+.tl-itemtop small{background:#ecf5fe;color:#31618d;padding:6px 10px;border-radius:30px;white-space:nowrap}
+.tl-statrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.tl-statrow>div{background:white;border:1px solid #e2e9f2;border-radius:13px;padding:17px;display:grid;gap:8px}
+.tl-statrow small{color:#71869b;font-size:11px;font-weight:700}
+.tl-statrow strong{color:#224c71;font-size:21px}
+.tl-response{background:#f5f9ff;padding:18px;border-radius:12px}
+.tl-response .field{margin-bottom:15px}
+.tl-attendance-state{display:inline-block;text-transform:capitalize;font-size:12px;padding:6px 10px;border-radius:8px;background:#ebf2fa;color:#265f85;font-weight:700}
+.tl-subjectchips{display:flex;flex-wrap:wrap;gap:7px}
+.tl-subjectchips span{font-size:12px;background:#ecf4fd;color:#315e88;padding:9px 12px;border-radius:18px}
+.tl-panel .notice p{margin:7px 0 0}
+@media(max-width:870px){.tl-grid{grid-template-columns:1fr}.tl-statrow{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.tl-container{padding:25px 14px}.tl-header{padding:13px;gap:9px;flex-wrap:wrap}.tl-header strong{font-size:12px}.tl-panel{padding:18px}.tl-selector{align-items:flex-start;flex-direction:column;gap:16px}.tl-selector .field{width:100%}.tl-selector>div{display:flex;gap:9px;align-items:center}.tl-formrow{display:block}.tl-statrow{grid-template-columns:1fr 1fr}.tl-statrow strong{font-size:15px}.tl-tabs button{padding:12px 9px}}

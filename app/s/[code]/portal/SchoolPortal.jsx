@@ -88,13 +88,18 @@ export default function SchoolPortal({code}) {
            ?"Your school's management and website setup are available."
            :role==="school_admin"
              ?"Your administrator role has been verified. Your permissions are enforced on every school-management request."
-             :"Your role is recognized. Its dedicated academic workspace is still in development."}</p>
+             :role==="teacher"?"Your school teaching role is verified. Only your assigned classes will appear."
+             :role==="student"?"Your school-issued account is verified. Your learning space shows only your own records."
+             :role==="parent"?"Your verified guardian links determine which children you can see."
+             :"Your role is recognized. Its dedicated workspace is still in development."}</p>
          {role==="school_owner"?<div className="row">
            <a className="button" href={"/s/"+code+"/admin"}>Open School Administration</a>
            <a className="button secondary" href={"/s/"+code+"/setup"}>Manage School Website</a>
          </div>:role==="school_admin"?<a className="button" href={"/s/"+code+"/admin"}>Open Administrator Dashboard</a>:
            role==="parent"?<a className="button" href={"/s/"+code+"/family"}>See My Verified Children</a>:
-           <p><strong>Workspace under development.</strong> Grades, tuition, homework and class rosters are not yet available.</p>}
+           role==="teacher"?<a className="button" href={"/s/"+code+"/teacher"}>Open My Classroom</a>:
+           role==="student"?<a className="button" href={"/s/"+code+"/learning"}>My Homework &amp; Attendance</a>:
+           <p><strong>Workspace under development.</strong> This staff role's dedicated module is still being built.</p>}
        </div>:
        staffInvitePending?<div className="notice info">
          <strong>Verified school invitation available</strong>
@@ -111,6 +116,7 @@ export default function SchoolPortal({code}) {
        <div className="notice error"><strong>This role is not approved for your account.</strong>
          <p>Choosing a role on a login screen does not give access. Contact your school administrator for a verified invitation and assignment.</p>
          {role==="parent"&&<p><a className="button secondary" href={"/s/"+code+"/family"}>Check My Family Invitation</a></p>}
+         {role==="student"&&<p><a className="button secondary" href={"/s/"+code+"/learning"}>Check School-Issued Student Invitation</a></p>}
        </div>}
      <div className="school-role-switch">
        <h2>Choose your school role</h2>
