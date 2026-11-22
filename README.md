@@ -104,3 +104,12 @@ See [Student Admissions Module 3](docs/STUDENT_ADMISSIONS_MODULE_3.md). This rem
 Verified teachers can work with their own assigned class/subject roster, save lesson plans, draft/publish homework, record class attendance and read submissions. School Owners/authorized academic managers assign teachers; the School Owner can invite student accounts only after school and guardian checks. Verified students receive separate personalized learning screens for their own subjects, published homework, responses and attendance. Teachers cannot access unrelated classes and students cannot select arbitrary Student IDs.
 
 See [Classrooms Module 4](docs/CLASSROOMS_MODULE_4.md) for privacy, business flow and release tests. This is GitHub-only development, not a deployed school, Android app or iPhone app. Native mobile distribution remains a later release layer.
+
+
+## Module 5 — Rwanda Curriculum and School Academic Reports (development)
+
+Schools can use official NESA assessment guidance to configure versioned local curriculum sources, subject-specific weekly teaching periods, syllabus units and competencies. A built-in read-only NESA P1–P6 2025–26 reference distinguishes exam paper marks from CA-MIS marks. Teachers record end-unit, project and end-term assessments; original paper marks are normalized to the school's verified curriculum maximum before the documented 25/25/50 General/Professional Education calculation.
+
+School Owners must approve curricula and term reports before verified student/guardian accounts can view a school-issued, printable, institution-branded term report. Grades, school curriculum permissions and report publications remain tenant-scoped and audited, with versioned withdrawal/reissue rather than silent overwrites. Lower-primary LEGRA, TVET, nursery, international and higher education require separate verified grading engines and are not assigned the General Education formula automatically.
+
+Read [Module 5 Curriculum & Reports](docs/RWANDA_CURRICULUM_ASSESSMENTS_REPORTS_MODULE_5.md). This is GitHub draft code, not a government-issued certificate, CA-MIS integration, deployed APEX migration, or released Android/iPhone application.
