@@ -3,13 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 import { browserSupabase } from "../../lib/client.js";
 import { ALL_PERMISSIONS, ROLE_DEFAULTS } from "../../lib/access.mjs";
 import { formatRwf } from "../../lib/money.mjs";
+import { dueClock,kigaliDate } from "../../lib/billing-clock.mjs";
 
 const NAV = [
   ["overview","◫","Overview","tenants.read"],
   ["tenants","▦","Tenants","tenants.read"],
   ["tickets","◉","Support tickets","tickets.read"],
-  ["billing","▤","Revenue","billing.read"],
-  ["methods","▣","Payment methods","billing.methods"],
+  ["billing","▤","Monthly payment clock","billing.read"],
+  ["methods","▣","Payment channels","billing.methods"],
   ["staff","♧","My staff","staff.read"],
   ["audit","◷","Audit log","audit.read"],
   ["security","⚿","Security",null],
@@ -211,27 +212,30 @@ export default function PlatformPage() {
       {error&&<div style={{marginTop:20}} className="notice error" role="alert">{error}<button className="button flat" onClick={()=>setError("")}>Dismiss</button></div>}
       {notice&&<div style={{marginTop:20}} className="notice ok" role="status">{notice}</div>}
       {tab==="overview"&&<>
-        <Header title="Your platform at a glance" description="Real tenant status, subscriptions and school support information." action={allowed("tenants.create")?<button className="button" onClick={()=>open("newTenant")}>+ Register school</button>:null}/>
+        <Header title="Your platform at a glance" description="Private tenant management and manually recorded monthly school fees." action={allowed("tenants.create")?<button className="button" onClick={()=>open("newTenant")}>+ Register school</button>:null}/>
         <div className="cards">
-          <Metric label="Total tenants" value={data.totals.tenants}/>
+          <Metric label="Total schools" value={data.totals.tenants}/>
           <Metric label="Active schools" value={data.totals.active}/>
-          <Metric label="Paused or suspended" value={data.totals.paused+data.totals.suspended}/>
+          <Metric label="Paused / suspended" value={data.totals.paused+data.totals.suspended}/>
           <Metric label="Open support tickets" value={data.totals.ticketsOpen}/>
         </div>
-        {allowed("billing.read")&&<div className="cards">
-          <Metric label="Subscription invoices" value={formatRwf(data.totals.billedRwf)}/>
-          <Metric label="Verified collections" value={formatRwf(data.totals.collectedRwf)}/>
-          <Metric label="Billed less collections" value={formatRwf(data.totals.unallocatedDifferenceRwf)}/>
-          <Metric label="Currency" value="RWF"/>
-        </div>}
-        <div className="panel"><div className="panel-header"><h2>Recent school tenants</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} canManage={allowed("tenants.lifecycle")} onState={(t)=>open("state",{tenant:t})}/></div>
-        <div className="notice info">Financial totals represent recorded platform subscription invoices and settled collection records, not a bank or Mobile Money wallet balance. Live payment processing is not yet connected.</div>
+        {allowed("billing.read")&&<>
+          <div className="cards">
+            <Metric label="Manually recorded receipts" value={formatRwf(data.totals.manualCollectedRwf||0)}/>
+            <Metric label="Monthly fees expected" value={formatRwf(data.totals.monthlyExpectedRwf||0)}/>
+            <Metric label="Past-due schools" value={data.totals.pastDue||0}/>
+            <Metric label="Due today" value={data.totals.dueToday||0}/>
+          </div>
+          {(data.totals.pastDue>0||data.totals.dueToday>0)&&<div className="notice error">Attention: {data.totals.pastDue} school(s) past due and {data.totals.dueToday} due today. <button className="button small secondary" onClick={()=>setTab("billing")}>Open private monthly clock</button></div>}
+        </>}
+        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
+        <div className="notice info">Monthly amounts and countdowns belong only to authorized platform staff. Schools do not see this billing ledger. These records represent what you entered manually, not verified bank or Mobile Money balances.</div>
       </>}
       {tab==="tenants"&&<>
         <Header title="Tenants" description="Each school has a separate School ID and Company ID." action={allowed("tenants.create")?<button className="button" onClick={()=>open("newTenant")}>+ Register school</button>:null}/>
         <div className="panel">
           <div className="panel-header"><div className="row"><input aria-label="Search tenants" className="input" style={{width:260}} placeholder="Search school, ID or owner" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Tenant status" className="input" style={{width:150}} value={filter} onChange={e=>setFilter(e.target.value)}>{["all",...Object.keys(LIFECYCLE)].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div><span className="muted">{tenants.length} results</span></div>
-          <TenantTable tenants={tenants} canManage={allowed("tenants.lifecycle")} onState={(t)=>open("state",{tenant:t})}/>
+          <TenantTable tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
           {(data.totals.tenants>=200)&&<p className="micro">Showing latest 200 tenants. Server pagination is required before large-scale production use.</p>}
         </div>
       </>}
@@ -242,14 +246,36 @@ export default function PlatformPage() {
         </tbody></table>{!data.tickets.length&&<Empty title="No support tickets" description="School issues and their resolution history will appear here."/>}</div></div>
       </>}
       {tab==="billing"&&<>
-        <Header title="Platform revenue" description="School subscriptions, payments and RWF collections—not students' school fees."/>
-        <div className="cards"><Metric label="Total invoiced" value={formatRwf(data.totals.billedRwf)}/><Metric label="Settled payments" value={formatRwf(data.totals.collectedRwf)}/><Metric label="Difference" value={formatRwf(data.totals.unallocatedDifferenceRwf)}/><Metric label="Currency" value="RWF"/></div>
-        <div className="notice info">Only payments verified as settled by a trusted payment integration should count as received. This initial console reads records; it does not charge schools or access any Mobile Money account.</div>
-        <div className="panel"><h2 style={{marginBottom:16}}>Subscription invoices</h2><div className="table-wrap"><table><thead><tr><th>School</th><th>Invoice amount</th><th>Status</th><th>Due</th></tr></thead><tbody>{data.invoices.map(i=><tr key={i.id}><td>{data.tenants.find(t=>t.id===i.school_id)?.name||"School"}</td><td>{formatRwf(i.amount_rwf)}</td><td><Pill>{i.status}</Pill></td><td>{DATE(i.due_date)}</td></tr>)}</tbody></table>{!data.invoices.length&&<Empty title="No subscription invoices" description="Subscription billing and live payment collection will be enabled after gateway integration and reconciliation tests."/>}</div></div>
-        <div className="panel"><h2 style={{marginBottom:16}}>Recorded collection events</h2><div className="table-wrap"><table><thead><tr><th>School</th><th>Amount</th><th>Method / provider</th><th>Status</th><th>Date</th></tr></thead><tbody>{data.payments.map(p=>{const inv=data.invoices.find(i=>i.id===p.invoice_id);return <tr key={p.id}><td>{data.tenants.find(t=>t.id===inv?.school_id)?.name||"School"}</td><td>{formatRwf(p.amount_rwf)}</td><td>{p.provider}</td><td><Pill>{p.status}</Pill></td><td>{DATE(p.created_at)}</td></tr>})}</tbody></table>{!data.payments.length&&<Empty title="No verified payments yet" description="We will connect collection events to an approved provider before showing schools as paid."/>}</div></div>
+        <Header title="Private monthly payment clock" description="Record what you received offline. No subscription checkout, no automated charges, and no billing details visible to schools."/>
+        <div className="cards">
+          <Metric label="Total manually recorded" value={formatRwf(data.totals.manualCollectedRwf||0)}/>
+          <Metric label="Monthly fees expected" value={formatRwf(data.totals.monthlyExpectedRwf||0)}/>
+          <Metric label="Past-due schools" value={data.totals.pastDue||0}/>
+          <Metric label="Due today" value={data.totals.dueToday||0}/>
+        </div>
+        <div className="panel"><div className="panel-header"><h2>School payment countdowns</h2><span className="micro">Calendar dates in Rwanda time</span></div>
+          <div className="table-wrap"><table><thead><tr><th>School</th><th>Monthly amount</th><th>Last paid</th><th>Next due</th><th>Countdown</th><th>Owner actions</th></tr></thead><tbody>
+          {(data.tenants||[]).map(t=>{const fee=data.feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(fee?.next_due_on);
+            return <tr key={t.id}><td><strong>{t.name}</strong><div className="micro">{t.school_code}</div></td>
+              <td>{fee?formatRwf(fee.monthly_fee_rwf):"Not configured"}</td><td>{fee?.last_paid_on||"—"}</td>
+              <td>{fee?.next_due_on||"—"}</td><td><Pill>{clock.state==="overdue"?"Past due":clock.state==="due_today"?"Due today":clock.state==="upcoming"?"Up to date":"Not set"}</Pill><div className="micro">{clock.label}</div></td>
+              <td>{allowed("billing.record")&&<div className="row"><button className="button small secondary" onClick={()=>open("terms",{tenant:t,monthlyAmountRwf:fee?.monthly_fee_rwf||"",firstDueOn:fee?.next_due_on||kigaliDate()})}>Set fee</button>
+                <button className="button small" disabled={!fee?.monthly_fee_rwf} onClick={()=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:fee?.monthly_fee_rwf||""})}>Mark paid</button></div>}</td></tr>})}
+          </tbody></table>{!data.tenants.length&&<Empty title="No schools" description="Register a school first; only you can set its monthly fee and record payments."/>}</div>
+        </div>
+        <div className="panel"><div className="panel-header"><h2>Manual payment history</h2><span className="micro">Most recent 300 entries · corrections are preserved</span></div>
+          <div className="table-wrap"><table><thead><tr><th>School</th><th>Paid date</th><th>Amount</th><th>How received</th><th>Reference</th><th>Entry status</th><th></th></tr></thead><tbody>
+          {(data.manualPayments||[]).map(p=><tr key={p.id}>
+            <td>{data.tenants.find(t=>t.id===p.school_id)?.name||"School"}</td><td>{p.paid_on}</td>
+            <td>{formatRwf(p.amount_rwf)}</td><td>{p.method.replaceAll("_"," ")}</td><td>{p.reference||"—"}</td><td><Pill>{p.state}</Pill></td>
+            <td>{data.actor.isOwner&&p.state==="recorded"&&<button className="button small secondary" onClick={()=>open("voidPayment",{payment:p})}>Correct</button>}</td>
+          </tr>)}
+          </tbody></table>{!data.manualPayments.length&&<Empty title="No manual receipts" description="Once you mark a school paid, the record and new due date will appear here."/>}</div>
+        </div>
+        <div className="notice info">A payment is marked paid only when you explicitly record it. It never automatically charges a tenant. If your client has made a partial payment, don't mark the month paid until you receive the full required amount.</div>
       </>}
       {tab==="methods"&&<>
-        <Header title="Accepted payment methods" description="Configure available methods for platform subscriptions." action={<button className="button" onClick={()=>open("newMethod")}>+ Add method</button>}/>
+        <Header title="Accepted payment methods" description="Internal payment channel labels for your manual payment records." action={<button className="button" onClick={()=>open("newMethod")}>+ Add method</button>}/>
         <div className="notice info">These controls manage payment-method options only. They do not create MTN MoMo or bank integrations, move funds, or change a bank account.</div>
         <div className="panel"><div className="table-wrap"><table><thead><tr><th>Method</th><th>Type</th><th>Enabled</th><th>Default</th><th>Actions</th></tr></thead><tbody>
           {data.methods.map(m=><tr key={m.id}><td><strong>{m.label}</strong></td><td>{m.type.replaceAll("_"," ")}</td><td><Pill>{m.enabled?"active":"disabled"}</Pill></td><td>{m.is_default?"Default":"—"}</td><td><div className="row"><button className="button small secondary" disabled={busy} onClick={()=>action({action:"method.toggle",id:m.id,enabled:!m.enabled})}>{m.enabled?"Disable":"Enable"}</button>{!m.is_default&&<button className="button small secondary" disabled={busy} onClick={()=>action({action:"method.default",id:m.id})}>Make default</button>}</div></td></tr>)}
@@ -338,9 +364,26 @@ function MfaVerify({mfa,client,setMfa,setNotice,setError}) {
 }
 function Metric({label,value}){return <div className="card"><div className="label">{label}</div><div className="value">{value??"—"}</div></div>;}
 function Header({title,description,action}){return <div className="header"><div><h1>{title}</h1><p>{description}</p></div>{action}</div>;}
-function TenantTable({tenants,canManage,onState}) {
-  return <div className="table-wrap"><table><thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>
-    {tenants.map(t=><tr key={t.id}><td><strong>{t.name}</strong><div className="micro">{t.platform_companies?.name||"—"}</div></td><td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td><td><Pill>{t.status}</Pill></td><td>{DATE(t.created_at)}</td><td>{canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage</button>}</td></tr>)}
-    </tbody></table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
+function siteForm(site) {
+  return {tagline:site?.tagline||"",aboutText:site?.about_text||"",
+    announcement:site?.announcement||"",logoUrl:site?.logo_url||"",
+    heroUrl:site?.hero_url||"",primaryColor:site?.primary_color||"#204a78",
+    contactEmail:site?.contact_email||"",contactPhone:site?.contact_phone||"",isPublished:Boolean(site?.is_published)};
+}
+function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,onState,onPaid,onTerms,onBrand}) {
+  return <div className="table-wrap"><table>
+    <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>Next monthly due</th><th>Actions</th></tr></thead>
+    <tbody>{tenants.map(t=>{const terms=feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(terms?.next_due_on);
+      return <tr key={t.id}><td><strong>{t.name}</strong><div className="micro">{t.platform_companies?.name||"—"}</div></td>
+        <td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td>
+        <td><Pill>{t.status}</Pill></td><td>{terms?.next_due_on||"—"}<div className="micro">{clock.label}</div></td>
+        <td><div className="row">
+          {canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage status</button>}
+          {canRecord&&<><button className="button secondary small" onClick={()=>onTerms(t)}>Set fee</button><button disabled={!terms?.monthly_fee_rwf} className="button small" onClick={()=>onPaid(t)}>Mark paid</button></>}
+          {canBrand&&<button className="button secondary small" onClick={()=>onBrand(t)}>School site</button>}
+          <a href={"/s/"+t.school_code} target="_blank" rel="noreferrer">Preview</a>
+        </div></td>
+      </tr>})}</tbody>
+    </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
 function modalTitle(mode){return ({newTenant:"Register a new school",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
