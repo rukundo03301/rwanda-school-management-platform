@@ -125,6 +125,7 @@ declare school public.platform_schools%rowtype;
         row_total bigint:=0;
         detail jsonb:='{}'::jsonb;
         storage_count bigint:=0;
+        storage_buckets text[]:='{}'::text[];
         siblings bigint:=0;
 begin
  select * into school from public.platform_schools where id=p_school;
@@ -136,7 +137,8 @@ begin
   detail:=detail||jsonb_build_object(table_ref.table_name,current_count);
   row_total:=row_total+current_count;
  end loop;
- select count(*) into storage_count from storage.objects
+ select count(*),coalesce(array_agg(distinct bucket_id),'{}'::text[])
+ into storage_count,storage_buckets from storage.objects
  where name like p_school::text||'/%'
     or name like 'schools/'||p_school::text||'/%'
     or name like 'tenants/'||p_school::text||'/%';
@@ -148,7 +150,8 @@ begin
   'status',school.status,'legal_hold',school.legal_hold,
   'school_scoped_tables',cardinality(public.platform_tenant_scope_manifest()),
   'tenant_rows',row_total,'rows_by_table',detail,
-  'stored_files',storage_count,'other_schools_in_company',siblings,
+  'stored_files',storage_count,'storage_buckets',storage_buckets,
+  'other_schools_in_company',siblings,
   'shared_auth_accounts_preserved',true,
   'external_backup_erasure_immediate',false);
 end;
