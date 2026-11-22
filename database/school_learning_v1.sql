@@ -440,7 +440,7 @@ grant execute on function public.school_record_attendance(uuid,uuid,uuid,date,te
  to service_role;
 grant execute on function public.school_invite_student_account(uuid,uuid,text,boolean,uuid)
  to service_role;
-grant execute on function public.school_claim_student_account(uuid,uuid,uuid,uuid,text)
+grant execute on function public.school_claim_student_account(uuid,uuid,uuid,text)
  to service_role;
 grant execute on function public.school_submit_homework(uuid,uuid,uuid,uuid,text)
  to service_role;
