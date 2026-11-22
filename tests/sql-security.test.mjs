@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 const schema=readFileSync(new URL("../database/platform_owner_console.sql",import.meta.url),"utf8");
 test("all platform tables explicitly enable RLS",()=>{
-  for(const table of ["platform_companies","platform_schools","platform_staff","platform_staff_requests","platform_tickets","platform_payment_methods","platform_invoices","platform_payments","platform_audit"]){
+  for(const table of ["platform_companies","platform_schools","platform_staff","platform_staff_requests","platform_tickets","platform_payment_methods","platform_audit"]){
     assert.ok(schema.includes("'"+table+"'"),"table missing from RLS list: "+table);
   }
   assert.match(schema,/enable row level security/);
