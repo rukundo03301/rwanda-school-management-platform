@@ -63,3 +63,9 @@ Read [Private Monthly Payments and Email Reminders](docs/PRIVATE_MONTHLY_PAYMENT
 
 Actual payment initiation, real Mobile Money/bank verification, school-managed ticket submissions, physical tenant deletion, school authentication, school academics and native mobile builds are **not yet implemented**. These require separate tested increments. The first release prioritizes the platform owner's management plane.
 
+
+## School onboarding (Module 1B, stacked development branch)
+
+See [School owner onboarding flow](docs/SCHOOL_ONBOARDING_MODULE_1B.md): verified school owner invitations; unique Company/School IDs; branded school-specific sign-in; 5-step saved setup; real logo/photo uploads; separate private homepage drafts and public publication; explicit review and platform activation.
+
+This module is a draft PR based on the earlier owner-console feature branch. No production Supabase deployment, mobile app, or school-role academic system has been claimed.
