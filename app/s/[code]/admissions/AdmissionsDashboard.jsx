@@ -88,7 +88,8 @@ export default function AdmissionsDashboard({code}){
  const activeStudents=(data.students||[]).filter(s=>s.status==="active");
  const applicantsYear=(app)=>years.find(y=>y.id===app.academic_year_id)?.name||"Academic year";
  const classLabel=(cls)=>cls?cls.name+(cls.section?" · "+cls.section:""):"Class not available";
- const studentEnrollment=(studentId)=>data.enrollments.find(e=>e.student_id===studentId&&e.status==="active");
+ const currentYearId=years.find(y=>y.status==="current")?.id;
+ const studentEnrollment=(studentId)=>currentYearId?data.enrollments.find(e=>e.student_id===studentId&&e.academic_year_id===currentYearId&&e.status==="active"):null;
  const allowedTabs=TABS.filter(t=>t.id==="overview"||
    (t.id==="access"&&data.actor.isOwner)||
    (t.id==="guardians"&&allowed("guardians.manage"))||
