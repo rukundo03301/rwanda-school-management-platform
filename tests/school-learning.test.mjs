@@ -60,7 +60,7 @@ test("attendance records authorized students and audits changes",()=>{
  assert.match(sql,/stu\.status='active'/);
  assert.match(sql,/p_day between y\.starts_on and y\.ends_on/);
  assert.match(sql,/attendance\.recorded/);
- assert.match(classroom,/action==="attendance.record"/);
+ assert.match(classroom,/"attendance.record"\]\.includes\(action\)/);
  assert.match(teacherUI,/Mark attendance/);
 });
 
@@ -101,6 +101,8 @@ test("student can submit only their own homework for current active enrollment",
  assert.match(sql,/unique\(school_id,homework_id,student_id\)/);
  assert.match(sql,/Homework deadline has passed/);
  assert.match(learning,/studentLearningContext\(request,code\)/);
+ assert.match(sql,/Student guardian approval has been revoked/);
+ assert.match(learning,/School-verified guardian approval is no longer active/);
  assert.match(learning,/p_student:authenticated\.student\.id/);
  assert.match(studentUI,/Submit homework/);
 });
