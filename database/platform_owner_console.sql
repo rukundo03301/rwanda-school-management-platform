@@ -289,3 +289,47 @@ $fn$;
 
 revoke all on function public.platform_owner_stats() from public, anon, authenticated;
 grant execute on function public.platform_owner_stats() to service_role;
+
+
+-- Owner-controlled granular staff permissions. Only the server's service_role
+-- may invoke this function. The HTTP API checks the verified owner and AAL2.
+create or replace function public.platform_update_staff_permissions(
+  p_staff_id uuid,p_role text,p_permissions text[],p_reason text,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public
+as $$
+declare old_record public.platform_staff%rowtype;
+begin
+  if p_staff_id=p_actor then raise exception 'Self-grants are not allowed'; end if;
+  if p_role not in ('operations','support','finance','observer') then
+    raise exception 'Unsupported staff role';
+  end if;
+  if length(btrim(coalesce(p_reason,'')))<8 then raise exception 'Audit reason required'; end if;
+  if p_permissions is null
+     or array_position(p_permissions,null) is not null
+     or exists (
+       select 1 from unnest(p_permissions) p
+       where p <> all(array[
+         'tenants.read','tenants.create','tenants.lifecycle',
+         'tickets.read','tickets.manage','billing.read',
+         'billing.methods','staff.read','staff.manage','audit.read'
+       ])
+     ) then raise exception 'Invalid permission selection'; end if;
+  select * into old_record from public.platform_staff
+    where auth_user_id=p_staff_id for update;
+  if not found or not old_record.active then raise exception 'Active staff account not found'; end if;
+  update public.platform_staff
+    set role=p_role,permissions=p_permissions
+    where auth_user_id=p_staff_id;
+  insert into public.platform_audit(actor_id,event,resource_id,metadata)
+    values(p_actor,'staff.permissions_changed',p_staff_id,
+      jsonb_build_object('previous_role',old_record.role,
+        'previous_permissions',old_record.permissions,'role',p_role,
+        'permissions',p_permissions,'reason',p_reason));
+  return jsonb_build_object('staff_id',p_staff_id,'role',p_role);
+end;
+$$;
+revoke all on function public.platform_update_staff_permissions(uuid,text,text[],text,uuid)
+  from public, anon, authenticated;
+grant execute on function public.platform_update_staff_permissions(uuid,text,text[],text,uuid)
+  to service_role;
