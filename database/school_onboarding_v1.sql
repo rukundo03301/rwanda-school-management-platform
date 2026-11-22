@@ -58,7 +58,7 @@ create table if not exists public.school_site_drafts (
   updated_by uuid references auth.users(id) on delete set null
 );
 
-do $
+do $$
 declare t text;
 begin
  foreach t in array array['school_owner_invites','school_memberships','school_onboarding','school_site_drafts'] loop
