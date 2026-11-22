@@ -282,11 +282,13 @@ begin
  values(s.id,'Learning with purpose · DEMO',
   'Our sample mission is quality learning for every student.',
   'DEMO SCHOOL — SAMPLE DATA ONLY.', '#176B75',p_actor);
- insert into public.school_onboarding(
-  school_id,current_step,school_type,education_levels,
-  province,district,campus_name,academic_year,privacy_acknowledged,updated_by)
- values(s.id,5,'primary',array['P4'],'Kigali City','Gasabo',
-  'Fictional Campus',current_year::text,true,p_actor);
+ -- School registration already creates the onboarding row in its trigger.
+ update public.school_onboarding set current_step=5,school_type='primary',
+  education_levels=array['P4'],province='Kigali City',district='Gasabo',
+  campus_name='Fictional Campus',academic_year=current_year::text,
+  privacy_acknowledged=true,updated_by=p_actor
+ where school_id=s.id;
+ if not found then raise exception 'Automatic school onboarding record was not created'; end if;
  insert into public.platform_fee_terms(school_id,monthly_fee_rwf)
  values(s.id,0);
  insert into public.school_academic_years(
