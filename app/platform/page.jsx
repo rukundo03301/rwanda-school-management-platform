@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { browserSupabase } from "../../lib/client.js";
 import { ALL_PERMISSIONS, ROLE_DEFAULTS } from "../../lib/access.mjs";
 import { formatRwf } from "../../lib/money.mjs";
@@ -144,7 +144,7 @@ export default function PlatformPage() {
   const [form,setForm]=useState({});
   const [mfa,setMfa]=useState(null);
 
-  useEffect(()=>{ setClient(browserSupabase()); },[]);
+  useEffect(()=>{ const c=browserSupabase(); setClient(c); if(!c)setLoading(false); },[]);
 
   useEffect(()=>{
     if(!client){return;}
