@@ -52,15 +52,23 @@ All code, configurations, migration SQL and tests belong in GitHub. Feature bran
 
 **Current verification:** GitHub private repo accessible. Supabase project `stgqhkhfpnqmsiyrvvhe` (name APEX) ACTIVE_HEALTHY with no public tables and no migrations at last check. Native GitHub-Supabase integration and Vercel deployment are NOT yet verified. Do not deploy a test migration to production merely to prove connectivity. No actual application built yet.
 
+## Platform owner, role-specific dashboards and mobile apps (mandatory architecture)
+
+The SaaS platform owner has a separate **Tenant Command Center** to search all companies/schools, monitor onboarding/active/paused/suspended/archived states, review tenant health, and request deletion through safe multi-step retention-aware controls. School owners manage only their permitted school(s). Students, teachers, parents, kitchen staff, principals and finance employees do not share one generic dashboard.
+
+**Self-selecting a Teacher/Parent/Student role at sign-up NEVER grants permission.** Approval by the correct school and valid teacher-class/student-enrollment/verified-guardian relationships determine precisely which classes, children, grades, school fees and messages can be viewed. A user with multiple verified roles/schools can switch between authorized contexts. All this must be enforced by backend access controls and Supabase RLS, not only navigation.
+
+Ship a **real installable Android and iOS app** (React Native + Expo proposed) alongside responsive web, sharing secure API contracts and school branding. Native login and role-based navigation should begin in Module 1C, with functional teaching, reports, fees and messaging screens delivered with their later backends. **Platform admin web is first priority** for security and usability. See [tenant management, role portals and mobile specification](./PLATFORM_TENANT_CONSOLE_ROLE_PORTALS_AND_MOBILE_SPEC.md) for all screens, lifecycle transitions, security matrix and acceptance tests.
+
 ## 9. Build order and completion gates
 
 0. Define data model, UX flows, acceptance criteria, and Rwanda compliance/hosting review.
-1. Multi-tenant foundation, registration/invitations, role model, school branding, homepage builder and publishing.
-2. Admissions, student/guardian records and enrollment.
+1. Multi-tenant foundation split into (1A) platform-owner Tenant Command Center and tenant lifecycle controls, (1B) branded school onboarding/homepage, and (1C) verified role sign-in / permissions with native Android and iOS app shell.
+2. Admissions, student/guardian records and enrollment, with verified guardian-child relationships and teacher-class assignment scaffolding.
 3. Academic calendars/classes/courses/timetables and teacher assignment.
 4. Learning materials, homework, assignments, submissions.
 5. Assessment, moderated gradebooks, report cards and transcripts.
-6. Parent/student portals and secure communications.
+6. Role-specific parent/student portals, secure teacher-family messaging, and native app role navigation.
 7. RWF fees, payments, receivables, accounting and reconciliation.
 8. Staff, discipline, kitchen, transport, inventory, boarding and other operations.
 9. University and TVET specialization.
