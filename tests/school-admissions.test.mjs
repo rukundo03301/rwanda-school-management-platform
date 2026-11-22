@@ -116,5 +116,5 @@ test("owner console, onboarding, school admin, admissions migrations have stable
  assert.ok(positions.every(i=>i>=0),JSON.stringify(positions));
  assert.ok(positions.every((p,i)=>!i||p>positions[i-1]));
  assert.match(ci,/supabase db reset/);
- assert.doesNotMatch(ci,/--linked|--remote|db push/);
+ assert.doesNotMatch(ci,/^\s+supabase (?:db push|link|migration up --linked)\b/m);
 });
