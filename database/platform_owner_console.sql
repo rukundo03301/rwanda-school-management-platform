@@ -283,7 +283,11 @@ as $fn$
     'deletion_requested', (select count(*) from public.platform_schools where status='deletion_requested'),
     'ticketsOpen', (select count(*) from public.platform_tickets where status<>'resolved'),
     'billedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_invoices where status<>'void'),
-    'collectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_payments where status='settled')
+    'collectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_payments where status='settled'),
+    'manualCollectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_manual_payments where state='recorded'),
+    'monthlyExpectedRwf', (select coalesce(sum(monthly_fee_rwf),0) from public.platform_fee_terms),
+    'pastDue', (select count(*) from public.platform_fee_terms where next_due_on < (now() at time zone 'Africa/Kigali')::date),
+    'dueToday', (select count(*) from public.platform_fee_terms where next_due_on = (now() at time zone 'Africa/Kigali')::date)
   );
 $fn$;
 
