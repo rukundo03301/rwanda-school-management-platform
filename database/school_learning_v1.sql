@@ -301,6 +301,12 @@ begin
  if not exists(select 1 from public.school_guardian_links
   where school_id=p_school and student_id=p_student and active)
  then raise exception 'Verified guardian link must exist first'; end if;
+ if exists(select 1 from public.school_guardian_links gl
+   join auth.users u on u.id=gl.auth_user_id
+   where gl.school_id=p_school and gl.student_id=p_student and gl.active
+     and lower(u.email)=normalized_email)
+ then raise exception 'Student account must have its own email, not a linked guardian email'; end if;
+
  if exists(select 1 from public.school_student_accounts
   where school_id=p_school and student_id=p_student and active)
  then raise exception 'Student already has an active account'; end if;
@@ -339,6 +345,9 @@ begin
  if not exists(select 1 from public.school_guardian_links where school_id=p_school
    and student_id=p_student and active)
  then raise exception 'Guardian approval no longer valid'; end if;
+ if exists(select 1 from public.school_guardian_links where school_id=p_school
+   and student_id=p_student and auth_user_id=p_user and active)
+ then raise exception 'Guardian account cannot claim the same child as a student'; end if;
  insert into public.school_student_accounts(school_id,student_id,auth_user_id,verified_by)
  values(p_school,p_student,p_user,inv.invited_by)
  on conflict(school_id,student_id) do update set
