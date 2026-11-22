@@ -74,7 +74,7 @@ $$;
 
 create or replace function public.platform_verify_tenant_scope()
 returns table(relid oid,table_name text)
-language plpgsql stable security invoker
+language plpgsql volatile security invoker
 set search_path=pg_catalog,public as $$
 declare expected text[];
         actual text[];
@@ -117,7 +117,7 @@ end;
 $$;
 
 create or replace function public.platform_preview_tenant_purge(p_school uuid)
-returns jsonb language plpgsql stable security invoker
+returns jsonb language plpgsql volatile security invoker
 set search_path=pg_catalog,public as $$
 declare school public.platform_schools%rowtype;
         table_ref record;
