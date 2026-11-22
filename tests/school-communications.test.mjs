@@ -151,6 +151,27 @@ test("all 12 internal functions have no public execute grant",()=>{
  assert.doesNotMatch(ui,/SUPABASE_SECRET_KEY|SERVICE_ROLE_KEY/);
 });
 
+test("every SQL procedure has complete dollar-quote boundaries and correct service signatures",()=>{
+ assert.equal((sql.match(/create or replace function/g)||[]).length,14);
+ assert.equal((sql.match(/as \$\$/g)||[]).length,14);
+ assert.equal((sql.match(/end;\n\$\$;/g)||[]).length,14);
+ assert.doesNotMatch(sql,/as \$(?!\$)/);
+ assert.doesNotMatch(sql,/^\$;$/m);
+ for(const sig of [
+  "school_archive_announcement(uuid,uuid,text,uuid)",
+  "school_schedule_calendar_event(uuid,text,text,text,text,uuid,timestamptz,timestamptz,text,uuid)",
+  "school_cancel_calendar_event(uuid,uuid,text,uuid)"
+ ])assert.ok(sql.includes("grant execute on function public."+sig+" to service_role"),sig);
+});
+
+test("parent homework reflects actual submission status and no stale revoked teacher timetable",()=>{
+ assert.match(api,/school_homework_submissions/);
+ assert.match(api,/submitted:submitted\.some/);
+ assert.match(api,/activeTimetableAssignments/);
+ assert.match(api,/teacherMembers\.has\(x\.teacher_id\)/);
+ assert.match(ui,/h\.submitted\?"✓ Submitted/);
+});
+
 test("inputs refuse unknown roles and invalid text",()=>{
  assert.throws(()=>comText(" ",150));
  assert.throws(()=>comText("a",150,{min:3}));
