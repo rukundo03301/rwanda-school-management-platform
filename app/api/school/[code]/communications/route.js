@@ -131,8 +131,8 @@ export async function GET(request,{params}){
    (ctx.teacher&&p.teacher_id===user.id&&pairsAllowedForTeacher.has(p.class_id+"#"+p.subject_id))||
    ((ctx.parent||ctx.student)&&ctx.enrollments.some(e=>e.class_id===p.class_id)));
   const contextForAudience={...ctx,classIds:visibleClasses.map(x=>x.id)};
-  const announcements=rawAnnouncements.filter(a=>managers||canViewAnnouncement(a,contextForAudience));
-  const events=rawEvents.filter(e=>managers||isVisibleTo(e,contextForAudience));
+  const announcements=rawAnnouncements.filter(a=>ctx.managerAnnouncements||canViewAnnouncement(a,contextForAudience));
+  const events=rawEvents.filter(e=>ctx.managerAnnouncements||isVisibleTo(e,contextForAudience));
   const graph=await contactGraph(db,ctx);
   let threads=[],messages=[],notifications=[];
   if(ctx.teacher||ctx.parent){
@@ -200,6 +200,25 @@ export async function GET(request,{params}){
     };
    });
   }
+  let teachingAssignments=[],teachers=[];
+  if(ctx.managerTimetable&&year){
+   const [a,teacherMembers,invites]=await Promise.all([
+    checked(db.from("school_teacher_assignments")
+     .select("class_id,subject_id,teacher_id,active")
+     .eq("school_id",school.id).eq("active",true).limit(1200)),
+    checked(db.from("school_memberships").select("auth_user_id")
+     .eq("school_id",school.id).eq("role","teacher").eq("active",true).limit(500)),
+    checked(db.from("school_role_invites").select("claimed_by,email")
+     .eq("school_id",school.id).eq("role","teacher").eq("status","claimed")
+     .not("claimed_by","is",null).limit(500))
+   ]);
+   const memberIds=new Set(teacherMembers.map(x=>x.auth_user_id));
+   const emailById=new Map(invites.map(x=>[x.claimed_by,x.email]));
+   teachingAssignments=a.filter(x=>
+      activeClassIds.has(x.class_id)&&memberIds.has(x.teacher_id));
+   teachers=teacherMembers.map(t=>({userId:t.auth_user_id,
+     label:emailById.get(t.auth_user_id)||"Verified school teacher"}));
+  }
   let adminGrants=[];
   if(ctx.owner){
    const [adminMembers,grants,claimed]=await Promise.all([
@@ -237,6 +256,7 @@ export async function GET(request,{params}){
    year,classes:visibleClasses,subjects:allSubjects,
    timetable,announcements,events,noticeReads,threads,messages,
    notifications,contacts:graph.contacts,roster:graph.roster,family,adminGrants,
+   teachingAssignments,teachers,
    limitations:{emailAlerts:"not_configured",smsAlerts:"not_configured",
      limits:"Loaded records are capped; not full school totals"}
   },{headers:noStore});
@@ -301,9 +321,12 @@ export async function POST(request,{params}){
    const notice=await checked(db.from("school_announcements")
     .select("id,audience,class_id,status,expires_at").eq("school_id",school.id)
     .eq("id",id).maybeSingle());
-   failUnless(notice&&canViewAnnouncement(notice,{
-    ...ctx,classIds:ctx.classIds
-   }),"Announcement isn't available to this account");
+   const allowedClasses=ctx.year&&ctx.classIds.length?await checked(db.from("school_classes")
+     .select("id").eq("school_id",school.id).eq("academic_year_id",ctx.year.id)
+     .eq("status","active").in("id",ctx.classIds).limit(500)):[];
+   failUnless(notice&&(ctx.managerAnnouncements||canViewAnnouncement(notice,{
+    ...ctx,classIds:allowedClasses.map(c=>c.id)
+   })),"Announcement isn't available to this account");
    await checked(db.from("school_announcement_reads").upsert({
     school_id:school.id,announcement_id:id,auth_user_id:user.id
    },{onConflict:"school_id,announcement_id,auth_user_id",ignoreDuplicates:true}));
