@@ -133,6 +133,22 @@ export async function POST(request) {
       result = await checked(db.rpc("platform_approve_staff_request", {
         p_request_id:requestId,p_role:role,p_permissions:permissions,p_actor:actor.id
       }));
+    } else if (action === "staff.permissions") {
+      requireOwner(actor); requireAal2(token);
+      const staffId = validateUuid(body.id,"staff");
+      if (staffId===actor.id) throw new ApiError(400,"You cannot edit your own owner permissions.");
+      const role = String(body.role||"");
+      if (!ROLE_DEFAULTS[role]) throw new ApiError(400,"Invalid staff role.");
+      const permissions = normalizePermissions(body.permissions);
+      const reason = safeText(body.reason,500);
+      if (reason.length < 8) throw new ApiError(400,"Explain the permission change.");
+      const staff = await checked(db.from("platform_staff")
+        .select("active").eq("auth_user_id",staffId).single());
+      if (!staff.active) throw new ApiError(409,"This account is disabled; you must approve access again.");
+      result=await checked(db.rpc("platform_update_staff_permissions",{
+        p_staff_id:staffId,p_role:role,p_permissions:permissions,
+        p_reason:reason,p_actor:actor.id
+      }));
     } else if (action === "staff.disable") {
       requireOwner(actor); requireAal2(token);
       const staffId = validateUuid(body.id,"staff");
