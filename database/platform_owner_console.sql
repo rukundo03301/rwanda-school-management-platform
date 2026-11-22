@@ -530,3 +530,43 @@ revoke all on function public.platform_owner_stats() from public, anon, authenti
 grant execute on function public.platform_owner_stats() to service_role;
 
 
+
+
+-- Daily private reminder deduplication for GitHub Actions scheduled email.
+create table if not exists public.platform_owner_email_digests (
+  digest_date date not null,
+  recipient text not null,
+  status text not null default 'claimed' check(status in ('claimed','sent','failed')),
+  claimed_at timestamptz not null default now(),
+  sent_at timestamptz,
+  external_message_id text,
+  last_error text,
+  primary key(digest_date,recipient)
+);
+alter table public.platform_owner_email_digests enable row level security;
+revoke all on table public.platform_owner_email_digests from public,anon,authenticated;
+grant all on table public.platform_owner_email_digests to service_role;
+
+create or replace function public.platform_claim_owner_digest(
+  p_date date,p_recipient text
+) returns boolean language plpgsql security invoker
+set search_path=pg_catalog,public
+as $$
+declare did_claim boolean;
+begin
+ if p_date is null or p_recipient is null or length(p_recipient) not between 5 and 254
+   then raise exception 'Invalid digest identity';
+ end if;
+ insert into public.platform_owner_email_digests(digest_date,recipient,status)
+   values(p_date,lower(p_recipient),'claimed')
+   on conflict(digest_date,recipient) do update
+     set status='claimed',claimed_at=now(),last_error=null
+     where public.platform_owner_email_digests.status='failed'
+        or (public.platform_owner_email_digests.status='claimed'
+            and public.platform_owner_email_digests.claimed_at < now()-interval '4 hours')
+   returning true into did_claim;
+ return coalesce(did_claim,false);
+end;
+$$;
+revoke all on function public.platform_claim_owner_digest(date,text) from public,anon,authenticated;
+grant execute on function public.platform_claim_owner_digest(date,text) to service_role;
