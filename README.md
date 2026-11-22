@@ -88,3 +88,12 @@ A verified School Owner can open the school-specific Administration dashboard af
 - Strict separation from the SaaS platform owner's private RWF monthly payment clock and global tenant controls.
 
 See [School Administration Module 2](docs/SCHOOL_ADMINISTRATION_MODULE_2.md) for detailed workflow, security model and release gates. This is GitHub code under review, not a live deployment, full academic portal, Android APK or iOS application.
+
+
+## Module 3: Student Admissions and Verified Families (development)
+
+A school owner or authorized admissions administrator can record a real application, review admission, enroll an approved student in an appropriate class, and invite verified parents. Applications and student records are separate; Student IDs and initial class assignments are created only after authorized admission. Family links require school verification and confirmed-email parent acceptance. School administrators get additional ON/OFF permissions for admissions, enrollment and guardian access. Parent screens show only child names, Student IDs and classes after their links are approved.
+
+All child-related records are school-scoped and protected by server authentication and private database access. The module intentionally does not implement attendance, grades, homework, tuition, teacher rosters or student self-registration.
+
+See [Student Admissions Module 3](docs/STUDENT_ADMISSIONS_MODULE_3.md). This remains a draft, GitHub-only module with no changes deployed to APEX or released phone apps.

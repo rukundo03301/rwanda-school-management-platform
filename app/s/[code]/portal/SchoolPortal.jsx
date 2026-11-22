@@ -93,7 +93,8 @@ export default function SchoolPortal({code}) {
            <a className="button" href={"/s/"+code+"/admin"}>Open School Administration</a>
            <a className="button secondary" href={"/s/"+code+"/setup"}>Manage School Website</a>
          </div>:role==="school_admin"?<a className="button" href={"/s/"+code+"/admin"}>Open Administrator Dashboard</a>:
-           <p><strong>Workspace under development.</strong> Student data, grades, fees, homework and rosters are not available until their modules are tested.</p>}
+           role==="parent"?<a className="button" href={"/s/"+code+"/family"}>See My Verified Children</a>:
+           <p><strong>Workspace under development.</strong> Grades, tuition, homework and class rosters are not yet available.</p>}
        </div>:
        staffInvitePending?<div className="notice info">
          <strong>Verified school invitation available</strong>
@@ -109,6 +110,7 @@ export default function SchoolPortal({code}) {
        </div>:
        <div className="notice error"><strong>This role is not approved for your account.</strong>
          <p>Choosing a role on a login screen does not give access. Contact your school administrator for a verified invitation and assignment.</p>
+         {role==="parent"&&<p><a className="button secondary" href={"/s/"+code+"/family"}>Check My Family Invitation</a></p>}
        </div>}
      <div className="school-role-switch">
        <h2>Choose your school role</h2>

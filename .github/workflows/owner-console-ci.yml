@@ -6,6 +6,7 @@ on:
       - feature/platform-owner-console-v1
       - feature/school-onboarding-v1
       - feature/school-administration-v1
+      - feature/student-admissions-v1
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,7 +27,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://stgqhkhfpnqmsiyrvvhe.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-for-build-only
-# Isolated CI tests owner-console, school-onboarding and school-administration migrations.
+# Isolated CI tests owner-console, school-onboarding, school-administration and admissions migrations.
 # NO production database deployment in this workflow.
 # Do not add a second migration deployer if Supabase native GitHub integration is enabled.
 
@@ -50,6 +51,9 @@ jobs:
           sleep 1
           supabase migration new school_administration_v1
           cp database/school_administration_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_administration_v1.sql' | head -n 1)"
+          sleep 1
+          supabase migration new school_admissions_v1
+          cp database/school_admissions_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_admissions_v1.sql' | head -n 1)"
       - name: Start isolated Supabase and apply migration
         run: |
           supabase start
