@@ -144,6 +144,7 @@ export default function PlatformPage() {
   const [filter,setFilter]=useState("all");
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
+  const [purgePreview,setPurgePreview]=useState(null);
   const [mfa,setMfa]=useState(null);
 
   useEffect(()=>{ const c=browserSupabase(); setClient(c); if(!c)setLoading(false); },[]);
@@ -176,11 +177,35 @@ export default function PlatformPage() {
   },[api]);
   useEffect(()=>{if(session)refresh();else setData(null);},[session,refresh]);
 
-  function open(mode,payload={}){setModal(mode);setForm(payload);setError("");setNotice("");}
+  function open(mode,payload={}){
+    setModal(mode);setForm(payload);setPurgePreview(null);setError("");setNotice("");
+  }
+  async function previewPurge(tenant){
+    setBusy(true);setError("");setNotice("");
+    try{
+      const response=await api({action:"tenant.purge.preview",schoolId:tenant.id});
+      setPurgePreview(response.result);
+      setForm({tenant,confirmSchoolCode:"",confirmPhrase:"",reason:"",acknowledge:false});
+      setModal("purge");
+    }catch(e){setError(e.message);}
+    finally{setBusy(false);}
+  }
   async function action(body,endpoint="/api/platform"){
     setBusy(true);setError("");setNotice("");
-    try{await api(body,endpoint);setModal(null);setForm({});await refresh();setNotice("Change saved and verified by the API.");}
-    catch(e){setError(e.message); }
+    try{
+      const output=await api(body,endpoint);
+      setModal(null);setForm({});setPurgePreview(null);
+      await refresh();
+      setNotice(body.action==="tenant.purge"?
+        "Deletion verified: School "+(output.result?.school_code||"")+
+        " and its school-scoped database rows were removed. Uploaded school files removed: "+
+        (output.result?.storage_objects_removed??0)+
+        ". Shared user accounts and provider backups follow separate retention rules.":
+        body.action==="tenant.demo.create"?
+        "Fictional demo school created: "+(output.result?.school_code||"")+
+        ". Open Tenant Management to preview it and test permanent deletion.":
+        "Change saved and verified by the API.");
+    }catch(e){setError(e.message);}
     finally{setBusy(false);}
   }
   async function uploadBrandImage(file,kind) {
@@ -251,14 +276,20 @@ export default function PlatformPage() {
           </div>
           {(data.totals.pastDue>0||data.totals.dueToday>0)&&<div className="notice error">Attention: {data.totals.pastDue} school(s) past due and {data.totals.dueToday} due today. <button className="button small secondary" onClick={()=>setTab("billing")}>Open private monthly clock</button></div>}
         </>}
-        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canInvite={data.actor.isOwner} onInvite={(t)=>open("inviteSchoolOwner",{tenant:t})} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
+        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canInvite={data.actor.isOwner} canPurge={data.actor.isOwner}
+          onPurge={previewPurge} onInvite={(t)=>open("inviteSchoolOwner",{tenant:t})} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
         <div className="notice info">Monthly amounts and countdowns belong only to authorized platform staff. Schools do not see this billing ledger. These records represent what you entered manually, not verified bank or Mobile Money balances.</div>
       </>}
       {tab==="tenants"&&<>
-        <Header title="Tenants" description="Own every tenant, private monthly payment date, school identity and lifecycle controls." action={allowed("tenants.create")?<div className="row"><button className="button secondary" onClick={()=>open("addSchool")}>+ School in existing company</button><button className="button" onClick={()=>open("newTenant")}>+ Register school</button></div>:null}/>
+        <Header title="Tenants" description="Own every tenant, private monthly payment date, school identity and lifecycle controls." action={allowed("tenants.create")?<div className="row">
+          {data.actor.isOwner&&<button className="button secondary" disabled={busy}
+           onClick={()=>open("demo")}>+ Create Mockup School</button>}
+          <button className="button secondary" onClick={()=>open("addSchool")}>+ School in existing company</button>
+          <button className="button" onClick={()=>open("newTenant")}>+ Register school</button>
+        </div>:null}/>
         <div className="panel">
           <div className="panel-header"><div className="row"><input aria-label="Search tenants" className="input" style={{width:260}} placeholder="Search school, ID or owner" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Tenant status" className="input" style={{width:150}} value={filter} onChange={e=>setFilter(e.target.value)}>{["all",...Object.keys(LIFECYCLE)].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div><span className="muted">{tenants.length} results</span></div>
-          <TenantTable tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
+          <TenantTable tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canPurge={data.actor.isOwner} onPurge={previewPurge} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
           {(data.totals.tenants>=200)&&<p className="micro">Showing latest 200 tenants. Server pagination is required before large-scale production use.</p>}
         </div>
       </>}
@@ -326,6 +357,72 @@ export default function PlatformPage() {
       </>}
     </main>
     {modal&&<Modal title={modalTitle(modal)} onClose={()=>setModal(null)}>
+      {modal==="demo"&&<div className="tenant-purge-body">
+        <p><strong>Mockup School: Kigali Learning Academy · DEMO</strong></p>
+        <p>This creates a fictional, clearly labeled sample institution with a unique Company ID and School ID, branded public homepage, school owner access, one demo student, class, subject, timetable, homework, attendance, sample RWF invoice, and school announcement. It will not send invitation emails or collect real money.</p>
+        <p className="notice info">Requires your verified platform-owner MFA session. The sample is created in your connected environment only when you confirm.</p>
+        <div className="modal-footer"><button className="button" disabled={busy}
+          onClick={()=>action({action:"tenant.demo.create"})}>Create fictional demo tenant</button></div>
+      </div>}
+      {modal==="purge"&&purgePreview&&<form className="tenant-purge-body"
+        onSubmit={e=>{e.preventDefault();action({
+         action:"tenant.purge",schoolId:form.tenant.id,
+         confirmSchoolCode:form.confirmSchoolCode,
+         confirmPhrase:form.confirmPhrase,reason:form.reason
+        });}}>
+        <p className="notice error"><strong>PERMANENT DELETION — NOT ARCHIVE</strong> This destroys the selected school's live tenant records and uploaded school files. It cannot be undone from the application.</p>
+        <p><strong>{purgePreview.school_name}</strong> · <kbd>{purgePreview.school_code}</kbd>
+          {purgePreview.is_demo?" · FICTIONAL DEMO":""}</p>
+        <div className="cards">
+          <Metric label="School-scoped database tables" value={purgePreview.school_scoped_tables}/>
+          <Metric label="School records to remove" value={purgePreview.tenant_rows}/>
+          <Metric label="Uploaded school files" value={purgePreview.stored_files}/>
+          <Metric label="Other schools in company" value={purgePreview.other_schools_in_company}/>
+        </div>
+        {purgePreview.legal_hold&&<p className="notice error">
+          This school has a legal hold and cannot be deleted.</p>}
+        <div className="table-wrap tenant-purge-inventory"><table>
+          <thead><tr><th>School data category</th><th>Records</th></tr></thead>
+          <tbody>{Object.entries(purgePreview.rows_by_table||{}).filter(([_,count])=>Number(count)>0)
+            .sort((a,b)=>b[1]-a[1]).map(([table,count])=>
+              <tr key={table}><td>{table.replaceAll("_"," ")}</td><td>{count}</td></tr>)}</tbody>
+        </table></div>
+        <div className="notice info">
+          Deletion removes this tenant's records across admissions, students, staff memberships,
+          curricula, timetables, messages, reports, invoices, payments, receipts, and branding files.
+          It preserves other schools and shared Supabase login accounts.
+          Backups, independently hosted images and already delivered external emails cannot be
+          immediately erased through this control.
+        </div>
+        <Field label="Reason for permanent deletion (at least 12 characters)">
+          <textarea className="input" required minLength={12} maxLength={480}
+            placeholder="Explain why this school should be permanently removed"
+            value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/>
+        </Field>
+        <Field label={"Type this School ID exactly: "+purgePreview.school_code}>
+          <input className="input" required autoComplete="off"
+            value={form.confirmSchoolCode||""}
+            onChange={e=>setForm({...form,confirmSchoolCode:e.target.value})}/>
+        </Field>
+        <Field label='Type exactly: DELETE ALL SCHOOL DATA'>
+          <input className="input" required autoComplete="off" placeholder="DELETE ALL SCHOOL DATA"
+            value={form.confirmPhrase||""}
+            onChange={e=>setForm({...form,confirmPhrase:e.target.value})}/>
+        </Field>
+        <label className="row"><input type="checkbox"
+          checked={Boolean(form.acknowledge)}
+          onChange={e=>setForm({...form,acknowledge:e.target.checked})}/>
+          <span>I understand this deletes the school and its data, not only its tenant listing.</span>
+        </label>
+        <div className="modal-footer">
+          <button type="button" className="button secondary" onClick={()=>setModal(null)}>Cancel</button>
+          <button type="submit" className="button danger" disabled={
+            busy||purgePreview.legal_hold||!form.acknowledge||
+            form.confirmSchoolCode!==purgePreview.school_code||
+            form.confirmPhrase!=="DELETE ALL SCHOOL DATA"||(form.reason||"").trim().length<12
+          }>Permanently delete school and verify wipe</button>
+        </div>
+      </form>}
       {modal==="newTenant"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.create",companyName:form.companyName,schoolName:form.schoolName,ownerEmail:form.ownerEmail});}}>
         <p className="muted">The platform will automatically generate a unique Company ID and School ID. School access remains in onboarding until approved.</p>
         <Field label="Company or school group"><input className="input" required maxLength={120} value={form.companyName||""} onChange={e=>setForm({...form,companyName:e.target.value})}/></Field>
@@ -455,21 +552,27 @@ function siteForm(site) {
     heroUrl:site?.hero_url||"",primaryColor:site?.primary_color||"#204a78",
     contactEmail:site?.contact_email||"",contactPhone:site?.contact_phone||"",isPublished:Boolean(site?.is_published)};
 }
-function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,canInvite,onInvite,onState,onPaid,onTerms,onBrand}) {
+function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,
+  canInvite,canPurge,onInvite,onPurge,onState,onPaid,onTerms,onBrand}) {
   return <div className="table-wrap"><table>
     <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>Next monthly due</th><th>Actions</th></tr></thead>
     <tbody>{tenants.map(t=>{const terms=feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(terms?.next_due_on);
-      return <tr key={t.id}><td><strong>{t.name}</strong><div className="micro">{t.platform_companies?.name||"—"}</div></td>
+      return <tr key={t.id}><td><strong>{t.name}</strong>
+        {t.is_demo&&<span className="badge" style={{marginLeft:8}}>DEMO · SYNTHETIC</span>}
+        <div className="micro">{t.platform_companies?.name||"—"}</div></td>
         <td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td>
         <td><Pill>{t.status}</Pill></td><td>{terms?.next_due_on||"—"}<div className="micro">{clock.label}</div></td>
         <td><div className="row">
           {canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage status</button>}
           {canRecord&&<><button className="button secondary small" onClick={()=>onTerms(t)}>Set fee</button><button disabled={!terms?.monthly_fee_rwf} className="button small" onClick={()=>onPaid(t)}>Mark paid</button></>}
           {canBrand&&<button className="button secondary small" onClick={()=>onBrand(t)}>School site</button>}
-          {canInvite&&<button className="button secondary small" onClick={()=>onInvite(t)}>Invite school owner</button>}
+          {canInvite&&!t.is_demo&&<button className="button secondary small" onClick={()=>onInvite(t)}>Invite school owner</button>}
+          {canPurge&&<button className="button small danger" disabled={t.legal_hold}
+            title={t.legal_hold?"Deletion blocked: legal hold":"Permanently remove school and data"}
+            onClick={()=>onPurge(t)}>Permanently delete</button>}
           <a href={"/s/"+t.school_code} target="_blank" rel="noreferrer">Preview</a>
         </div></td>
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
-function modalTitle(mode){return ({newTenant:"Register a new school",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
+function modalTitle(mode){return ({newTenant:"Register a new school",demo:"Create a mockup school",purge:"Permanently wipe school tenant",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
