@@ -145,6 +145,21 @@ test("ledger hardening avoids invoice cancellation races and exactness loss",()=
  assert.match(displayRwf(huge.amount_rwf),/RWF$/);
 });
 
+test("per-invoice balances use full ledger with strict school and linked-family authorization",()=>{
+ assert.match(db,/create or replace function public\.school_finance_invoice_balances/);
+ assert.match(db,/school_finance_parent_link\(p_school,p_actor,i\.student_id\)/);
+ assert.match(db,/and not public\.school_finance_parent_link/);
+ assert.match(db,/not exists\(/);
+ assert.match(db,/pay\.status='posted'/);
+ assert.match(db,/sum\(pay\.amount_rwf\)::bigint/);
+ assert.match(db,/sum\(cr\.amount_rwf\)::bigint/);
+ assert.match(db,/greatest\(0,i\.amount_rwf-coalesce\(p\.amount,0\)-coalesce\(c\.amount,0\)\)/);
+ assert.match(db,/school_finance_invoice_balances\(uuid,uuid,uuid\[\]\) to service_role/);
+ assert.match(api,/school_finance_invoice_balances/);
+ assert.match(api,/balances\(invoicesAll,authoritativeBalances,currentDay\)/);
+ assert.doesNotMatch(api,/balances\(invoicesAll,payments,credits/);
+});
+
 test("all private school finance tables/sequence permissions revoke direct browser privileges",()=>{
  for(const table of ["school_finance_permissions","school_fee_catalog",
   "school_fee_invoices","school_fee_payments","school_fee_receipts",
@@ -160,11 +175,11 @@ test("all private school finance tables/sequence permissions revoke direct brows
  assert.doesNotMatch(db,/on delete cascade/i);
  assert.doesNotMatch(api,/SUPABASE_SECRET_KEY|NEXT_PUBLIC_SERVICE_ROLE/);
 });
-test("all 16 fee SQL functions have paired quoted bodies and server-only execution",()=>{
+test("all 17 fee SQL functions have paired quoted bodies and server-only execution",()=>{
  const funcs=[...db.matchAll(/create or replace function public\.(\w+)/g)].map(x=>x[1]);
- assert.equal(funcs.length,16);
- assert.equal((db.match(/as \$\$/g)||[]).length,16);
- assert.equal((db.match(/end;\n\$\$;/g)||[]).length,12);
+ assert.equal(funcs.length,17);
+ assert.equal((db.match(/as \$\$/g)||[]).length,17);
+ assert.equal((db.match(/end;\n\$\$;/g)||[]).length,13);
  assert.doesNotMatch(db,/as \$(?!\$)/);
  assert.doesNotMatch(db,/^\$;$/m);
  for(const name of funcs){
