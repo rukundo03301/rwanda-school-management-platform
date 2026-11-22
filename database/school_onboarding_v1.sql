@@ -42,15 +42,42 @@ create table if not exists public.school_onboarding (
   updated_by uuid references auth.users(id) on delete set null
 );
 
-do $$
+-- School-owner changes are private drafts until explicit publication.
+-- The existing platform_school_sites table is the public, published snapshot.
+create table if not exists public.school_site_drafts (
+  school_id uuid primary key references public.platform_schools(id) on delete restrict,
+  tagline text not null default '',
+  about_text text not null default '',
+  announcement text not null default '',
+  logo_url text,
+  hero_url text,
+  primary_color text not null default '#204a78',
+  contact_email text,
+  contact_phone text,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references auth.users(id) on delete set null
+);
+
+do $
 declare t text;
 begin
- foreach t in array array['school_owner_invites','school_memberships','school_onboarding'] loop
+ foreach t in array array['school_owner_invites','school_memberships','school_onboarding','school_site_drafts'] loop
    execute format('alter table public.%I enable row level security',t);
    execute format('revoke all on table public.%I from public,anon,authenticated',t);
    execute format('grant all on table public.%I to service_role',t);
  end loop;
 end $$;
+
+-- Start onboarding from the school's existing draft if platform support has
+-- already configured a school website. This is a copy, not public publication.
+insert into public.school_site_drafts(
+  school_id,tagline,about_text,announcement,logo_url,hero_url,
+  primary_color,contact_email,contact_phone
+)
+select school_id,tagline,about_text,announcement,logo_url,hero_url,
+  primary_color,contact_email,contact_phone
+from public.platform_school_sites
+on conflict(school_id) do nothing;
 
 -- Backfill approved invitations for schools registered before this migration.
 insert into public.school_owner_invites(school_id,email)
