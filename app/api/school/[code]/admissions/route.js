@@ -13,8 +13,18 @@ export async function GET(request,{params}){
  try{
   const {code}=await params;
   const {db,school,actor}=await admissionsContext(request,code);
+  const [published,draft]=await Promise.all([
+    checked(db.from("platform_school_sites").select("logo_url,primary_color")
+      .eq("school_id",school.id).maybeSingle()),
+    checked(db.from("school_site_drafts").select("logo_url,primary_color")
+      .eq("school_id",school.id).maybeSingle())
+  ]);
+  const brand=published?.logo_url?published:(draft||published);
   const result={
-    school:{name:school.name,code:school.school_code},
+    school:{name:school.name,code:school.school_code,
+      logoUrl:brand?.logo_url||null,
+      primaryColor:/^#[0-9a-f]{6}$/i.test(brand?.primary_color||"")?
+        brand.primary_color:"#204a78"},
     actor,
     applications:[],students:[],enrollments:[],
     years:[],classes:[],guardianInvites:[],guardianLinks:[],adminGrants:[]
