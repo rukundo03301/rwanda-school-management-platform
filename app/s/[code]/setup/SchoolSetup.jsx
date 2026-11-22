@@ -21,7 +21,14 @@ function asForm(p={},s={}){
    heroUrl:s.hero_url||"",
    primaryColor:s.primary_color||"#204a78",
    contactEmail:s.contact_email||"",
-   contactPhone:s.contact_phone||""
+   contactPhone:s.contact_phone||"",
+   missionStatement:s.mission_statement||"",
+   visionStatement:s.vision_statement||"",
+   leaderName:s.leader_name||"",
+   leaderTitle:s.leader_title||"",
+   leaderMessage:s.leader_message||"",
+   leaderPhotoUrl:s.leader_photo_url||"",
+   advertisements:[0,1,2].map(i=>({title:s.advertisements?.[i]?.title||"",description:s.advertisements?.[i]?.description||"",enabled:Boolean(s.advertisements?.[i]?.enabled)}))
  };
 }
 function FormField({label,children}){return <label className="field">{label}{children}</label>;}
@@ -38,7 +45,13 @@ function SchoolPreview({school,form}){
    {form.announcement&&<div className="school-preview-announcement">{form.announcement}</div>}
    <div className="school-preview-about"><small>ABOUT OUR SCHOOL</small><h4>Welcome to {school.name}</h4>
      <p>{form.aboutText||"Your school's real story will appear here."}</p>
-     <small>{form.contactEmail||form.contactPhone||"School contact information"}</small></div>
+     {(form.missionStatement||form.visionStatement)&&<div className="school-mini-mission">
+        {form.missionStatement&&<p><b>Mission:</b> {form.missionStatement}</p>}
+        {form.visionStatement&&<p><b>Vision:</b> {form.visionStatement}</p>}
+      </div>}
+      {form.leaderName&&<p><b>School leadership:</b> {form.leaderName}{form.leaderTitle?" · "+form.leaderTitle:""}</p>}
+      {form.advertisements?.filter(a=>a.enabled&&a.title).map((ad,i)=><div className="school-mini-ad" key={i}><b>{ad.title}</b><p>{ad.description}</p></div>)}
+      <small>{form.contactEmail||form.contactPhone||"School contact information"}</small></div>
  </div>;
 }
 export default function SchoolSetup({code}){
@@ -104,7 +117,11 @@ export default function SchoolSetup({code}){
        action:"saveSite",tagline:form.tagline,aboutText:form.aboutText,
        announcement:form.announcement,logoUrl:form.logoUrl,
        heroUrl:form.heroUrl,primaryColor:form.primaryColor,
-       contactEmail:form.contactEmail,contactPhone:form.contactPhone
+       contactEmail:form.contactEmail,contactPhone:form.contactPhone,
+       missionStatement:form.missionStatement,visionStatement:form.visionStatement,
+       leaderName:form.leaderName,leaderTitle:form.leaderTitle,
+       leaderMessage:form.leaderMessage,leaderPhotoUrl:form.leaderPhotoUrl,
+       advertisements:form.advertisements
      });
      setStep(nextStep);setMessage("Saved successfully. Your school setup is private until publishing.");
      if(exit)window.location.assign("/s/"+code+"/login");
@@ -119,7 +136,7 @@ export default function SchoolSetup({code}){
      const data=new FormData();
      data.append("kind",kind);data.append("image",file);
      const result=await call(data,true);
-     setForm(prev=>({...prev,[kind==="logo"?"logoUrl":"heroUrl"]:result.url}));
+     setForm(prev=>({...prev,[kind==="logo"?"logoUrl":kind==="leader"?"leaderPhotoUrl":"heroUrl"]:result.url}));
      setMessage("Photo uploaded. Select Continue or Save & Exit to save it to your school profile.");
    }catch(e){setError(e.message);}
    finally{setUploading(false);}
@@ -204,6 +221,30 @@ export default function SchoolSetup({code}){
            <FormField label="Short welcome message"><input className="input" value={form.tagline} maxLength={160} onChange={e=>set("tagline",e.target.value)} placeholder="Your school's motto or welcome statement"/></FormField>
            <FormField label="About your school"><textarea className="input" value={form.aboutText} maxLength={2000} onChange={e=>set("aboutText",e.target.value)} placeholder="Tell families about your school's real mission, education and values"/></FormField>
            <FormField label="Announcement / school news (optional)"><textarea className="input" maxLength={300} value={form.announcement} onChange={e=>set("announcement",e.target.value)} placeholder="Enrollment information, important events or news"/></FormField>
+           <div className="school-editor-section">
+             <h2>Our mission &amp; vision</h2><p className="muted">Write your school's real mission and vision. You can leave either unpublished until approved.</p>
+             <FormField label="Mission statement"><textarea className="input" maxLength={1600} value={form.missionStatement} onChange={e=>set("missionStatement",e.target.value)} placeholder="What does your school exist to accomplish?"/></FormField>
+             <FormField label="Vision statement"><textarea className="input" maxLength={1600} value={form.visionStatement} onChange={e=>set("visionStatement",e.target.value)} placeholder="What future does your school aspire to build?"/></FormField>
+           </div>
+           <div className="school-editor-section">
+             <h2>Leadership &amp; school ownership</h2><p className="muted">Introduce your actual school owner, founder, director or principal, with their approved details.</p>
+             <div className="grid-2">
+               <FormField label="Leader's name"><input className="input" maxLength={120} value={form.leaderName} onChange={e=>set("leaderName",e.target.value)} placeholder="Official name"/></FormField>
+               <FormField label="Position or title"><input className="input" maxLength={120} value={form.leaderTitle} onChange={e=>set("leaderTitle",e.target.value)} placeholder="Founder, Director, Headteacher…"/></FormField>
+             </div>
+             <FormField label="Message from leadership"><textarea className="input" maxLength={1800} value={form.leaderMessage} onChange={e=>set("leaderMessage",e.target.value)} placeholder="An authentic welcome from school leadership"/></FormField>
+             <FormField label="Leadership photograph (approved for publication)"><input className="input" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>upload(e.target.files?.[0],"leader")}/></FormField>
+             {form.leaderPhotoUrl&&<img src={form.leaderPhotoUrl} alt="Leadership photo preview" width="90" height="105" style={{objectFit:"cover",borderRadius:9}}/>}
+           </div>
+           <div className="school-editor-section">
+             <h2>School advertisements &amp; announcements</h2>
+             <p className="muted">Promote school events, admission dates, programs or approved opportunities. These are your school's own posts, not platform billing advertisements.</p>
+             {form.advertisements.map((ad,i)=><div className="school-editor-ad" key={i}>
+               <label className="row" style={{fontWeight:700}}><input type="checkbox" checked={ad.enabled} onChange={e=>set("advertisements",form.advertisements.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))}/> Show announcement {i+1} on school homepage</label>
+               <FormField label="Title"><input className="input" maxLength={100} value={ad.title} onChange={e=>set("advertisements",form.advertisements.map((x,j)=>j===i?{...x,title:e.target.value}:x))} placeholder="e.g. Open Day / Admissions"/></FormField>
+               <FormField label="Description"><textarea className="input" maxLength={400} value={ad.description} onChange={e=>set("advertisements",form.advertisements.map((x,j)=>j===i?{...x,description:e.target.value}:x))} placeholder="What should visitors know?"/></FormField>
+             </div>)}
+           </div>
            <div className="grid-2">
              <FormField label="Official contact email"><input className="input" type="email" value={form.contactEmail} onChange={e=>set("contactEmail",e.target.value)}/></FormField>
              <FormField label="Telephone number"><input className="input" type="tel" value={form.contactPhone} maxLength={60} onChange={e=>set("contactPhone",e.target.value)}/></FormField>
@@ -227,6 +268,9 @@ export default function SchoolSetup({code}){
              <p><strong>School ID</strong><span>{school.school_code}</span></p>
              <p><strong>Campus</strong><span>{form.campusName||"Not entered"}</span></p>
              <p><strong>Education</strong><span>{form.educationLevels.join(", ")||"Not selected"}</span></p>
+             <p><strong>Mission &amp; Vision</strong><span>{form.missionStatement||form.visionStatement?"Entered":"Not yet entered"}</span></p>
+             <p><strong>Leadership</strong><span>{form.leaderName||"Not yet entered"}</span></p>
+             <p><strong>Active announcements</strong><span>{form.advertisements.filter(x=>x.enabled&&x.title).length}</span></p>
              <p><strong>Website identity</strong><span>{form.logoUrl?"Logo uploaded":"Text-only / no logo yet"} · {form.heroUrl?"Photo uploaded":"No campus photo yet"}</span></p>
            </div>
            <div className="row">
