@@ -61,8 +61,9 @@ export async function GET(request) {
     }
     const stats = await checked(db.rpc("platform_owner_stats"));
     const financial = can("billing.read")
-      ? { billedRwf: Number(stats.billedRwf), collectedRwf: Number(stats.collectedRwf),
-          unallocatedDifferenceRwf: Number(stats.billedRwf) - Number(stats.collectedRwf) }
+      ? { manualCollectedRwf: Number(stats.manualCollectedRwf),
+          monthlyExpectedRwf: Number(stats.monthlyExpectedRwf),
+          pastDue: Number(stats.pastDue), dueToday: Number(stats.dueToday) }
       : {};
     if (can("billing.read") && !Object.values(financial).every(Number.isSafeInteger)) {
       throw new ApiError(500,"Platform financial totals exceed safe whole-RWF display limits.");
