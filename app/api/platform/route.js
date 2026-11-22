@@ -10,7 +10,7 @@ export async function GET(request) {
     const { actor, db } = await authenticate(request);
     if (!actor.active) return Response.json({ actor, needsApproval: true }, { headers: { "Cache-Control": "no-store" } });
     const can = (permission) => actor.isOwner || actor.permissions.includes(permission);
-    const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], audit: [] };
+    const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], onboardingReviews: [], audit: [] };
     if (can("tenants.read")) {
       data.tenants = await checked(db.from("platform_schools")
         .select("id,school_code,name,owner_email,status,created_at,updated_at,company_id,platform_companies(company_code,name)")
@@ -27,6 +27,11 @@ export async function GET(request) {
       data.sites = await checked(db.from("platform_school_sites")
         .select("school_id,tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,is_published")
         .limit(200));
+    }
+    if (can("tenants.read")) {
+      data.onboardingReviews = await checked(db.from("school_onboarding").select("school_id,review_requested_at,current_step")
+        .not("review_requested_at","is",null)
+        .order("review_requested_at",{ascending:false}).limit(200));
     }
     if (can("tickets.read")) {
       data.tickets = await checked(db.from("platform_tickets")
@@ -185,6 +190,12 @@ export async function POST(request) {
       const target = String(body.status || "");
       const current = await checked(db.from("platform_schools").select("status,school_code").eq("id",schoolId).single());
       if (!canTransition(current.status,target)) throw new ApiError(400, "This tenant status change is not permitted.");
+      if (current.status==="onboarding" && target==="active") {
+        const review=await checked(db.from("school_onboarding")
+          .select("review_requested_at").eq("school_id",schoolId).maybeSingle());
+        if(!review?.review_requested_at)throw new ApiError(400,
+          "The school owner must complete onboarding and request platform review before activation.");
+      }
       if (target === "deletion_requested") { requireOwner(actor); requireAal2(token); if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
       result = await checked(db.rpc("platform_change_school_state", {
         p_school_id: schoolId, p_target: target, p_reason: reason, p_actor: actor.id
