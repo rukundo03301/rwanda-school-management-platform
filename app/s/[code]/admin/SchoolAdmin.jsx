@@ -124,7 +124,11 @@ export default function SchoolAdmin({code}){
        (x.id==="activity"&&allowed("audit.read"))).map(x=>
        <button key={x.id} onClick={()=>setTab(x.id)} className={tab===x.id?"active":""}>
          <span aria-hidden="true">{x.icon}</span>{x.name}
-       </button>)}</nav>
+       </button>)}
+       {(owner||["admissions.read","admissions.manage","enrollments.manage","guardians.manage"]
+         .some(p=>actor.admissionsPermissions?.includes(p)))&&
+         <a className="school-admin-nav-link" href={"/s/"+code+"/admissions"}><span aria-hidden="true">✧</span>Admissions & Students</a>}
+     </nav>
      <div className="school-admin-sidebottom">
        <a href={"/s/"+code} target="_blank" rel="noreferrer">School Homepage</a>
        {owner&&<a href={"/s/"+code+"/setup"}>Edit School Website</a>}
@@ -158,6 +162,8 @@ export default function SchoolAdmin({code}){
            <div className="row" style={{marginTop:15}}>
              {owner&&<a className="button secondary small" href={"/s/"+code+"/setup"}>Edit School Website</a>}
              {allowed("academics.manage")&&<button className="button small" onClick={()=>setTab("academics")}>Academic Setup</button>}
+             {(owner||actor.admissionsPermissions?.some(p=>["admissions.read","admissions.manage","enrollments.manage","guardians.manage"].includes(p)))&&
+               <a className="button secondary small" href={"/s/"+code+"/admissions"}>Admissions & Students</a>}
            </div>
          </section>
          <section className="panel"><h2>Current academic year</h2>
