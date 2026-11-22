@@ -76,3 +76,15 @@ This module is a draft PR based on the earlier owner-console feature branch. No 
 An active school's public homepage uses its own official brand and approved content. The school may publish its About statement, **Mission**, **Vision**, **Leadership/School Owner profile** (with approved photograph), contact details and up to three school announcements or advertisements. The portal login prominently asks the user to choose **School Owner / Administrator / Teacher / Staff / Parent / Student**. This is a navigation choice only: access still requires verified school-bound membership and relevant record permissions. The school owner setup portal works in development; teacher, staff, parent and student operational dashboards remain future modules.
 
 The platform's monthly RWF fees and owner reminders do **not** appear on school sites or school member dashboards. See [School Module 1B flow](docs/SCHOOL_ONBOARDING_MODULE_1B.md).
+
+
+## School Administration (Module 2, stacked development branch)
+
+A verified School Owner can open the school-specific Administration dashboard after tenant activation. Features include:
+- School overview, approved local staff directory, school role invitations and administrative audit.
+- School Administrator access managed by the owner through a readable ON/OFF permission table, reason-required changes and multifactor verification.
+- Verified email-linked invitation claiming; teachers and staff may accept membership but do not yet receive a finished academic workspace.
+- Academic years, official class/section definitions, subject catalog and class-subject assignment, each limited to the school that created them.
+- Strict separation from the SaaS platform owner's private RWF monthly payment clock and global tenant controls.
+
+See [School Administration Module 2](docs/SCHOOL_ADMINISTRATION_MODULE_2.md) for detailed workflow, security model and release gates. This is GitHub code under review, not a live deployment, full academic portal, Android APK or iOS application.
