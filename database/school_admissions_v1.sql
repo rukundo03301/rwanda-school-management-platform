@@ -211,6 +211,35 @@ $$;
 
 -- Status changes are intentional: accept creates student + enrollment
 -- atomically; rejection creates no student. Never trust an arbitrary class UUID.
+-- New applications are school-created in V1. Public child-data signup stays disabled
+-- until we have verified family identity, consent and privacy notice handling.
+create or replace function public.school_submit_admission(
+ p_school_id uuid,p_first text,p_last text,p_dob date,p_year_id uuid,p_actor uuid
+) returns jsonb language plpgsql security invoker
+set search_path=pg_catalog,public as $$
+declare new_row public.school_admission_applications%rowtype;
+begin
+ if not public.school_admissions_actor_allowed(p_school_id,p_actor,'admissions.manage')
+  then raise exception 'Admissions management permission required'; end if;
+ if length(btrim(coalesce(p_first,''))) not between 1 and 90
+    or length(btrim(coalesce(p_last,''))) not between 1 and 90
+  then raise exception 'Student name is invalid'; end if;
+ if p_dob is not null and (p_dob>current_date or p_dob<date '1900-01-01')
+  then raise exception 'Student birth date invalid'; end if;
+ if not exists(select 1 from public.school_academic_years
+   where school_id=p_school_id and id=p_year_id and status<>'closed')
+  then raise exception 'Choose an active or planned year of this school'; end if;
+ insert into public.school_admission_applications(
+  school_id,first_name,last_name,date_of_birth,academic_year_id,created_by)
+ values(p_school_id,btrim(p_first),btrim(p_last),p_dob,p_year_id,p_actor)
+ returning * into new_row;
+ insert into public.school_admissions_audit(school_id,actor_id,event,resource_id)
+ values(p_school_id,p_actor,'application.submitted',new_row.id);
+ return jsonb_build_object('id',new_row.id,'application_code',new_row.application_code,
+  'status','submitted');
+end;
+$$;
+
 create or replace function public.school_review_admission(
  p_school_id uuid,p_application_id uuid,p_class_id uuid,
  p_decision text,p_actor uuid
@@ -391,6 +420,8 @@ revoke all on function public.school_admissions_actor_allowed(uuid,uuid,text)
   from public,anon,authenticated;
 revoke all on function public.school_set_admissions_permissions(uuid,uuid,text[],text,uuid)
   from public,anon,authenticated;
+revoke all on function public.school_submit_admission(uuid,text,text,date,uuid,uuid)
+  from public,anon,authenticated;
 revoke all on function public.school_review_admission(uuid,uuid,uuid,text,uuid)
   from public,anon,authenticated;
 revoke all on function public.school_invite_guardian(uuid,uuid,text,text,boolean,uuid)
@@ -402,6 +433,8 @@ revoke all on function public.school_revoke_guardian(uuid,uuid,uuid,text,uuid)
 grant execute on function public.school_admissions_actor_allowed(uuid,uuid,text)
   to service_role;
 grant execute on function public.school_set_admissions_permissions(uuid,uuid,text[],text,uuid)
+  to service_role;
+grant execute on function public.school_submit_admission(uuid,text,text,date,uuid,uuid)
   to service_role;
 grant execute on function public.school_review_admission(uuid,uuid,uuid,text,uuid)
   to service_role;
