@@ -97,15 +97,18 @@ export default function SchoolPortal({code}) {
            <a className="button secondary" href={"/s/"+code+"/classroom"}>Manage Classrooms</a>
            <a className="button secondary" href={"/s/"+code+"/reports"}>Curriculum & Reports</a>
            <a className="button secondary" href={"/s/"+code+"/communications"}>School Community</a>
+           <a className="button secondary" href={"/s/"+code+"/fees"}>School Fees & RWF Finance</a>
          </div>:role==="school_admin"?<div className="row">
             <a className="button" href={"/s/"+code+"/admin"}>Open Administrator Dashboard</a>
             <a className="button secondary" href={"/s/"+code+"/reports"}>Curriculum & Reports (if authorized)</a>
             <a className="button secondary" href={"/s/"+code+"/communications"}>School Communications</a>
+            <a className="button secondary" href={"/s/"+code+"/fees"}>School Finances (if authorized)</a>
            </div>:
            role==="parent"?<div className="row">
             <a className="button" href={"/s/"+code+"/family"}>See My Verified Children</a>
             <a className="button secondary" href={"/s/"+code+"/report-card"}>Approved School Reports</a>
             <a className="button secondary" href={"/s/"+code+"/communications"}>Family Timetable & Messages</a>
+            <a className="button secondary" href={"/s/"+code+"/fees"}>My Children's School Fees</a>
            </div>:
            role==="teacher"?<div className="row">
             <a className="button" href={"/s/"+code+"/classroom"}>Open My Teaching Workspace</a>
@@ -118,6 +121,7 @@ export default function SchoolPortal({code}) {
             <a className="button secondary" href={"/s/"+code+"/communications"}>Class Timetable & Announcements</a>
            </div>:
            <div><a className="button" href={"/s/"+code+"/communications"}>School Notices and Calendar</a>
+            <a className="button secondary" href={"/s/"+code+"/fees"}>RWF Financial Workspace (if authorized)</a>
             <p>Workspace under development for additional staff-specific operational features.</p></div>}
        </div>:
        staffInvitePending?<div className="notice info">

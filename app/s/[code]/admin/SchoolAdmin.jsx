@@ -134,6 +134,8 @@ export default function SchoolAdmin({code}){
          <a className="school-admin-nav-link" href={"/s/"+code+"/reports"}><span aria-hidden="true">▥</span>Curriculum & Reports</a>}
        {(owner||actor.communicationPermissions?.some(p=>["timetable.manage","announcements.manage"].includes(p)))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/communications"}><span aria-hidden="true">▣</span>School Community & Timetable</a>}
+       {(owner||actor.financePermissions?.length>0)&&
+         <a className="school-admin-nav-link" href={"/s/"+code+"/fees"}><span aria-hidden="true">₣</span>School Fees & RWF Finance</a>}
      </nav>
      <div className="school-admin-sidebottom">
        <a href={"/s/"+code} target="_blank" rel="noreferrer">School Homepage</a>

@@ -120,3 +120,10 @@ Read [Module 5 Curriculum & Reports](docs/RWANDA_CURRICULUM_ASSESSMENTS_REPORTS_
 Each branded school gains a verified community portal: weekly timetables with class/teacher/room conflict checks; private teacher-to-guardian conversations linked to actual enrolled pupils; calendar entries for exams, meetings and holidays; targeted school announcements; and a parent daily-school overview of linked children's homework deadlines, attendance records and released reports. Owners delegate calendar/announcement access to school administrators with ON/OFF permission switches and MFA. Messages create in-app notifications; external email and SMS delivery is NOT yet configured.
 
 See [Module 6 School Communications](docs/MODULE_06_SCHOOL_COMMUNICATIONS.md). This is a **GitHub development draft**, not a production APEX or Vercel deployment or Android/iPhone application.
+
+
+## Module 7 — School Fees & RWF Financial Management (development)
+
+School-owner and authorized bursar dashboards for current-year RWF fee schedules, enrolled-student invoices, independent review of cash/transfer records, school-issued receipts, fee waivers, overdue balances, school finance totals, and per-user ON/OFF financial access switches. Verified guardians can view only their linked children's financial statements and report **already-made** MTN MoMo/Airtel/bank transfer references, which remain pending until a separate reviewer verifies independent evidence. No payment provider integration or real-money collection is initiated in this module.
+
+See [Module 7 RWF School Fees](docs/MODULE_07_SCHOOL_FEES_RWF.md). GitHub development only; no live APEX change, no web production deploy, no native mobile binaries. The individual school's fee module is completely separate from the platform owner's invisible private monthly school-tenant payment tracker.

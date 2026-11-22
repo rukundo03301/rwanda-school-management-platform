@@ -10,6 +10,7 @@ on:
       - feature/classrooms-homework-attendance-v1
       - feature/curriculum-assessments-reports-v1
       - feature/module-06-school-communications-v1
+      - feature/module-07-school-fees-rwf-v1
   workflow_dispatch:
 permissions:
   contents: read
@@ -66,6 +67,9 @@ jobs:
           sleep 1
           supabase migration new school_communications_v1
           cp database/school_communications_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_communications_v1.sql' | head -n 1)"
+          sleep 1
+          supabase migration new school_fees_rwf_v1
+          cp database/school_fees_rwf_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_fees_rwf_v1.sql' | head -n 1)"
       - name: Start isolated Supabase and apply migration
         run: |
           supabase start
