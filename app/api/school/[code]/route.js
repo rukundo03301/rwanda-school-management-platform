@@ -17,7 +17,7 @@ export async function GET(request,{params}){
         "current_step,school_type,education_levels,province,district,campus_name,academic_year,term_system,privacy_acknowledged,review_requested_at"
       ).eq("school_id",school.id).maybeSingle()),
       checked(db.from("school_site_drafts").select(
-        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone"
+        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements"
       ).eq("school_id",school.id).maybeSingle())
     ]);
     return Response.json({
@@ -91,6 +91,24 @@ export async function POST(request,{params}){
         primary_color:color,
         contact_email:schoolText(body.contactEmail||"",254),
         contact_phone:schoolText(body.contactPhone||"",60),
+        mission_statement:schoolText(body.missionStatement||"",1600),
+        vision_statement:schoolText(body.visionStatement||"",1600),
+        leader_name:schoolText(body.leaderName||"",120),
+        leader_title:schoolText(body.leaderTitle||"",120),
+        leader_message:schoolText(body.leaderMessage||"",1800),
+        leader_photo_url:image(body.leaderPhotoUrl),
+        advertisements:(()=>{
+          if(!Array.isArray(body.advertisements)||body.advertisements.length>3)
+            throw new ApiError(400,"You can publish up to three school announcements or advertisements");
+          return body.advertisements.map(ad=>{
+            if(!ad||typeof ad!=="object")throw new ApiError(400,"Invalid advertisement");
+            return {
+              title:schoolText(ad.title||"",100),
+              description:schoolText(ad.description||"",400),
+              enabled:ad.enabled===true
+            };
+          });
+        })(),
         updated_at:new Date().toISOString()
       };
       // A draft write never touches the live public homepage.
@@ -121,10 +139,15 @@ export async function POST(request,{params}){
       const p=await checked(db.from("school_onboarding").select("review_requested_at").eq("school_id",school.id).single());
       if(!p.review_requested_at)throw new ApiError(400,"Request and receive school review before publication");
       const draft=await checked(db.from("school_site_drafts").select(
-        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone"
+        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements"
       ).eq("school_id",school.id).single());
       if(!draft.tagline?.trim()||!draft.about_text?.trim()||(!draft.contact_email&&!draft.contact_phone))
         throw new ApiError(400,"The homepage requires an introduction and contact details");
+      // Mission and vision must be authentic school-supplied statements.
+      // They may remain unpublished rather than inserting fabricated wording.
+      if(draft.advertisements?.some(ad=>ad.enabled&&(!ad.title?.trim()||!ad.description?.trim())))
+        throw new ApiError(400,"Complete every active school advertisement before publishing");
+
       // Publish a snapshot. Later edits remain private drafts until published again.
       await checked(db.from("platform_school_sites").upsert({
         school_id:school.id,...draft,is_published:true,
