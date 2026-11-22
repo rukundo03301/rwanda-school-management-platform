@@ -154,7 +154,7 @@ test("all 12 internal functions have no public execute grant",()=>{
 test("every SQL procedure has complete dollar-quote boundaries and correct service signatures",()=>{
  assert.equal((sql.match(/create or replace function/g)||[]).length,14);
  assert.equal((sql.match(/as \$\$/g)||[]).length,14);
- assert.equal((sql.match(/end;\n\$\$;/g)||[]).length,14);
+ assert.equal((sql.match(/end;\n\$\$;/g)||[]).length,11); // 3 language SQL functions end without END;
  assert.doesNotMatch(sql,/as \$(?!\$)/);
  assert.doesNotMatch(sql,/^\$;$/m);
  for(const sig of [
