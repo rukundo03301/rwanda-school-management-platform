@@ -149,3 +149,33 @@ grant execute on function public.school_claim_owner_invitation(uuid,uuid,text) t
 
 -- School owner can request review but cannot activate tenant or change platform billing.
 -- Human platform operator still controls activate/pause/suspend transitions.
+
+
+-- Public school communications are school-supplied. Keep draft vs published
+-- separation: no public page reads from school_site_drafts.
+alter table public.school_site_drafts
+  add column if not exists mission_statement text not null default '',
+  add column if not exists vision_statement text not null default '',
+  add column if not exists leader_name text not null default '',
+  add column if not exists leader_title text not null default '',
+  add column if not exists leader_message text not null default '',
+  add column if not exists leader_photo_url text,
+  add column if not exists advertisements jsonb not null default '[]'::jsonb;
+
+alter table public.platform_school_sites
+  add column if not exists mission_statement text not null default '',
+  add column if not exists vision_statement text not null default '',
+  add column if not exists leader_name text not null default '',
+  add column if not exists leader_title text not null default '',
+  add column if not exists leader_message text not null default '',
+  add column if not exists leader_photo_url text,
+  add column if not exists advertisements jsonb not null default '[]'::jsonb;
+
+-- Enforce a small, known-size promo collection rather than allowing arbitrary
+-- user-authored HTML, scripts or an advertisement network in school pages.
+alter table public.school_site_drafts
+  add constraint school_draft_advertisements_shape
+  check (jsonb_typeof(advertisements)='array' and jsonb_array_length(advertisements)<=3);
+alter table public.platform_school_sites
+  add constraint school_published_advertisements_shape
+  check (jsonb_typeof(advertisements)='array' and jsonb_array_length(advertisements)<=3);
