@@ -165,13 +165,14 @@ create table public.school_published_reports (
  student_id uuid not null,
  class_id uuid not null,
  status text not null default 'published' check(status in ('published','withdrawn')),
+ version integer not null check(version between 1 and 1000),
  report_data jsonb not null,
  approved_by uuid not null references auth.users(id) on delete restrict,
  published_at timestamptz not null default now(),
  withdrawn_at timestamptz,
  withdrawn_by uuid references auth.users(id) on delete restrict,
  withdrawal_reason text,
- unique(school_id,term_id,student_id),
+ unique(school_id,term_id,student_id,version),
  unique(school_id,id),
  foreign key(school_id,term_id)
   references public.school_assessment_terms(school_id,id) on delete restrict,
@@ -186,6 +187,9 @@ create table public.school_published_reports (
 );
 create index school_published_reports_student_idx
  on public.school_published_reports(school_id,student_id,published_at desc);
+create unique index school_one_published_report_per_term_idx
+ on public.school_published_reports(school_id,student_id,term_id)
+ where status='published';
 
 create table public.school_report_audit (
  id uuid primary key default gen_random_uuid(),
@@ -362,8 +366,9 @@ begin
    and id=p_student and status='active' for update;
  if not found then raise exception 'Student unavailable'; end if;
  if exists(select 1 from public.school_published_reports
-   where school_id=p_school and term_id=p_term and student_id=p_student)
- then raise exception 'A report exists; marks cannot be silently changed'; end if;
+   where school_id=p_school and term_id=p_term and student_id=p_student
+    and status='published')
+ then raise exception 'An approved report exists; withdraw it before formal correction'; end if;
  select * into m from public.school_curriculum_class_subjects
  where school_id=p_school and class_id=p_class and subject_id=p_subject
    and academic_year_id=t.academic_year_id and approved_at is not null;
@@ -427,6 +432,7 @@ declare t public.school_assessment_terms%rowtype;
         count_exam bigint;
         profile_track text;
         report_id uuid;
+        next_version integer;
         remark text;
         learning_notes text;
         units_json jsonb;
@@ -460,8 +466,11 @@ begin
  select name into year_label from public.school_academic_years
  where school_id=p_school and id=t.academic_year_id;
  if exists(select 1 from public.school_published_reports
- where school_id=p_school and student_id=p_student and term_id=p_term)
- then raise exception 'Report already exists; use formal withdrawal and revision process'; end if;
+ where school_id=p_school and student_id=p_student and term_id=p_term and status='published')
+ then raise exception 'Already published; formally withdraw before correcting and reissuing'; end if;
+ select coalesce(max(version),0)+1 into next_version
+ from public.school_published_reports where school_id=p_school
+  and student_id=p_student and term_id=p_term;
  for item in
    select map.subject_id,map.weekly_periods,map.approved_at,
      c.name as subject_name,c.code as subject_code,
@@ -549,10 +558,10 @@ begin
  where school_id=p_school and class_id=e.class_id and student_id=p_student
    and attendance_on between t.begins_on and t.ends_on;
  insert into public.school_published_reports(
-   school_id,term_id,student_id,class_id,report_data,approved_by)
- values(p_school,p_term,p_student,e.class_id,
+   school_id,term_id,student_id,class_id,version,report_data,approved_by)
+ values(p_school,p_term,p_student,e.class_id,next_version,
    jsonb_build_object(
-    'report_kind','school_issued_term_report',
+    'report_kind','school_issued_term_report','report_version',next_version,
     'guideline','NESA 2023 CA-MIS marking guidelines; no NESA endorsement implied',
     'student_id',p_student,'student_code',st.student_code,
     'student_name',st.first_name||' '||st.last_name,
@@ -569,7 +578,7 @@ begin
    metadata)
  values(p_school,p_actor,'term_report.published',report_id,
    jsonb_build_object('student_id',p_student,'term_id',p_term));
- return jsonb_build_object('published',true,'report_id',report_id);
+ return jsonb_build_object('published',true,'report_id',report_id,'version',next_version);
 end;
 $$;
 
