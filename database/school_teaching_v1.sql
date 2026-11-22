@@ -213,6 +213,9 @@ begin
  if p_on is null or (p_on at time zone 'Africa/Kigali')::date < y.starts_on
   or (p_on at time zone 'Africa/Kigali')::date > y.ends_on
  then raise exception 'Date is outside academic year'; end if;
+ if p_kind='homework' and p_on<=now() then
+  raise exception 'Homework deadline must be in the future';
+ end if;
  if p_kind='lesson' then
   insert into public.school_lesson_plans(school_id,teacher_assignment_id,lesson_on,
     topic,objectives,created_by)
@@ -389,10 +392,13 @@ begin
  select * into assn from public.school_teacher_assignments
  where id=hw.teacher_assignment_id and school_id=p_school and active;
  if not found then raise exception 'Assignment is not active'; end if;
- if not exists(select 1 from public.school_student_enrollments
-   where school_id=p_school and student_id=p_student and
-    academic_year_id=assn.academic_year_id and class_id=assn.class_id and status='active')
- then raise exception 'Student is not in the class'; end if;
+ if not exists(select 1 from public.school_student_enrollments e
+   join public.school_students st on st.school_id=e.school_id
+     and st.id=e.student_id and st.status='active'
+   where e.school_id=p_school and e.student_id=p_student and
+    e.academic_year_id=assn.academic_year_id and e.class_id=assn.class_id
+    and e.status='active')
+ then raise exception 'Student is not active in the assigned class'; end if;
  select (
   exists(select 1 from public.school_student_accounts sa
     join public.school_memberships m on m.school_id=sa.school_id
