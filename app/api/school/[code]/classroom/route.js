@@ -63,6 +63,11 @@ export async function GET(request,{params}){
        ).eq("school_id",school.id).in("class_id",classIds)
          .order("attendance_on",{ascending:false}).limit(1000))
      ]);
+     // A teacher may remain assigned to this class but lose a particular
+     // subject. Filter by BOTH active class and subject, not class alone.
+     const pairs=new Set(teacherAssignments.map(a=>a.class_id+"#"+a.subject_id));
+     lessons=lessons.filter(l=>pairs.has(l.class_id+"#"+l.subject_id));
+     homework=homework.filter(h=>pairs.has(h.class_id+"#"+h.subject_id));
      if(homework.length){
        submissions=await checked(db.from("school_homework_submissions")
          .select("id,homework_id,student_id,response_text,submitted_at,is_late")
