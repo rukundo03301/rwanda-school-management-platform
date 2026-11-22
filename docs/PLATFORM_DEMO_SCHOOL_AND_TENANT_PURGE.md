@@ -6,7 +6,7 @@
 
 In Platform Owner → Tenants, select **Create Mockup School** and confirm using a platform-owner session with MFA (AAL2). The database creates a synthetic, clearly labeled school and company, including:
 - Unique School ID and Company ID.
-- Separate school identity, fictional mission/about page, teal school branding, banner **DEMO SCHOOL — SAMPLE DATA ONLY**.
+- Separate school identity, fictional mission/about page, teal school branding, banner **DEMO SCHOOL — SAMPLE DATA ONLY**, and a generated KLA sample logo uploaded to the school's own Storage folder (if upload succeeds).
 - The platform owner linked locally as the fictional demo school owner/teacher/guardian (no separate Auth user created).
 - Current academic year, Primary 4 class, mathematics subject, assigned teacher.
 - Fake admission, fictitious student, enrollment and active sample guardian link.
