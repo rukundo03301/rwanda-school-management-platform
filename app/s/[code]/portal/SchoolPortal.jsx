@@ -118,7 +118,7 @@ export default function SchoolPortal({code}) {
             <a className="button secondary" href={"/s/"+code+"/communications"}>Class Timetable & Announcements</a>
            </div>:
            <div><a className="button" href={"/s/"+code+"/communications"}>School Notices and Calendar</a>
-            <p>Additional staff-specific operational features are under development.</p></div>}
+            <p>Workspace under development for additional staff-specific operational features.</p></div>}
        </div>:
        staffInvitePending?<div className="notice info">
          <strong>Verified school invitation available</strong>
