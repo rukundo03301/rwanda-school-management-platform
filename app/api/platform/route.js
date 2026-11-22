@@ -10,7 +10,7 @@ export async function GET(request) {
     const { actor, db } = await authenticate(request);
     if (!actor.active) return Response.json({ actor, needsApproval: true }, { headers: { "Cache-Control": "no-store" } });
     const can = (permission) => actor.isOwner || actor.permissions.includes(permission);
-    const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], invoices: [], payments: [], feeTerms: [], manualPayments: [], sites: [], audit: [] };
+    const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], audit: [] };
     if (can("tenants.read")) {
       data.tenants = await checked(db.from("platform_schools")
         .select("id,school_code,name,owner_email,status,created_at,updated_at,company_id,platform_companies(company_code,name)")
@@ -32,14 +32,6 @@ export async function GET(request) {
       data.tickets = await checked(db.from("platform_tickets")
         .select("id,school_id,title,description,priority,status,assigned_to,created_at,updated_at")
         .order("created_at", { ascending: false }).limit(100));
-    }
-    if (can("billing.read")) {
-      data.invoices = await checked(db.from("platform_invoices")
-        .select("id,school_id,amount_rwf,status,due_date,created_at")
-        .order("created_at", { ascending: false }).limit(500));
-      data.payments = await checked(db.from("platform_payments")
-        .select("id,invoice_id,amount_rwf,status,provider,created_at")
-        .order("created_at", { ascending: false }).limit(500));
     }
     if (can("billing.methods")) {
       data.methods = await checked(db.from("platform_payment_methods")
