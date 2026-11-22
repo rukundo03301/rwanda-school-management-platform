@@ -10,7 +10,7 @@ export async function POST(request,{params}){
   if(len>6*1024*1024)throw new ApiError(413,"Image exceeds maximum allowed size");
   const form=await request.formData();
   const kind=String(form.get("kind")||"");
-  if(!["logo","hero"].includes(kind))throw new ApiError(400,"Only school logo or campus photo is supported");
+  if(!["logo","hero","leader"].includes(kind))throw new ApiError(400,"Choose school logo, campus photo or leader portrait");
   const file=form.get("image");
   if(!(file instanceof File)||file.size===0||file.size>5*1024*1024||
     !["image/jpeg","image/png","image/webp"].includes(file.type)){
@@ -21,8 +21,8 @@ export async function POST(request,{params}){
     const processor=sharp(Buffer.from(await file.arrayBuffer()),{limitInputPixels:20000000,animated:false});
     const meta=await processor.metadata();
     if(!["jpeg","png","webp"].includes(meta.format))throw Error("Bad image format");
-    bytes=await processor.rotate().resize({width:kind==="logo"?750:2200,
-      height:kind==="logo"?750:1350,fit:"inside",withoutEnlargement:true})
+    bytes=await processor.rotate().resize({width:kind==="logo"?750:kind==="leader"?900:2200,
+      height:kind==="logo"?750:kind==="leader"?1100:1350,fit:"inside",withoutEnlargement:true})
       .webp({quality:83}).toBuffer();
   }catch{throw new ApiError(400,"Image cannot be processed");}
   const path=school.id+"/"+kind+"-"+crypto.randomUUID()+".webp";
