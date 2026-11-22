@@ -93,6 +93,10 @@ export async function GET(request,{params}){
     .select("id,student_code,first_name,last_name,status")
     .eq("school_id",school.id).eq("id",account.student_id).eq("status","active").maybeSingle());
   if(!student)throw new ApiError(403,"Student account not available");
+  const parentApproval=await checked(db.from("school_guardian_links")
+    .select("student_id").eq("school_id",school.id).eq("student_id",student.id)
+    .eq("active",true).limit(1));
+  if(!parentApproval.length)throw new ApiError(403,"School-verified guardian approval is no longer active");
   const view=await ownLearning(db,school,student,{includeSubmissions:true});
   return Response.json({school:schoolInfo,view:"student",
     accessReady:true,invitations:[],...view},{headers:noStore});
