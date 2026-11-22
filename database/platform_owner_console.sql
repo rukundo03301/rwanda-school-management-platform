@@ -266,3 +266,26 @@ grant execute on function public.platform_configure_payment_method(uuid,boolean,
 -- There are intentionally no authenticated/anon RLS policies for platform_*.
 -- School tenant identities, child privacy, program data and payment provider webhooks
 -- must be separately specified and tested in later modules.
+
+
+-- Aggregations use the full database, never a paginated subset.
+create or replace function public.platform_owner_stats()
+returns jsonb language sql stable security invoker
+set search_path=pg_catalog,public
+as $fn$
+  select jsonb_build_object(
+    'tenants', (select count(*) from public.platform_schools),
+    'onboarding', (select count(*) from public.platform_schools where status='onboarding'),
+    'active', (select count(*) from public.platform_schools where status='active'),
+    'paused', (select count(*) from public.platform_schools where status='paused'),
+    'suspended', (select count(*) from public.platform_schools where status='suspended'),
+    'archived', (select count(*) from public.platform_schools where status='archived'),
+    'deletion_requested', (select count(*) from public.platform_schools where status='deletion_requested'),
+    'ticketsOpen', (select count(*) from public.platform_tickets where status<>'resolved'),
+    'billedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_invoices where status<>'void'),
+    'collectedRwf', (select coalesce(sum(amount_rwf),0) from public.platform_payments where status='settled')
+  );
+$fn$;
+
+revoke all on function public.platform_owner_stats() from public, anon, authenticated;
+grant execute on function public.platform_owner_stats() to service_role;
