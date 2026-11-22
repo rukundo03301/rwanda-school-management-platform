@@ -84,7 +84,8 @@ test("student invitation requires verified guardian link and confirmed email, no
  assert.match(sql,/inv\.status<>'pending'/);
  assert.match(sql,/inv\.expires_at<=now\(\)/);
  assert.match(sql,/Guardian account cannot claim the same child as a student/);
- assert.match(sql,/role,'student'/);
+ assert.match(sql,/role,active\)/);
+ assert.match(sql,/values\(p_school,p_user,'student',true\)/);
  assert.match(learning,/body\.action!==|action==="student.claim"/);
  assert.match(studentUI,/Accept Student Invitation/);
  assert.match(portal,/Check Student Invitation/);
