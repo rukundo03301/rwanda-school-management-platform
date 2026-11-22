@@ -152,6 +152,31 @@ export async function POST(request) {
       };
       result=await checked(db.from("platform_school_sites").upsert(record,{onConflict:"school_id"}).select("school_id").single());
       await audit(db,actor,"tenant.brand_updated",schoolId,{published:record.is_published});
+    } else if (action === "school.inviteOwner") {
+      requireOwner(actor);requireAal2(token);
+      const schoolId=validateUuid(body.schoolId,"school");
+      const school=await checked(db.from("platform_schools")
+        .select("id,school_code,name,owner_email,status").eq("id",schoolId).single());
+      if(!["onboarding","active"].includes(school.status))
+        throw new ApiError(403,"This school's tenant state does not allow invitations");
+      const email=String(school.owner_email||"").trim().toLowerCase();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new ApiError(400,"School owner email is invalid");
+      const invitation=await checked(db.from("school_owner_invites")
+        .select("status,claimed_by").eq("school_id",schoolId).eq("email",email).maybeSingle());
+      if(!invitation||invitation.status==="revoked")
+        throw new ApiError(409,"No authorized school owner invitation available");
+      if(invitation.status==="claimed")
+        throw new ApiError(409,"School owner has already claimed this invitation");
+      const base=(process.env.APP_PUBLIC_URL||"").replace(/\/$/,"");
+      if(!/^https?:\/\/[^/]+/.test(base))
+        throw new ApiError(503,"Configure APP_PUBLIC_URL to send a school-owner invitation");
+      const {error:invErr}=await db.auth.admin.inviteUserByEmail(email,{
+        redirectTo:base+"/s/"+school.school_code+"/login"
+      });
+      if(invErr)throw new ApiError(409,
+        "Invitation email could not be sent. If the school owner already has a confirmed account, they can sign in to their school using that account. Verify invitation/email settings.");
+      await audit(db,actor,"school.owner_email_invited",schoolId,{email});
+      result={invited:true,school_code:school.school_code,owner_email:email};
     } else if (action === "tenant.state") {
       requirePermission(actor,"tenants.lifecycle");
       const schoolId = validateUuid(body.id, "school");
