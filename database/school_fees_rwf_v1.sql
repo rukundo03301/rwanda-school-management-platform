@@ -393,6 +393,8 @@ begin
   select e.student_id,e.class_id from public.school_student_enrollments e
   join public.school_students st on st.school_id=e.school_id and st.id=e.student_id
    and st.status='active'
+  join public.school_classes c on c.school_id=e.school_id and c.id=e.class_id
+   and c.academic_year_id=e.academic_year_id and c.status='active'
   where e.school_id=p_school and e.academic_year_id=fee.academic_year_id
    and e.status='active' and (fee.class_id is null or e.class_id=fee.class_id)
  ), inserted as(
@@ -422,7 +424,7 @@ declare inv public.school_fee_invoices%rowtype;
         pay_id uuid;
 begin
  select * into inv from public.school_fee_invoices
- where school_id=p_school and id=p_invoice and status='issued';
+ where school_id=p_school and id=p_invoice and status='issued' for share;
  if not found then raise exception 'Issued school invoice not found'; end if;
  if public.school_finance_has(p_school,p_actor,'payments.record') then
   user_source:='school_operator';
@@ -645,9 +647,9 @@ begin
  from balances;
  select count(*) into pending_count from public.school_fee_payments
  where school_id=p_school and status='pending';
- return jsonb_build_object('currency','RWF','invoiced_rwf',gross,
-  'collected_rwf',total_paid,'waived_rwf',total_credit,
-  'outstanding_rwf',balance,'overdue_rwf',overdue,
+ return jsonb_build_object('currency','RWF','invoiced_rwf',gross::text,
+  'collected_rwf',total_paid::text,'waived_rwf',total_credit::text,
+  'outstanding_rwf',balance::text,'overdue_rwf',overdue::text,
   'issued_invoices',invoice_count,'pending_claims',pending_count,
   'as_of',current_day);
 end;
