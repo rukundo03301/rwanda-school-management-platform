@@ -1,0 +1,84 @@
+name: Configure APEX Supabase Auth URLs
+
+# Hosted Supabase Auth settings cannot be applied by a database migration.
+# This workflow uses the Supabase Management API with an encrypted GitHub secret.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configure-auth-urls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: stgqhkhfpnqmsiyrvvhe
+      SCHOOL_APP_URL: https://rwanda-school-management-platform-hd2b1zb76-rukundo1.vercel.app
+    steps:
+      - name: Set site URL, safely extend redirect allowlist, and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
+          if not token:
+              sys.exit("Missing encrypted GitHub secret SUPABASE_ACCESS_TOKEN; no changes made.")
+          ref = os.environ["SUPABASE_PROJECT_REF"]
+          origin = os.environ["SCHOOL_APP_URL"].rstrip("/")
+          if not origin.startswith("https://") or "localhost" in origin:
+              sys.exit("Invalid hosted application URL; no changes made.")
+          endpoint = f"https://api.supabase.com/v1/projects/{ref}/config/auth"
+
+          def api(method, payload=None):
+              data = json.dumps(payload).encode() if payload is not None else None
+              req = urllib.request.Request(
+                  endpoint,
+                  data=data,
+                  method=method,
+                  headers={
+                      "Authorization": "Bearer " + token,
+                      "Accept": "application/json",
+                      "Content-Type": "application/json",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=25) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as exc:
+                  # Avoid printing response body: it could contain sensitive config.
+                  sys.exit(f"Supabase Management API {method} failed: HTTP {exc.code}")
+
+          before = api("GET")
+          existing = before.get("uri_allow_list") or ""
+          if isinstance(existing, str):
+              redirects = [x.strip() for x in existing.split(",") if x.strip()]
+          elif isinstance(existing, list):
+              redirects = [str(x).strip() for x in existing if str(x).strip()]
+          else:
+              sys.exit("Unexpected URI allowlist format; no changes made.")
+          required = [origin + "/platform", origin + "/platform/reset-password", origin + "/**"]
+          for url in required:
+              if url not in redirects:
+                  redirects.append(url)
+          # Preserve any existing valid redirects, such as other application domains.
+          api("PATCH", {"site_url": origin, "uri_allow_list": ",".join(redirects)})
+          after = api("GET")
+          current_list = after.get("uri_allow_list") or ""
+          if isinstance(current_list, str):
+              verified = [x.strip() for x in current_list.split(",") if x.strip()]
+          elif isinstance(current_list, list):
+              verified = current_list
+          else:
+              verified = []
+          if after.get("site_url") != origin or not all(x in verified for x in required):
+              sys.exit("Auth URL verification failed; review Supabase dashboard.")
+          print("Verified: Supabase hosted Site URL and platform redirect allowlist updated.")
+          PY
