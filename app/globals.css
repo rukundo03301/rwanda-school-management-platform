@@ -928,3 +928,15 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
  .fee-receipt-paper{box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;min-height:0!important;max-width:none!important}
  .fee-receipt-amount{break-inside:avoid-page}
 }
+
+/* Login form repair: ".auth-card .button{width:100%}" also stretched the Show/Hide
+   toggle and collapsed the password input. Size the password row explicitly. */
+.auth-card .input{min-height:44px;font-size:16px}
+.auth-card .button:not(.flat){min-height:44px}
+.auth-card .password-row{display:flex;align-items:stretch;gap:8px;width:100%}
+.auth-card .password-row .input{flex:1 1 auto;width:auto;min-width:0}
+.auth-card .password-row .button{width:auto;flex:0 0 auto;min-width:64px}
+.auth-card .auth-links .button{width:auto}
+.auth-card .button:disabled{opacity:.6;cursor:not-allowed}
+.auth-card .button:focus-visible{outline:2px solid #a4caff;outline-offset:2px}
+@media(max-width:480px){.shell{padding:12px}.auth-card{padding:22px 18px;border-radius:16px}}
