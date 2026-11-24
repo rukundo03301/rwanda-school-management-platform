@@ -77,11 +77,11 @@ export default async function SchoolHome({params}) {
       <span aria-hidden="true" className="site-icon">✦</span>}
     <div><strong>{school.name}</strong><small>Official school website</small></div>
   </div>;
-  return <main className="site-landing" style={{"--school-color":color}}>
+  return <main id="top" className="site-landing" style={{"--school-color":color}}>
     <header className="site-header">{brand}
       <input type="checkbox" id="site-menu-toggle" className="site-menu-toggle" aria-label="Show or hide the school website menu"/>
       <label htmlFor="site-menu-toggle" className="site-menu-button"><span aria-hidden="true">☰</span> Menu</label>
-      <nav aria-label="School website"><a href="#about">About</a>{hasMission&&<a href="#mission">Mission &amp; Vision</a>}{hasLeader&&<a href="#leadership">Leadership</a>}{hasPrograms&&<a href="#programs">Programs</a>}{hasAdmissions&&<a href="#admissions">Admissions</a>}{gallery.length>0&&<a href="#gallery">Gallery</a>}{promos.length>0&&<a href="#opportunities">News &amp; Events</a>}<a href="#contact">Contact</a><a href={"/s/"+code+"/login"} className="site-portal-link">School Login</a></nav></header>
+      <nav aria-label="School website"><a href="#top">Home</a><a href="#about">About</a>{hasMission&&<a href="#mission">Mission &amp; Vision</a>}{hasLeader&&<a href="#leadership">Leadership</a>}{hasPrograms&&<a href="#programs">Programs</a>}{hasAdmissions&&<a href="#admissions">Admissions</a>}{gallery.length>0&&<a href="#gallery">Gallery</a>}{promos.length>0&&<a href="#opportunities">News &amp; Events</a>}<a href="#contact">Contact</a><a href={"/s/"+code+"/login"} className="site-portal-link">School Login</a></nav></header>
     {site.announcement&&<div className="site-announcement">{site.announcement}</div>}
     <section className="site-hero" style={site.hero_url?{backgroundImage:"linear-gradient(90deg,rgba(7,25,43,.83),rgba(7,25,43,.3)),url("+JSON.stringify(site.hero_url)+")"}:{}}>
       <div className="site-hero-content">
@@ -148,5 +148,6 @@ export default async function SchoolHome({params}) {
       {!site.contact_email&&!site.contact_phone&&!address&&<p>Official school contact details will be provided here.</p>}
     </section>
     <footer className="site-footer"><strong>{school.name}</strong> · Official school website{address&&<> · <span className="site-address">{address}</span></>} · <a href={"/s/"+code+"/login"} style={{color:"white"}}>School Login</a></footer>
+    <a href="#top" className="site-back-to-top" aria-label="Back to the top of the page"><span aria-hidden="true">↑</span> Top</a>
   </main>;
 }
