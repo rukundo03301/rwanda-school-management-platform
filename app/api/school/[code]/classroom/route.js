@@ -129,7 +129,7 @@ export async function POST(request,{params}){
   let result;
   if(action==="teacher.assign"){
     if(!role.manager)throw new ApiError(403,"School academic management permission required");
-    requireAal2(token);
+    if(role.owner)requireAal2(token);
     const teacherId=requiredSchoolId(body.teacherId,"teacher");
     if(!cls||!subj)throw new ApiError(400,"Choose class and subject");
     result=await checked(db.rpc("school_assign_teacher",{
@@ -138,7 +138,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="teacher.revoke"){
     if(!role.manager)throw new ApiError(403,"School academic management permission required");
-    requireAal2(token);
+    if(role.owner)requireAal2(token);
     const teacherId=requiredSchoolId(body.teacherId,"teacher");
     const reason=classroomText(body.reason,500,{min:8});
     result=await checked(db.rpc("school_revoke_teacher_assignment",{
@@ -184,7 +184,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="student.revoke"){
     if(!role.owner)throw new ApiError(403,"Only the school owner can revoke student access");
-    requireAal2(token);
+    if(role.owner)requireAal2(token);
     const studentId=requiredSchoolId(body.studentId,"student");
     const reason=classroomText(body.reason,500,{min:8});
     result=await checked(db.rpc("school_revoke_student_account",{
@@ -192,7 +192,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="student.invite"){
     if(!role.owner)throw new ApiError(403,"Only the school owner can authorize a student account");
-    requireAal2(token);
+    if(role.owner)requireAal2(token);
     const studentId=requiredSchoolId(body.studentId,"student");
     const email=String(body.email||"").trim().toLowerCase();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)
