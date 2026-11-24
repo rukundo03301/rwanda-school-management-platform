@@ -1081,3 +1081,28 @@ body:has(.school-role-landing),body:has(.adm-family){
   }
   .rep-paper,.fee-receipt-paper{box-shadow:none!important}
 }
+
+/* School member entry and role portals: the same shared soft-blue visual system.
+   Public .site-landing school websites remain independently branded. */
+.school-auth{
+  background:linear-gradient(155deg,#f4f8ff 0%,#eaf2ff 62%,#d9e8ff 100%);
+  color:var(--ink);
+}
+.school-auth-panel{background:radial-gradient(circle at 80% 8%,rgba(255,255,255,.94),transparent 54%)}
+.school-auth-card{
+  background:#fff;border:1px solid var(--line);border-radius:22px;
+  padding:clamp(20px,2.5vw,34px);
+  box-shadow:0 18px 55px rgba(40,82,142,.12);
+}
+.school-auth-card .button:not(.flat){min-height:44px}
+.school-auth-card .input{min-height:44px;font-size:16px}
+.school-role-landing{background:linear-gradient(155deg,#f4f8ff,#eaf2ff 55%,#d9e8ff)}
+.school-role-card{background:#fff;border-color:var(--line);box-shadow:var(--ui-shadow)}
+.school-role-card .school-role-options{margin-bottom:8px}
+.school-role-card .school-role-choice{border-color:#cbdcf4}
+.school-role-card .school-role-choice:hover,
+.school-role-card .school-role-choice:focus-visible{border-color:var(--blue);background:#eef5ff}
+@media(max-width:760px){
+  .school-auth-card{max-width:100%;padding:22px 18px}
+  .school-auth-panel{padding:24px 16px}
+}
