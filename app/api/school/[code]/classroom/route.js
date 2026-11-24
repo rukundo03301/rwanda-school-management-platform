@@ -70,7 +70,7 @@ export async function GET(request,{params}){
      homework=homework.filter(h=>pairs.has(h.class_id+"#"+h.subject_id));
      if(homework.length){
        submissions=await checked(db.from("school_homework_submissions")
-         .select("id,homework_id,student_id,response_text,submitted_at,is_late")
+         .select("id,homework_id,student_id,response_text,submitted_at,is_late,score,max_score,feedback,graded_at")
          .eq("school_id",school.id).in("homework_id",homework.map(h=>h.id))
          .order("submitted_at",{ascending:false}).limit(1000));
      }
@@ -211,6 +211,36 @@ export async function POST(request,{params}){
       mailStatus=error?"provider_rejected_or_existing_account":"provider_accepted";
     }
     result={...result,mailStatus};
+  }else if(action==="submission.grade"){
+    if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
+    const submissionId=requiredSchoolId(body.submissionId,"submission");
+    const feedback=typeof body.feedback==="string"?body.feedback.trim():"";
+    if(feedback.length>2000)throw new ApiError(400,"Feedback can be up to 2000 characters");
+    const hasScore=body.score!==undefined&&body.score!==null&&body.score!=="";
+    let score=null,maxScore=null;
+    if(hasScore){
+      score=Number(body.score);maxScore=Number(body.maxScore);
+      if(!Number.isFinite(score)||!Number.isFinite(maxScore)||maxScore<=0||maxScore>1000||score<0||score>maxScore)
+        throw new ApiError(400,"Enter a score between 0 and the maximum mark (up to 1000)");
+      score=Math.round(score*100)/100;maxScore=Math.round(maxScore*100)/100;
+    }
+    if(!hasScore&&!feedback)throw new ApiError(400,"Enter a score or written feedback");
+    const submission=await checked(db.from("school_homework_submissions").select("id,homework_id")
+      .eq("school_id",school.id).eq("id",submissionId).maybeSingle());
+    if(!submission)throw new ApiError(404,"Submission not found");
+    const hw=await checked(db.from("school_homework").select("id,class_id,subject_id,teacher_id")
+      .eq("school_id",school.id).eq("id",submission.homework_id).maybeSingle());
+    const mine=await checked(db.from("school_teacher_assignments").select("class_id,subject_id,active")
+      .eq("school_id",school.id).eq("teacher_id",actorId).eq("active",true).limit(700));
+    // Only the teacher who set the homework, while still assigned to that class
+    // and subject, may grade it. Another teacher or a revoked one is refused.
+    if(!hw||hw.teacher_id!==actorId||!teacherAssignmentAllowed(mine,hw.class_id,hw.subject_id))
+      throw new ApiError(403,"You are not the assigned teacher for this homework");
+    result=await checked(db.from("school_homework_submissions").update({
+      score,max_score:maxScore,feedback:feedback||null,graded_at:new Date().toISOString(),graded_by:actorId
+    }).eq("school_id",school.id).eq("id",submissionId).select("id,score,max_score,graded_at").single());
+    await checked(db.from("school_classroom_audit").insert({
+      school_id:school.id,actor_id:actorId,event:"homework.graded",resource_id:submissionId}));
   }else throw new ApiError(400,"Unsupported classroom action");
   return Response.json({ok:true,result},{headers:noStore});
  }catch(e){return jsonError(e);}
