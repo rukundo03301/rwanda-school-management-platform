@@ -940,3 +940,18 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
 .auth-card .button:disabled{opacity:.6;cursor:not-allowed}
 .auth-card .button:focus-visible{outline:2px solid #a4caff;outline-offset:2px}
 @media(max-width:480px){.shell{padding:12px}.auth-card{padding:22px 18px;border-radius:16px}}
+
+/* Owner console on phones: the single grid column must be allowed to shrink
+   below the widest table, otherwise the whole page scrolls sideways and the
+   account bar (Sign out) is pushed off screen. Tables scroll inside .table-wrap. */
+@media(max-width:760px){
+  .dashboard{grid-template-columns:minmax(0,1fr)}
+  .main,.sidebar{min-width:0;max-width:100vw}
+  .topbar{height:auto;min-height:65px;flex-wrap:wrap;gap:8px;padding:10px 0}
+  .context{min-width:0;flex-wrap:wrap}
+  .context strong{overflow-wrap:anywhere}
+  .header,.panel-header{flex-wrap:wrap;gap:10px}
+  .panel-header .row,.header .row{width:100%}
+  .panel-header .row .input{width:100%!important;flex:1 1 140px}
+  .header .row .button{flex:1 1 auto}
+}
