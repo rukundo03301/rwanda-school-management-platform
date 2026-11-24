@@ -136,7 +136,9 @@ export default function SchoolAdmin({code}){
          <a className="school-admin-nav-link" href={"/s/"+code+"/communications"}><span aria-hidden="true">▣</span>School Community & Timetable</a>}
        {(owner||actor.financePermissions?.length>0)&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/fees"}><span aria-hidden="true">₣</span>School Fees & RWF Finance</a>}
-       {owner&&code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/demo"}><span aria-hidden="true">◈</span>Fictional Demo Operations</a>}
+       {owner&&code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/accounts"}><span aria-hidden="true">♙</span>Training Role Accounts</a>}
+       {code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/resources"}><span aria-hidden="true">▣</span>Learning Resources</a>}
+       {owner&&code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/demo"}><span aria-hidden="true">◈</span>Operations Preview (Read-only)</a>}
      </nav>
      <div className="school-admin-sidebottom">
        <a href={"/s/"+code} target="_blank" rel="noreferrer">School Homepage</a>
