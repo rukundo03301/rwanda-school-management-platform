@@ -6,17 +6,17 @@ export const dynamic="force-dynamic";
 const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
 const PLAN=Object.freeze([
  {key:"principal01",role:"school_admin",label:"Principal / Head Teacher",destination:"admin"},
- {key:"teacher02",role:"teacher",label:"Teacher 2 · P3 English",className:"P3 DEMO",subjectCode:"ENG",destination:"classroom"},
- {key:"teacher03",role:"teacher",label:"Teacher 3 · P5 Science",className:"P5 TEST",subjectCode:"SCI",destination:"classroom"},
- {key:"teacher04",role:"teacher",label:"Teacher 4 · P6 Social Studies",className:"P6 DEMO",subjectCode:"SST",destination:"classroom"},
- {key:"teacher05",role:"teacher",label:"Teacher 5 · P6 ICT",className:"P6 DEMO",subjectCode:"ICT",destination:"classroom"},
+ {key:"teacher02",role:"teacher",label:"Teacher 2 · Primary 3 English",className:"Primary 3",subjectCode:"ENG",destination:"classroom"},
+ {key:"teacher03",role:"teacher",label:"Teacher 3 · Primary 5 Science",className:"Primary 5",subjectCode:"SCI",destination:"classroom"},
+ {key:"teacher04",role:"teacher",label:"Teacher 4 · Primary 6 Social Studies",className:"Primary 6",subjectCode:"SST",destination:"classroom"},
+ {key:"teacher05",role:"teacher",label:"Teacher 5 · Primary 6 ICT",className:"Primary 6",subjectCode:"ICT",destination:"classroom"},
  {key:"staff01",role:"staff",label:"Secretary / Registrar",destination:"communications"},
  {key:"staff02",role:"staff",label:"Bursar / Finance",destination:"communications"},
  {key:"staff03",role:"staff",label:"Cook / Kitchen",destination:"communications"},
  {key:"staff04",role:"staff",label:"Security Guard",destination:"communications"},
  {key:"staff05",role:"staff",label:"Maintenance Technician",destination:"communications"},
- {key:"parent01",role:"parent",label:"Parent of three fictional children",destination:"family"},
- {key:"student01",role:"student",label:"Fictional P3 Student",destination:"learning"}
+ {key:"parent01",role:"parent",label:"Parent of three children",destination:"family"},
+ {key:"student01",role:"student",label:"Primary 3 Student",destination:"learning"}
 ]);
 async function trainingSchool(db,school,code){
  if(code!=="RW-SCH-000004")throw new ApiError(404,"Training accounts unavailable for this school.");
@@ -75,7 +75,7 @@ async function createOne(ctx,entry){
    }
    if(entry.key==="parent01"){
     const children=await checked(db.from("school_students").select("id,student_code")
-      .eq("school_id",school.id).in("student_code",["DEMO-D-STU-003","DEMO-D-STU-004","DEMO-D-STU-005"]));
+      .eq("school_id",school.id).in("student_code",["RPS-STU-003","RPS-STU-004","RPS-STU-005"]));
     if(children.length!==3)throw new ApiError(409,"Three fictional learners are required before parent account provisioning.");
     await checked(db.from("school_guardian_links").insert(children.map(st=>({
      school_id:school.id,student_id:st.id,auth_user_id:userId,
@@ -83,7 +83,7 @@ async function createOne(ctx,entry){
     }))));
    }
    if(entry.key==="student01"){
-    const st=await checked(db.from("school_students").select("id").eq("school_id",school.id).eq("student_code","DEMO-D-STU-003").single());
+    const st=await checked(db.from("school_students").select("id").eq("school_id",school.id).eq("student_code","RPS-STU-003").single());
     const guardians=await checked(db.from("school_guardian_links").select("auth_user_id").eq("school_id",school.id).eq("student_id",st.id).eq("active",true));
     if(!guardians.length)throw new ApiError(409,"Create the fictional parent account first; child access requires a linked guardian.");
     await checked(db.from("school_student_accounts").insert({school_id:school.id,student_id:st.id,auth_user_id:userId,active:true,authorized_by:actor.id}));
