@@ -245,11 +245,12 @@ export default function ClassroomDashboard({code}){
             </select></td></tr>})}</tbody></table>
          {!rows.length&&<Blank title="No enrolled students for this class" description="Enroll real students in Admissions before taking attendance."/>}</div></section>}
      {tab==="submissions"&&<section className="cr-panel"><h2>Student homework submissions</h2>
-       <div className="table-wrap"><table><thead><tr><th>Homework</th><th>Student</th><th>Response</th><th>Submitted</th></tr></thead>
+       <div className="table-wrap"><table><thead><tr><th>Homework</th><th>Student</th><th>Response</th><th>Submitted</th><th>Grade &amp; feedback</th></tr></thead>
        <tbody>{submissions.filter(x=>homework.some(h=>h.id===x.homework_id&&h.class_id===selectedClass)).map(s=><tr key={s.id}>
         <td>{homework.find(h=>h.id===s.homework_id)?.title||"Assignment"}</td>
         <td>{roster.find(x=>x.studentId===s.student_id)?.name||"Current student"}</td>
         <td><p className="cr-response">{s.response_text}</p></td><td>{s.submitted_at?.slice(0,16)} {s.is_late?"(Late)":""}</td>
+<td>{s.graded_at?<><strong>{s.score!=null?Number(s.score)+" / "+Number(s.max_score):"Feedback only"}</strong>{s.feedback&&<p className="cr-response">{s.feedback}</p>}</>:<span className="micro">Not graded yet</span>}<br/><button type="button" className="button secondary small" disabled={busy} onClick={()=>open("grade",{submissionId:s.id,score:s.score??"",maxScore:s.max_score??10,feedback:s.feedback||""})}>{s.graded_at?"Edit grade":"Grade"}</button></td>
        </tr>)}</tbody></table>
        {!submissions.some(s=>homework.some(h=>h.id===s.homework_id&&h.class_id===selectedClass))&&
         <Blank title="No homework submissions yet" description="Student responses will appear here once verified students submit published assignments."/>}
@@ -272,9 +273,15 @@ export default function ClassroomDashboard({code}){
     <p className="cr-foot">School-specific learning · No platform-owner monthly fees · Attendance and student data restricted to authorized school memberships</p>
    </main>
   </div>
-  {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account",revokeStudent:"Revoke student account"})[modal]} close={()=>{setModal(null);setError("");}}>
+  {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account",revokeStudent:"Revoke student account",grade:"Grade homework submission"})[modal]} close={()=>{setModal(null);setError("");}}>
    {error&&<div className="notice error" role="alert">{error}</div>}
-   {modal==="assign"&&<form onSubmit={e=>{e.preventDefault();submit({action:"teacher.assign",teacherId:form.teacherId,classId:form.classId,subjectId:form.subjectId});}}>
+   {modal==="grade"&&<form onSubmit={e=>{e.preventDefault();submit({action:"submission.grade",submissionId:form.submissionId,score:form.score,maxScore:form.maxScore,feedback:form.feedback||""});}}>
+<Label name="Score (leave empty to give feedback only)"><input className="input" type="number" min="0" step="0.5" value={form.score??""} onChange={e=>setForm({...form,score:e.target.value})}/></Label>
+<Label name="Maximum mark"><input className="input" type="number" min="1" max="1000" step="0.5" value={form.maxScore??""} onChange={e=>setForm({...form,maxScore:e.target.value})}/></Label>
+<Label name="Feedback to the student"><textarea className="input" maxLength={2000} value={form.feedback||""} onChange={e=>setForm({...form,feedback:e.target.value})}/></Label>
+<div className="notice info">The student will see this grade and feedback in their own workspace.</div>
+<button className="button" disabled={busy}>Save grade</button></form>}
+{modal==="assign"&&<form onSubmit={e=>{e.preventDefault();submit({action:"teacher.assign",teacherId:form.teacherId,classId:form.classId,subjectId:form.subjectId});}}>
     <Label name="Verified school teacher"><select className="input" value={form.teacherId||""} onChange={e=>setForm({...form,teacherId:e.target.value})}>{teachers.map(t=><option key={t.userId} value={t.userId}>{t.email}</option>)}</select></Label>
     <Label name="Current-year class"><select className="input" value={form.classId||""} onChange={e=>{const cls=e.target.value;setForm({...form,classId:cls,subjectId:mappings.find(m=>m.class_id===cls)?.subject_id||""});}}>
      {classes.map(c=><option key={c.id} value={c.id}>{classLabel(c.id)}</option>)}</select></Label>
