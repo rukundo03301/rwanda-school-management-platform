@@ -13,7 +13,7 @@ export default function TrainingAccounts({code}){
    ...(body?{body:JSON.stringify(body)}:{})
   });
   const value=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(value.error||"Unable to access training account setup.");
+  if(!response.ok)throw Error(value.error||"Unable to open role account setup.");
   return value;
  },[code]);
  const refresh=useCallback(async()=>{try{setData(await request());setError("");}catch(e){setError(e.message);}},[request]);
@@ -32,9 +32,9 @@ export default function TrainingAccounts({code}){
   const accounts=issued.accounts||[issued];
   navigator.clipboard.writeText(accounts.map(a=>a.label+"\\nEmail: "+a.email+"\\nPassword: "+a.password+"\\nSign in: "+window.location.origin+a.loginPath).join("\\n\\n"));
  };
- return <main className="training-accounts"><header className="training-header"><a href={"/s/"+code+"/admin"}>← School Owner Dashboard</a><h1>Remezo Primary School · Training Accounts</h1><p>Provision genuine Supabase email/password sign-ins for isolated fictional school users. This page is available only to this school's verified owner.</p></header>
- <section className="training-card"><h2>Required security</h2><p>These users are synthetic training identities and do not have real email inboxes. They can sign in with the generated credentials, but they cannot receive password-reset mail. The existing owner account remains unchanged.</p>
-  <label className="training-confirm"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/> I understand these are fictional identities, and I have completed owner two-factor authentication.</label>
+ return <main className="training-accounts"><header className="training-header"><a href={"/s/"+code+"/admin"}>← School Owner Dashboard</a><h1>Remezo Primary School · Role Accounts</h1><p>Create sign-ins for the principal, teachers, staff and a parent. This page is available only to the school owner.</p></header>
+ <section className="training-card"><h2>Required security</h2><p>These logins are created by the school and do not have email inboxes. If a password is lost, reset it from Staff & Parent Logins. The existing owner account remains unchanged.</p>
+  <label className="training-confirm"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/> I have completed owner two-step verification and want to create these logins.</label>
   {error&&<div className="notice error" role="alert">{error}</div>}
   {issued&&<div className="training-secret" role="status"><h3>New accounts · Save credentials immediately</h3>
    <p>Passwords are only shown now, never stored in GitHub. Keep them private.</p>
@@ -50,7 +50,7 @@ export default function TrainingAccounts({code}){
  {data?.accounts?<div className="table-wrap"><table><thead><tr><th>Role</th><th>Email login</th><th>Status</th><th>Action</th></tr></thead><tbody>
   {data.accounts.map(item=><tr key={item.key}><td>{item.label}</td><td><code>{item.email}</code></td><td>{item.created?"Created":"Not created"}</td>
    <td>{item.created?"Ready":<button className="button small" disabled={!accepted||!!busy} onClick={()=>create(item.key)}>{busy===item.key?"Creating…":"Create account"}</button>}</td></tr>)}
- </tbody></table></div>:<p>Checking existing training accounts…</p>}
+ </tbody></table></div>:<p>Checking existing role accounts…</p>}
  </section>
  <section className="training-card"><h2>How roles are connected</h2>
  <p>Teacher accounts receive one actual school class-and-subject assignment. The fictional parent account is linked to three students using the school's protected guardian relationship records. The student account belongs to one of those children. The Principal receives school administrator access. Other staff have staff memberships but require dedicated kitchen, security, bursar and maintenance workflow permissions as those modules are completed.</p>
