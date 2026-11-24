@@ -963,3 +963,31 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
 .table-wrap td:has(> .row){white-space:normal;min-width:240px}
 .table-wrap td:has(> .row) .row{flex-wrap:wrap;gap:6px}
 .table-wrap td:has(> .row) .row .button{white-space:nowrap}
+
+/* School homepage sections v1: programs, admissions, gallery, address, mobile menu */
+.site-landing{--school-color:#204a78}
+.site-menu-toggle{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.site-menu-button{display:none}
+.site-level-grid{list-style:none;padding:0;margin:22px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;max-width:1080px}
+.site-level-card{background:#fff;border:1px solid #dfe6ee;border-left:5px solid var(--school-color);border-radius:12px;padding:18px 20px;font-weight:700;color:#1d2c3c;font-size:17px}
+.site-steps{max-width:750px;padding-left:22px;color:#556579;font-size:17px;line-height:1.75}
+.site-steps li{margin-bottom:8px;overflow-wrap:anywhere}
+.site-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;max-width:1190px}
+.site-gallery figure{margin:0;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #dfe6ee}
+.site-gallery img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+.site-gallery figcaption{padding:10px 14px;font-size:14px;color:#556579;overflow-wrap:anywhere}
+.site-section p,.site-footer,.site-address{overflow-wrap:anywhere}
+.school-gallery-editor{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:12px}
+.school-gallery-item{display:flex;flex-direction:column;gap:8px;min-width:0}
+.school-gallery-item img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:9px}
+@media(max-width:760px){
+.site-header{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.site-header .site-brand{min-width:0;flex:1 1 0}
+.site-menu-button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid #cfd9e4;border-radius:10px;font-weight:700;font-size:14px;color:#1d2c3c;cursor:pointer;background:#fff}
+.site-menu-toggle:focus-visible + .site-menu-button{outline:3px solid var(--school-color);outline-offset:2px}
+.site-header nav{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;gap:0}
+.site-menu-toggle:checked ~ nav{display:flex}
+.site-header nav a{padding:13px 4px;border-top:1px solid #e6ecf2;font-size:15px}
+.site-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:420px){.site-gallery{grid-template-columns:minmax(0,1fr)}}
