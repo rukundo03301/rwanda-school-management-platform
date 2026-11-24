@@ -43,16 +43,8 @@ export async function GET(request,{params}){
   return Response.json({school:school.name,accounts:PLAN.map(p=>({...p,email:loginEmail(p.key),created:existing.has(loginEmail(p.key))}))},{headers:HEADERS});
  }catch(e){return jsonError(e);}
 }
-export async function POST(request,{params}){
- try{
-  const {code}=await params;
-  const ctx=await context(request,code);
-  requireAal2(ctx.token);
-  const {db,school,actor}=ctx;
-  const body=await request.json().catch(()=>({}));
-  const entry=PLAN.find(x=>x.key===body.key);
-  if(!entry)throw new ApiError(400,"Choose one approved training account.");
-  if(body.confirmTraining!==true)throw new ApiError(400,"Confirm this is a fictional training identity.");
+async function createOne(ctx,entry){
+ const {db,school,actor}=ctx;
   const email=loginEmail(entry.key);
   // Never reuse a real email or alter a previously created account's password.
   const {data:found,error:lookupError}=await db.auth.admin.listUsers({page:1,perPage:1000});
@@ -107,7 +99,29 @@ export async function POST(request,{params}){
    if(cleanupError)console.error("training account creation needs manual cleanup",entry.key,cleanupError.code);
    throw e;
   }
-  return Response.json({ok:true,email,password,role:entry.role,label:entry.label,
-   loginPath:"/s/"+code+"/login",notice:"Copy these credentials now. Password is never stored in GitHub or returned again."},{headers:HEADERS});
+
+ return {ok:true,email,password,role:entry.role,label:entry.label,
+  loginPath:"/s/"+school.school_code+"/login",
+  notice:"Copy this password now. It is not stored in GitHub or returned again."};
+}
+export async function POST(request,{params}){
+ try{
+  const {code}=await params;
+  const ctx=await context(request,code);
+  requireAal2(ctx.token);
+  const body=await request.json().catch(()=>({}));
+  if(body.confirmTraining!==true)throw new ApiError(400,"Confirm that these are fictional training accounts.");
+  if(body.key==="all"){
+   const accounts=[],failures=[];
+   for(const entry of PLAN){
+    try{accounts.push(await createOne(ctx,entry));}
+    catch(e){failures.push({key:entry.key,error:e?.status===409?"Account already exists":(e?.message||"Provisioning failed")});}
+   }
+   return Response.json({ok:failures.length===0,accounts,failures,
+    notice:"Save the new credentials now. Generated passwords are not retrievable after closing this page."},{headers:HEADERS});
+  }
+  const entry=PLAN.find(x=>x.key===body.key);
+  if(!entry)throw new ApiError(400,"Choose one approved training account.");
+  return Response.json(await createOne(ctx,entry),{headers:HEADERS});
  }catch(e){return jsonError(e);}
 }
