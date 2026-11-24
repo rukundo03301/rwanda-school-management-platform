@@ -99,7 +99,7 @@ export async function POST(request,{params}){
     const decision=String(body.decision||"");
     if(!permittedDecisions.includes(decision))throw new ApiError(400,"Invalid application decision");
     if(decision==="admit")requireAdmissions(actor,"enrollments.manage");
-    if(decision==="admit")requireAal2(token);
+    if(decision==="admit"&&actor.isOwner)requireAal2(token);
     const appId=validateUuid(body.applicationId,"application");
     const classId=decision==="admit"?validateUuid(body.classId,"class"):null;
     result=await checked(db.rpc("school_review_admission",{
@@ -107,7 +107,7 @@ export async function POST(request,{params}){
       p_decision:decision,p_actor:actor.id
     }));
   }else if(action==="guardian.invite"){
-    requireAdmissions(actor,"guardians.manage");requireAal2(token);
+    requireAdmissions(actor,"guardians.manage");if(actor.isOwner)requireAal2(token);
     const studentId=validateUuid(body.studentId,"student");
     const email=String(body.email||"").trim().toLowerCase();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)
@@ -133,7 +133,7 @@ export async function POST(request,{params}){
     result={...result,mailStatus,
       parentLoginPath:"/s/"+school.school_code+"/login?role=parent"};
   }else if(action==="guardian.revoke"){
-    requireAdmissions(actor,"guardians.manage");requireAal2(token);
+    requireAdmissions(actor,"guardians.manage");if(actor.isOwner)requireAal2(token);
     const studentId=validateUuid(body.studentId,"student");
     const guardianUserId=validateUuid(body.userId,"guardian user");
     const reason=String(body.reason||"").trim();
@@ -144,7 +144,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="admissions.permissions"){
     if(!actor.isOwner)throw new ApiError(403,"Only the school owner can edit admissions access");
-    requireAal2(token);
+    if(actor.isOwner)requireAal2(token);
     const userId=validateUuid(body.userId,"administrator");
     const permissions=normalizeAdmissionsPermissions(body.permissions||[]);
     const reason=String(body.reason||"").trim();
