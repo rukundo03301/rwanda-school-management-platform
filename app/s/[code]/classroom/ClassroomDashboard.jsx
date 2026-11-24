@@ -110,7 +110,8 @@ export default function ClassroomDashboard({code}){
    <nav><a href={"/s/"+code+"/portal?role="+(actor.teacher?"teacher":"school_owner")}>School Portal</a>
     {actor.manager&&<a href={"/s/"+code+"/admin"}>Administration</a>}
     <a href={"/s/"+code+"/reports"}>Assessment Gradebook</a>
-    <a href={"/s/"+code+"/communications"}>Timetable & Families</a></nav>
+    <a href={"/s/"+code+"/communications"}>Timetable & Families</a>
+    {code==="RW-SCH-000004"&&<a href={"/s/"+code+"/resources"}>Learning Library</a>}</nav>
   </header>
   <div className="cr-layout">
    <aside className="cr-nav"><span className="cr-nav-eyebrow">{actor.teacher?"TEACHER DASHBOARD":"ACADEMIC WORKSPACE"}</span>
