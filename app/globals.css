@@ -1106,3 +1106,69 @@ body:has(.school-role-landing),body:has(.adm-family){
   .school-auth-card{max-width:100%;padding:22px 18px}
   .school-auth-panel{padding:24px 16px}
 }
+
+/* Teacher dashboard — reference-inspired soft blue shell; live school data only. */
+.cr-shell:has(.teach-home){background:linear-gradient(148deg,#f7fbff 0%,#edf5ff 55%,#dceafe 100%)}
+.cr-shell:has(.teach-home) .cr-nav{background:#fff;border:1px solid #e0e9f8;box-shadow:0 8px 24px #3269b10d}
+.cr-shell:has(.teach-home) .cr-nav button{font-size:13px;border-radius:10px;padding:13px 14px}
+.cr-shell:has(.teach-home) .cr-nav button.active{background:#3378e8;color:#fff;box-shadow:0 5px 15px #3378e82d}
+.cr-shell:has(.teach-home) .cr-header{background:linear-gradient(105deg,#fff 10%,#eaf2ff 65%,#cde2ff 100%)}
+.cr-shell:has(.teach-home) .cr-title{display:none}
+.teach-home{color:#192d51;min-width:0}
+.teach-welcome{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:5px 0 22px;flex-wrap:wrap}
+.teach-welcome h2{font-size:clamp(21px,2.2vw,30px);letter-spacing:-.04em;margin:6px 0}
+.teach-welcome p{font-size:13px;color:#5d7291;line-height:1.55;margin:0}
+.teach-date{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:#254773;font-weight:700;font-size:12px}
+.teach-term{background:#dceaff;border-radius:999px;padding:9px 15px}
+.teach-dashboard-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,300px);gap:16px;align-items:start}
+.teach-primary,.teach-rail{min-width:0}
+.teach-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.teach-stat{display:grid;grid-template-columns:47px 1fr;grid-template-rows:auto auto;column-gap:9px;align-items:center;min-width:0;background:#fff;border-radius:16px;border:1px solid #e0eaf8;padding:17px 12px;box-shadow:0 8px 24px #28528e0e}
+.teach-stat-icon{grid-row:1/3;display:grid;place-items:center;border-radius:50%;height:45px;width:45px;background:#e8f1ff;color:#3378e8;font-size:24px}
+.teach-stat strong{font:800 clamp(18px,2vw,26px) Manrope,sans-serif;line-height:1.2}
+.teach-stat small{font-size:11px;color:#526b8d;line-height:1.35}
+.teach-duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:15px;margin-bottom:16px}
+.teach-box{background:#fff;border:1px solid #e0eaf8;box-shadow:0 10px 27px #28528e0e;border-radius:18px;padding:20px;min-width:0;margin-bottom:16px}
+.teach-duo .teach-box{margin-bottom:0}
+.teach-box-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.teach-box-head h3{font-size:16px;font-weight:800;letter-spacing:-.025em;margin:0}
+.teach-link{color:#1860cc!important;background:none;border:0;text-decoration:none;font-size:12px;font-weight:800;cursor:pointer;padding:4px 2px}
+.teach-link:hover{text-decoration:underline}
+.teach-table-wrap{width:100%;overflow:auto}
+.teach-table{min-width:405px;width:100%}
+.teach-table th{background:#f1f6ff;font-size:10px;letter-spacing:0;text-transform:none}
+.teach-table td{font-size:12px;padding:12px 8px}
+.teach-table td:last-child{text-align:right}
+.teach-homework-list{display:grid;gap:1px}
+.teach-homework-row{display:flex;align-items:center;text-align:left;width:100%;gap:9px;background:transparent;border:0;border-top:1px solid #e7edf8;padding:12px 2px;cursor:pointer;color:inherit}
+.teach-homework-row:hover{background:#f5f9ff}
+.teach-item-icon{display:grid;place-items:center;border-radius:12px;background:#e8f2ff;color:#3378e8;width:37px;height:37px;font-size:22px;flex-shrink:0}
+.teach-item-copy{flex:1;min-width:0;display:grid;gap:5px}
+.teach-item-copy strong{font-size:12px;overflow-wrap:anywhere}
+.teach-item-copy small{font-size:10px;color:#68819d;overflow-wrap:anywhere}
+.teach-chip{font-size:10px;background:#e8f4ec;color:#207043;border-radius:999px;padding:6px 8px;white-space:nowrap;font-weight:800}
+.teach-attendance{display:flex;gap:17px;align-items:center}
+.teach-attendance-ring{height:123px;width:123px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;border:12px solid #48b56b;background:#f8fffa}
+.teach-attendance-ring strong{font-size:24px}
+.teach-attendance-ring small{font-size:11px;color:#287447}
+.teach-attendance-lines{flex:1;min-width:0}
+.teach-attendance-lines>div{display:flex;justify-content:space-between;gap:7px;border-bottom:1px solid #e7eef7;padding:9px 2px;font-size:12px}
+.teach-task-list{display:grid}
+.teach-task-list button{background:none;border:0;border-bottom:1px solid #e6edf6;text-align:left;padding:12px 1px;color:#294265;cursor:pointer;font-size:12px}
+.teach-task-list button:hover{color:#1765d1}
+.teach-disclaimer{font-size:10px;color:#8293a8;margin:14px 0 0}
+.teach-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.teach-actions>a,.teach-actions>button{min-height:94px;background:#eaf3ff;border:0;border-radius:17px;padding:15px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;text-align:center;color:#185bd3;text-decoration:none;font-size:27px;cursor:pointer}
+.teach-actions>a:nth-child(2),.teach-actions>button:nth-child(2){background:#eaf7ee;color:#268147}
+.teach-actions>a:nth-child(3),.teach-actions>button:nth-child(3){background:#f1edff;color:#6942cb}
+.teach-actions>a:nth-child(4),.teach-actions>button:nth-child(4){background:#fff3e3;color:#a56716}
+.teach-actions span{font-size:12px;font-weight:800;color:#254061}
+.teach-actions>a:hover,.teach-actions>button:hover{filter:brightness(.97);transform:translateY(-1px)}
+.teach-rail-list>div{padding:13px 0;border-bottom:1px solid #e5ecf7;display:grid;gap:6px}
+.teach-rail-list strong{font-size:12px}
+.teach-rail-list small,.teach-empty-copy{font-size:11px;line-height:1.55;color:#7086a0}
+.teach-rail .teach-box{padding:17px}
+@media(max-width:1300px){.teach-dashboard-grid{grid-template-columns:minmax(0,1fr)}.teach-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.teach-rail .teach-box{margin:0}}
+@media(max-width:1000px){.teach-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.teach-duo{grid-template-columns:1fr}}
+@media(max-width:760px){.teach-welcome{align-items:flex-start}.teach-rail{grid-template-columns:1fr}.teach-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.teach-box{padding:14px}.teach-attendance{flex-wrap:wrap}.teach-stat{padding:12px}}
+@media(max-width:410px){.teach-date{font-size:11px}.teach-stat{grid-template-columns:39px 1fr}.teach-stat-icon{width:37px;height:37px;font-size:19px}.teach-homework-row{flex-wrap:wrap}.teach-chip{margin-left:45px}}
