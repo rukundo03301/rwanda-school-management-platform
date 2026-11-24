@@ -4,12 +4,12 @@ import {browserSupabase} from "../../../../lib/client.js";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const SECTIONS=[
- {id:"overview",label:"Overview"},
+ {id:"overview",label:"Dashboard"},
  {id:"assignments",label:"Teacher Assignments"},
- {id:"lessons",label:"Lesson Plans"},
+ {id:"lessons",label:"Lessons & Plans"},
  {id:"homework",label:"Homework"},
- {id:"attendance",label:"Class Attendance"},
- {id:"submissions",label:"Student Submissions"},
+ {id:"attendance",label:"Attendance"},
+ {id:"submissions",label:"Submissions"},
  {id:"studentAccess",label:"Student Accounts"}
 ];
 function Label({name,children}){return <label className="field" style={{marginBottom:14}}><strong>{name}</strong>{children}</label>}
@@ -84,6 +84,17 @@ export default function ClassroomDashboard({code}){
  const allClassSubjects=mappings.filter(m=>m.class_id===form.classId);
  const eligibleSubjects=subjects.filter(s=>allClassSubjects.some(m=>m.subject_id===s.id));
  const currentDay=dateKigali();
+ const teacherClasses=visibleClasses;
+ const assignedStudents=roster.filter(r=>teacherClasses.some(cls=>cls.id===r.classId));
+ const uniqueStudentCount=new Set(assignedStudents.map(r=>r.studentId)).size;
+ const activeHomework=homework.filter(h=>h.status==="published"&&teacherClasses.some(cls=>cls.id===h.class_id));
+ const assignedSubmissions=submissions.filter(s=>activeHomework.some(h=>h.id===s.homework_id));
+ const todayAttendance=attendance.filter(a=>a.attendance_on===currentDay&&teacherClasses.some(cls=>cls.id===a.class_id));
+ const presentToday=todayAttendance.filter(a=>a.status==="present").length;
+ const dateLabel=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Kigali",weekday:"short",day:"numeric",month:"long",year:"numeric"}).format(new Date());
+ const teacherTodayLessons=lessons.filter(l=>l.lesson_date===currentDay&&teacherClasses.some(cls=>cls.id===l.class_id));
+ const recentAssignments=[...activeHomework].sort((a,b)=>new Date(a.due_at||0)-new Date(b.due_at||0)).slice(0,4);
+ const selectSection=(id)=>{setTab(id);setError("");};
  const visibleTabs=SECTIONS.filter(t=>{
    if(t.id==="studentAccess")return actor.owner;
    if(t.id==="assignments")return actor.manager;
@@ -102,7 +113,7 @@ export default function ClassroomDashboard({code}){
     <a href={"/s/"+code+"/communications"}>Timetable & Families</a></nav>
   </header>
   <div className="cr-layout">
-   <aside className="cr-nav"><span className="cr-nav-eyebrow">ACADEMIC WORKSPACE</span>
+   <aside className="cr-nav"><span className="cr-nav-eyebrow">{actor.teacher?"TEACHER DASHBOARD":"ACADEMIC WORKSPACE"}</span>
     {visibleTabs.map(t=><button key={t.id} className={tab===t.id?"active":""} onClick={()=>{setTab(t.id);setError("");}}>{t.label}</button>)}
     <div className="cr-side-meta"><small>School ID</small><strong>{school.code}</strong><p>Only approved classes and members are shown.</p></div>
    </aside>
@@ -116,26 +127,75 @@ export default function ClassroomDashboard({code}){
     </div>
     {notice&&<div className="notice ok" role="status">{notice}</div>}
     {error&&<div className="notice error" role="alert">{error}</div>}
-    {tab==="overview"&&<>
+    {tab==="overview"&&actor.teacher&&<div className="teach-home">
+      <div className="teach-welcome"><div><span className="cr-eyebrow">YOUR TEACHING WORKSPACE</span>
+        <h2>Welcome to your Teacher Dashboard</h2>
+        <p>Manage your assigned classes, learning activities and student submissions at {school.name}.</p></div>
+        <div className="teach-date"><span>▦ {dateLabel}</span>{year?.name&&<span className="teach-term">{year.name}</span>}</div>
+      </div>
+      <div className="teach-dashboard-grid">
+        <div className="teach-primary">
+          <div className="teach-stats" aria-label="Teacher dashboard summary">
+            <div className="teach-stat"><span className="teach-stat-icon">♧</span><strong>{teacherClasses.length}</strong><small>My Classes</small></div>
+            <div className="teach-stat"><span className="teach-stat-icon">♙</span><strong>{uniqueStudentCount}</strong><small>My Students</small></div>
+            <div className="teach-stat"><span className="teach-stat-icon">▤</span><strong>{activeHomework.length}</strong><small>Published Homework</small></div>
+            <div className="teach-stat"><span className="teach-stat-icon">☑</span><strong>{assignedSubmissions.length}</strong><small>Submissions to Review</small></div>
+          </div>
+          <div className="teach-duo">
+            <section className="teach-box"><div className="teach-box-head"><h3>♧ My Classes</h3><button className="teach-link" onClick={()=>selectSection("attendance")}>View classes →</button></div>
+              {teacherClasses.length?<div className="teach-table-wrap"><table className="teach-table"><thead><tr><th>Class</th><th>Subjects</th><th>Students</th><th></th></tr></thead><tbody>
+                {teacherClasses.map(cls=><tr key={cls.id}><td><strong>{classLabel(cls.id)}</strong></td><td>{[...new Set(myAssignments.filter(a=>a.class_id===cls.id).map(a=>subjectLabel(a.subject_id)))].join(", ")||"—"}</td>
+                  <td>{new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</td>
+                  <td><button className="teach-link" onClick={()=>{setSelectedClass(cls.id);selectSection("attendance")}}>Open class →</button></td></tr>)}
+              </tbody></table></div>:<Blank title="No assigned classes yet" description="Your school administrator will assign your classes and subjects."/>}
+            </section>
+            <section className="teach-box"><div className="teach-box-head"><h3>▤ Homework Overview</h3><button className="teach-link" onClick={()=>selectSection("homework")}>View all →</button></div>
+              {recentAssignments.length?<div className="teach-homework-list">{recentAssignments.map(h=><button key={h.id} className="teach-homework-row" onClick={()=>{setSelectedClass(h.class_id);selectSection("submissions")}}>
+                <span className="teach-item-icon">▤</span><span className="teach-item-copy"><strong>{h.title}</strong><small>{classLabel(h.class_id)} · Due {new Date(h.due_at).toLocaleDateString("en-GB",{timeZone:"Africa/Kigali"})}</small></span>
+                <span className="teach-chip">{submissions.filter(s=>s.homework_id===h.id).length} submitted</span>
+              </button>)}</div>:<Blank title="No published homework" description="Create and publish homework for your assigned classes."/>}
+            </section>
+          </div>
+          <div className="teach-duo">
+            <section className="teach-box"><div className="teach-box-head"><h3>◉ Attendance Today</h3><button className="teach-link" onClick={()=>selectSection("attendance")}>Mark attendance →</button></div>
+              <div className="teach-attendance"><div className="teach-attendance-ring"><strong>{todayAttendance.length?Math.round(100*presentToday/todayAttendance.length)+"%":"—"}</strong><small>{todayAttendance.length?"Present":"Not recorded"}</small></div>
+              <div className="teach-attendance-lines">{teacherClasses.map(cls=><div key={cls.id}><span>{classLabel(cls.id)}</span><strong>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</strong></div>)}</div></div>
+            </section>
+            <section className="teach-box"><div className="teach-box-head"><h3>☑ Teaching Tasks</h3><button className="teach-link" onClick={()=>selectSection("submissions")}>Open submissions →</button></div>
+              <div className="teach-task-list"><button onClick={()=>selectSection("submissions")}>☐ Review {assignedSubmissions.length} student submissions</button>
+                <button onClick={()=>selectSection("lessons")}>☐ Prepare and update lesson plans</button>
+                <button onClick={()=>selectSection("attendance")}>☐ Check today's attendance</button></div>
+              <p className="teach-disclaimer">Tasks link to real modules; completion tracking is not yet implemented.</p>
+            </section>
+          </div>
+          <section className="teach-box teach-quick"><div className="teach-box-head"><h3>⚡ Quick Actions</h3></div><div className="teach-actions">
+            <button onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("homework",{classId:a.class_id,subjectId:a.subject_id});}else selectSection("homework");}}>▤<span>Create Homework</span></button>
+            <button onClick={()=>selectSection("attendance")}>◉<span>Record Attendance</span></button>
+            <button onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("lesson",{classId:a.class_id,subjectId:a.subject_id,lessonOn:currentDay});}else selectSection("lessons");}}>▣<span>Plan a Lesson</span></button>
+            <a href={"/s/"+code+"/communications"}>✉<span>School Messages</span></a>
+          </div></section>
+        </div>
+        <aside className="teach-rail">
+          <section className="teach-box"><div className="teach-box-head"><h3>▦ Today's Lessons</h3></div>
+            {teacherTodayLessons.length?<div className="teach-rail-list">{teacherTodayLessons.map(l=><div key={l.id}><strong>{l.title}</strong><small>{classLabel(l.class_id)} · {subjectLabel(l.subject_id)}</small></div>)}</div>:<p className="teach-empty-copy">No lesson plans dated today. Your full timetable is available in School Communications.</p>}
+            <a className="teach-link" href={"/s/"+code+"/communications"}>Open timetable →</a>
+          </section>
+          <section className="teach-box"><div className="teach-box-head"><h3>◴ Recent Submissions</h3></div>
+            {assignedSubmissions.length?<div className="teach-rail-list">{[...assignedSubmissions].sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at)).slice(0,5).map(s=><div key={s.id}><strong>{roster.find(r=>r.studentId===s.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===s.homework_id)?.title||"Homework"} · {s.submitted_at?.slice(0,10)}</small></div>)}</div>:<p className="teach-empty-copy">No student submissions to display yet.</p>}
+            <button className="teach-link" onClick={()=>selectSection("submissions")}>Review submissions →</button>
+          </section>
+        </aside>
+      </div>
+    </div>}
+    {tab==="overview"&&!actor.teacher&&<>
      <div className="cr-metrics">
       <div><small>Current academic year</small><strong>{year?.name||"Not set"}</strong><span>From school administration</span></div>
-      <div><small>{actor.teacher?"My assigned classes":"School classes"}</small><strong>{actor.teacher?ownClasses.length:classes.length}</strong><span>Current academic year</span></div>
-      <div><small>{actor.teacher?"My homework records":"Assigned teachers"}</small><strong>{actor.teacher?homework.length:teachers.length}</strong><span>Loaded records</span></div>
-      <div><small>{actor.teacher?"My roster entries":"Teaching assignments"}</small><strong>{actor.teacher?roster.length:assignments.length}</strong><span>Current-year records</span></div>
+      <div><small>School classes</small><strong>{classes.length}</strong><span>Current academic year</span></div>
+      <div><small>Assigned teachers</small><strong>{teachers.length}</strong><span>Verified school members</span></div>
+      <div><small>Teaching assignments</small><strong>{assignments.length}</strong><span>Current records</span></div>
      </div>
-     <section className="cr-panel"><h2>Next steps in the school day</h2>
-      <div className="cr-overview-steps">{actor.teacher?
-       <><p><strong>Plan your lessons</strong><span>Add objectives to your assigned subject and class.</span></p>
-         <p><strong>Create homework</strong><span>Save a draft; publish only when ready for students.</span></p>
-         <p><strong>Take attendance</strong><span>Record daily attendance for your actual class roster.</span></p>
-         <p><strong>Review submissions</strong><span>Read student homework responses for your own assignments.</span></p></>:
-       <><p><strong>Assign class teachers</strong><span>Verified teachers can be assigned only to subjects in their school's class.</span></p>
-         <p><strong>Verify school student access</strong><span>Issue an account invitation only after school and family approval.</span></p>
-         <p><strong>Academic oversight</strong><span>Teachers' individual records stay scoped to their assignments.</span></p></>}
-      </div>
-      {actor.manager&&<button className="button" onClick={()=>setTab("assignments")}>Manage teacher assignments</button>}
-      {actor.teacher&&<button className="button" onClick={()=>setTab("lessons")}>Open My Lessons</button>}
-     </section>
+     <section className="cr-panel"><h2>Academic administration</h2><p className="muted">Assign approved teachers, oversee classes and verify student enrollment within this school.</p>
+      <button className="button" onClick={()=>selectSection("assignments")}>Manage teacher assignments</button></section>
     </>}
     {tab==="assignments"&&actor.manager&&<>
      <div className="cr-section-head"><div><h2>Who teaches each subject?</h2><p>Assign only verified school teachers to a class and subject already in Academic Setup.</p></div>
