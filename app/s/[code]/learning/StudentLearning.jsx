@@ -96,7 +96,8 @@ export default function StudentLearning({code}){
         <h3>{h.title}</h3><p>{h.instructions}</p>
         <small>Due {new Date(h.due_at).toLocaleString("en-RW",{timeZone:"Africa/Kigali",dateStyle:"medium",timeStyle:"short"})} (Rwanda)</small>
         {submitted?<div className="lr-submitted"><strong>Your submitted response</strong><p>{submitted.response_text}</p>
-         <small>{submitted.is_late?"Submitted after due date · ":""}Submitted {new Date(submitted.submitted_at).toLocaleString("en-RW",{timeZone:"Africa/Kigali"})}</small></div>:
+         <small>{submitted.is_late?"Submitted after due date · ":""}Submitted {new Date(submitted.submitted_at).toLocaleString("en-RW",{timeZone:"Africa/Kigali"})}</small>
+{submitted.graded_at&&<div className="lr-feedback"><strong>Teacher feedback{submitted.score!=null?" · "+Number(submitted.score)+" / "+Number(submitted.max_score):""}</strong>{submitted.feedback&&<p>{submitted.feedback}</p>}</div>}</div>:
         <div className="lr-answer">
          <label>My homework response<textarea className="input" maxLength={5000} value={responses[h.id]||""}
            onChange={e=>setResponses(old=>({...old,[h.id]:e.target.value}))}
