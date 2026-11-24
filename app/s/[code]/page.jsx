@@ -2,7 +2,25 @@ import {notFound} from "next/navigation";
 import {clients} from "../../../lib/platform-server.js";
 
 export const dynamic="force-dynamic";
-export const metadata={robots:{index:true,follow:true}};
+// Each school page carries the school's own name in the browser tab and in
+// link previews, never the platform console title. Non-active schools are not indexed.
+export async function generateMetadata({params}){
+const {code}=await params;
+const fallback={title:"School website",description:"Official school website.",robots:{index:false,follow:false}};
+if(typeof code!=="string"||!/^RW-SCH-\d{6,16}$/.test(code))return fallback;
+try{
+const {db}=clients();
+const {data:school}=await db.from("platform_schools").select("id,name,status").eq("school_code",code).maybeSingle();
+if(!school)return fallback;
+const live=school.status==="active";
+let tagline="";
+if(live){
+const {data:site}=await db.from("platform_school_sites").select("tagline,is_published").eq("school_id",school.id).maybeSingle();
+if(site?.is_published)tagline=site.tagline||"";
+}
+return {title:school.name+" · Official school website",description:tagline||("Official website of "+school.name+"."),robots:{index:live,follow:live}};
+}catch{return fallback;}
+}
 
 export default async function SchoolHome({params}) {
   const {code}=await params;
