@@ -159,7 +159,7 @@ export default function ClassroomDashboard({code}){
           </div>
           <div className="teach-duo">
             <section className="teach-box"><div className="teach-box-head"><h3>◉ Attendance Today</h3><button className="teach-link" onClick={()=>selectSection("attendance")}>Mark attendance →</button></div>
-              <div className="teach-attendance"><div className="teach-attendance-ring"><strong>{todayAttendance.length?Math.round(100*presentToday/todayAttendance.length)+"%":"—"}</strong><small>{todayAttendance.length?"Present":"Not recorded"}</small></div>
+              <div className="teach-attendance"><div className="teach-attendance-ring"><strong>{todayAttendance.length?Math.round(100*presentToday/Math.max(roster.length,todayAttendance.length))+"%":"—"}</strong><small>{!todayAttendance.length?"Not recorded":todayAttendance.length<roster.length?todayAttendance.length+" of "+roster.length+" recorded":"Present"}</small></div>
               <div className="teach-attendance-lines">{teacherClasses.map(cls=><div key={cls.id}><span>{classLabel(cls.id)}</span><strong>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</strong></div>)}</div></div>
             </section>
             <section className="teach-box"><div className="teach-box-head"><h3>☑ Teaching Tasks</h3><button className="teach-link" onClick={()=>selectSection("submissions")}>Open submissions →</button></div>
