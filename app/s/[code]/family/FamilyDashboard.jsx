@@ -69,6 +69,9 @@ export default function FamilyDashboard({code}){
          <div className="adm-child-avatar">🎓</div><div><h3>{child.name}</h3><p><strong>Student ID:</strong> {child.studentCode}</p>
          <p><strong>My relationship:</strong> {child.relationship==="legal_guardian"?"Legal guardian":"Parent"}</p>
          <p><strong>Current class:</strong> {child.className||"Not assigned"}</p>
+         <p><strong>Attendance:</strong> {child.attendance?.recorded?child.attendance.present+" present, "+child.attendance.absent+" absent, "+child.attendance.late+" late out of "+child.attendance.recorded+" days recorded":"Not recorded yet"}</p>
+         <p><strong>Homework</strong></p>
+         {child.homework?.length?<ul className="adm-child-homework">{child.homework.map(h=><li key={h.id}><strong>{h.title}</strong>{h.subject?" · "+h.subject:""}<br/><span className="micro">{h.dueAt?"Due "+new Date(h.dueAt).toLocaleDateString():"No due date"} · {h.submittedAt?(h.isLate?"Submitted late":"Submitted"):"Not submitted"}{h.score!==null&&h.maxScore!==null?" · Grade "+h.score+"/"+h.maxScore:""}</span>{h.feedback&&<span className="micro"><br/>Teacher feedback: {h.feedback}</span>}</li>)}</ul>:<p className="micro">No homework published for this class yet.</p>}
          </div></article>)}</div>:
          <div className="adm-empty"><strong>No linked children yet</strong><p>If your school has already verified your relationship, ask it to invite your confirmed email address. Your child will appear only after you accept the invitation.</p></div>}
      </section>
