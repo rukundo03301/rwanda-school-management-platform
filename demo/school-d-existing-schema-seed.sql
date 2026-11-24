@@ -8,7 +8,7 @@ DECLARE
  v_event record; v_topic record; v_cnt int;
 BEGIN
  SELECT id INTO STRICT v_school FROM public.platform_schools
- WHERE school_code='RW-SCH-000004' AND name='ZZ Audit Test School D (FICTIONAL)' AND status='active';
+ WHERE school_code='RW-SCH-000004' AND name='Remezo Primary School' AND is_demo=true AND status='active';
  SELECT auth_user_id INTO STRICT v_owner FROM public.school_memberships
  WHERE school_id=v_school AND role='school_owner' AND active=true LIMIT 1;
  SELECT id INTO STRICT v_year FROM public.school_academic_years
