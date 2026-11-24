@@ -17,7 +17,7 @@ export async function GET(request,{params}){
         "current_step,school_type,education_levels,province,district,campus_name,academic_year,term_system,privacy_acknowledged,review_requested_at"
       ).eq("school_id",school.id).maybeSingle()),
       checked(db.from("school_site_drafts").select(
-        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements"
+        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements,address_text,programs_intro,admissions_intro,admissions_instructions,admissions_contact,gallery"
       ).eq("school_id",school.id).maybeSingle())
     ]);
     return Response.json({
@@ -111,6 +111,25 @@ export async function POST(request,{params}){
         })(),
         updated_at:new Date().toISOString()
       };
+      // Newer homepage sections are optional in the request: only fields that were
+      // actually sent are written, so an older editor can never blank them out.
+      const has=(k)=>Object.prototype.hasOwnProperty.call(body,k);
+      if(has("addressText"))site.address_text=schoolText(body.addressText||"",240);
+      if(has("programsIntro"))site.programs_intro=schoolText(body.programsIntro||"",1200);
+      if(has("admissionsIntro"))site.admissions_intro=schoolText(body.admissionsIntro||"",1600);
+      if(has("admissionsInstructions"))site.admissions_instructions=schoolText(body.admissionsInstructions||"",1600);
+      if(has("admissionsContact"))site.admissions_contact=schoolText(body.admissionsContact||"",254);
+      if(has("gallery")){
+        if(!Array.isArray(body.gallery)||body.gallery.length>12)
+          throw new ApiError(400,"A school gallery can hold up to twelve photographs");
+        // image() only accepts files inside this school's own storage folder.
+        site.gallery=body.gallery.map(item=>{
+          if(!item||typeof item!=="object")throw new ApiError(400,"Invalid gallery photograph");
+          const url=image(item.url);
+          if(!url)throw new ApiError(400,"Invalid gallery photograph");
+          return {url,caption:schoolText(item.caption||"",120)};
+        });
+      }
       // A draft write never touches the live public homepage.
       await checked(db.from("school_site_drafts").upsert({
         ...site,updated_by:user.id
@@ -139,7 +158,7 @@ export async function POST(request,{params}){
       const p=await checked(db.from("school_onboarding").select("review_requested_at").eq("school_id",school.id).single());
       if(!p.review_requested_at)throw new ApiError(400,"Request and receive school review before publication");
       const draft=await checked(db.from("school_site_drafts").select(
-        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements"
+        "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements,address_text,programs_intro,admissions_intro,admissions_instructions,admissions_contact,gallery"
       ).eq("school_id",school.id).single());
       if(!draft.tagline?.trim()||!draft.about_text?.trim()||(!draft.contact_email&&!draft.contact_phone))
         throw new ApiError(400,"The homepage requires an introduction and contact details");
@@ -149,8 +168,14 @@ export async function POST(request,{params}){
         throw new ApiError(400,"Complete every active school advertisement before publishing");
 
       // Publish a snapshot. Later edits remain private drafts until published again.
+      // The education levels the school itself selected during onboarding are
+      // published as a snapshot of known levels; nothing is invented.
+      const setup=await checked(db.from("school_onboarding").select("education_levels").eq("school_id",school.id).maybeSingle());
+      const knownLevels=["nursery","primary","secondary","tvet","university"];
+      const offered=Array.isArray(setup?.education_levels)?setup.education_levels.map(l=>String(l).toLowerCase()):[];
+      const educationLevels=knownLevels.filter(l=>offered.includes(l));
       await checked(db.from("platform_school_sites").upsert({
-        school_id:school.id,...draft,is_published:true,
+        school_id:school.id,...draft,education_levels:educationLevels,is_published:true,
         updated_at:new Date().toISOString()
       },{onConflict:"school_id"}).select("school_id").single());
       await audit(db,{id:user.id},"school.homepage_published",school.id,{});
