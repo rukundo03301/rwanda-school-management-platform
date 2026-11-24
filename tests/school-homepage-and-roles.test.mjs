@@ -18,9 +18,9 @@ test("exactly six supported role types; school login does not ask users to selec
   assert.equal(validSchoolRole("platform_owner"),false);
   assert.throws(()=>schoolPortalPath("RW-SCH-000002","platform_owner"),/Invalid/);
   assert.equal(schoolPortalPath("RW-SCH-000002","teacher"),"/s/RW-SCH-000002/portal?role=teacher");
-  assert.match(schoolLogin,/SCHOOL_ROLES\.map/);
-  assert.match(schoolLogin,/Choose your school role before signing in/);
-  assert.match(schoolLogin,/schoolPortalPath\(code,role\)/);
+  assert.doesNotMatch(schoolLogin,/SCHOOL_ROLES\\.map|Choose your school role before signing in/);
+  assert.match(schoolLogin,/Your school administrator assigns and manages roles/);
+  assert.match(schoolLogin,/window\\.location\\.assign/);
   assert.doesNotMatch(schoolLogin,/window\.location\.assign\("\/s\/"\+code\+"\/setup"\)/);
 });
 
