@@ -128,6 +128,10 @@ export default function SchoolAdmin({code}){
        {(owner||["admissions.read","admissions.manage","enrollments.manage","guardians.manage"]
          .some(p=>actor.admissionsPermissions?.includes(p)))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/admissions"}><span aria-hidden="true">✧</span>Admissions & Students</a>}
+       {(owner||actor.permissions?.includes("people.manage"))&&<a className="school-admin-nav-link" href={"/s/"+code+"/student-logins"}><span aria-hidden="true">☷</span>Student ID Logins</a>}
+       {owner&&<a className="school-admin-nav-link" href={"/s/"+code+"/staff-logins"}><span aria-hidden="true">☷</span>Staff & Parent Logins</a>}
+       {owner&&<a className="school-admin-nav-link" href={"/s/"+code+"/security"}><span aria-hidden="true">⚿</span>Two-step Verification</a>}
+       {true&&<a className="school-admin-nav-link" href={"/s/"+code+"/password"}><span aria-hidden="true">⚿</span>Change My Password</a>}
        {(owner||actor.permissions?.includes("academics.manage"))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/classroom"}><span aria-hidden="true">▦</span>Classrooms & Teachers</a>}
        {(owner||actor.reportPermissions?.some(p=>["curriculum.manage","reports.read"].includes(p)))&&
