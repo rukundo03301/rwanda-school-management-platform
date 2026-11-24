@@ -32,7 +32,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://stgqhkhfpnqmsiyrvvhe.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-for-build-only
-# Isolated CI tests all nine GitHub-owned migrations plus transactional mock tenant purge.
+# Isolated CI tests all ten GitHub-owned migrations plus transactional mock tenant purge.
 # Never run this smoke test against hosted APEX or another non-local database.
 # NO production database deployment in this workflow.
 # Do not add a second migration deployer if Supabase native GitHub integration is enabled.
@@ -75,6 +75,9 @@ jobs:
           sleep 1
           supabase migration new platform_demo_tenant_purge_v1
           cp database/platform_demo_tenant_purge_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_platform_demo_tenant_purge_v1.sql' | head -n 1)"
+          sleep 1
+          supabase migration new school_homepage_sections_v1
+          cp database/school_homepage_sections_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_homepage_sections_v1.sql' | head -n 1)"
       - name: Start isolated Supabase and apply migration
         run: |
           supabase start
