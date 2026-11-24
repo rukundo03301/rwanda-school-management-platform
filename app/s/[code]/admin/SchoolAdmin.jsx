@@ -140,7 +140,7 @@ export default function SchoolAdmin({code}){
          <a className="school-admin-nav-link" href={"/s/"+code+"/communications"}><span aria-hidden="true">▣</span>School Community & Timetable</a>}
        {(owner||actor.financePermissions?.length>0)&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/fees"}><span aria-hidden="true">₣</span>School Fees & RWF Finance</a>}
-       {owner&&code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/accounts"}><span aria-hidden="true">♙</span>Training Role Accounts</a>}
+       {owner&&code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/accounts"}><span aria-hidden="true">♙</span>Role Accounts</a>}
        {code==="RW-SCH-000004"&&<a className="school-admin-nav-link" href={"/s/"+code+"/resources"}><span aria-hidden="true">▣</span>Learning Resources</a>}
      </nav>
      <div className="school-admin-sidebottom">
