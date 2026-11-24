@@ -4,6 +4,13 @@ import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput
 import { validateManualPayment,parseDate } from "../../../lib/billing-clock.mjs";
 import {validSchoolCodeConfirmation,removeTenantStorage,TENANT_DELETE_PHRASE} from "../../../lib/tenant-purge.mjs";
 
+// Input validators throw plain Errors; report them as 400s with their message
+// instead of a generic 500.
+const valid = (fn) => {
+  try { return fn(); }
+  catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(400, e?.message || "Invalid input."); }
+};
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -162,7 +169,7 @@ export async function POST(request) {
         school_code:confirmCode,verification:"school_removed_and_storage_empty"};
     } else if (action === "tenant.create") {
       requirePermission(actor,"tenants.create");
-      const payload = validateTenantInput(body);
+      const payload = valid(()=>validateTenantInput(body));
       result = await checked(db.rpc("platform_register_school", {
         p_company_name: payload.company_name, p_school_name: payload.school_name,
         p_owner_email: payload.owner_email, p_actor: actor.id
@@ -170,9 +177,9 @@ export async function POST(request) {
     } else if (action === "tenant.addSchool") {
       requirePermission(actor,"tenants.create");
       const companyId=validateUuid(body.companyId,"company");
-      const payload=validateTenantInput({
+      const payload=valid(()=>validateTenantInput({
         companyName:"Existing company",schoolName:body.schoolName,ownerEmail:body.ownerEmail
-      });
+      }));
       result=await checked(db.rpc("platform_add_school_to_company",{
         p_company_id:companyId,p_school_name:payload.school_name,
         p_owner_email:payload.owner_email,p_actor:actor.id
@@ -182,7 +189,7 @@ export async function POST(request) {
       const schoolId=validateUuid(body.schoolId,"school");
       const monthlyAmount=Number(body.monthlyAmountRwf);
       if(!Number.isSafeInteger(monthlyAmount)||monthlyAmount<0) throw new ApiError(400,"Invalid whole-RWF monthly amount");
-      parseDate(body.firstDueOn);
+      valid(()=>parseDate(body.firstDueOn));
       result=await checked(db.rpc("platform_set_monthly_terms",{
         p_school_id:schoolId,p_amount_rwf:monthlyAmount,
         p_first_due_on:body.firstDueOn,p_actor:actor.id
@@ -190,7 +197,7 @@ export async function POST(request) {
     } else if (action === "fee.paid") {
       requirePermission(actor,"billing.record"); requireAal2(token);
       const schoolId=validateUuid(body.schoolId,"school");
-      const info=validateManualPayment(body);
+      const info=valid(()=>validateManualPayment(body));
       if(!["mobile_money","bank_transfer","cash","other"].includes(body.method))throw new ApiError(400,"Invalid recorded payment method");
       result=await checked(db.rpc("platform_record_monthly_payment",{
         p_school_id:schoolId,p_paid_on:info.paidOn,
@@ -263,9 +270,11 @@ export async function POST(request) {
       const reason = safeText(body.reason, 500);
       if (reason.length < 8) throw new ApiError(400,"Enter a meaningful reason (at least 8 characters).");
       const target = String(body.status || "");
-      const current = await checked(db.from("platform_schools").select("status,school_code").eq("id",schoolId).single());
+      const current = await checked(db.from("platform_schools").select("status,school_code,is_demo").eq("id",schoolId).single());
       if (!canTransition(current.status,target)) throw new ApiError(400, "This tenant status change is not permitted.");
-      if (current.status==="onboarding" && target==="active") {
+      // Activation always requires a requested onboarding review, whatever the
+      // current state, so pausing and reactivating cannot skip the review.
+      if (target==="active" && !current.is_demo) {
         const review=await checked(db.from("school_onboarding")
           .select("review_requested_at").eq("school_id",schoolId).maybeSingle());
         if(!review?.review_requested_at)throw new ApiError(400,
@@ -309,7 +318,7 @@ export async function POST(request) {
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)throw new ApiError(400,"Invalid staff email");
       const role=String(body.role||"");
       if(!ROLE_DEFAULTS[role])throw new ApiError(400,"Invalid staff role");
-      const permissions=normalizePermissions(body.permissions??ROLE_DEFAULTS[role]);
+      const permissions=valid(()=>normalizePermissions(body.permissions??ROLE_DEFAULTS[role]));
       const {data:invite,error:inviteError}=await db.auth.admin.inviteUserByEmail(email,{
         redirectTo:(process.env.APP_PUBLIC_URL||"http://localhost:3000")+"/platform"
       });
@@ -324,7 +333,7 @@ export async function POST(request) {
       const requestId = validateUuid(body.id,"request");
       const role = String(body.role||"");
       if (!ROLE_DEFAULTS[role]) throw new ApiError(400,"Invalid staff role.");
-      const permissions = normalizePermissions(body.permissions ?? ROLE_DEFAULTS[role]);
+      const permissions = valid(()=>normalizePermissions(body.permissions ?? ROLE_DEFAULTS[role]));
       const req = await checked(db.from("platform_staff_requests")
         .select("auth_user_id,email,status").eq("id",requestId).single());
       if (req.status !== "pending" || req.auth_user_id === actor.id) throw new ApiError(409,"Staff request cannot be approved.");
@@ -337,7 +346,7 @@ export async function POST(request) {
       if (staffId===actor.id) throw new ApiError(400,"You cannot edit your own owner permissions.");
       const role = String(body.role||"");
       if (!ROLE_DEFAULTS[role]) throw new ApiError(400,"Invalid staff role.");
-      const permissions = normalizePermissions(body.permissions);
+      const permissions = valid(()=>normalizePermissions(body.permissions));
       const reason = safeText(body.reason,500);
       if (reason.length < 8) throw new ApiError(400,"Explain the permission change.");
       const staff = await checked(db.from("platform_staff")
