@@ -1,7 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 :root {
-  --bg:#f5f7fb; --surface:#ffffff; --ink:#10223a; --muted:#62748b;
-  --line:#e3e9f1; --navy:#152943; --blue:#1760c5; --blue-light:#eaf2ff;
+  --bg:#eaf2ff; --surface:#ffffff; --ink:#20314a; --muted:#64748b;
+  --line:#dce6f5; --navy:#203e70; --blue:#3378e8; --blue-light:#d9e8ff;
+  --sky-blue:#78a9f8; --ice-blue:#eaf2ff; --soft-blue:#d9e8ff;
+  --ui-shadow:0 12px 34px rgba(40,82,142,.09); --ui-focus:#78a9f8;
   --green:#197b51; --green-light:#e9f8f0; --orange:#94600b; --orange-light:#fff6df;
   --red:#ad4047; --red-light:#ffebed;
   color-scheme:light;
@@ -1001,3 +1003,81 @@ html{scroll-behavior:smooth}
 .site-landing>.site-header{position:sticky;top:0;z-index:30;background:#fff;box-shadow:0 0 0 100vmax #fff,0 1px 0 100vmax #e6ecf2;clip-path:inset(0 -100vmax -1px)}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+
+/* Shared blue interface design system — role-specific data and school identities stay unchanged.
+   This applies to private app shells only. .site-landing and school-branded heroes
+   intentionally keep their institution-defined --school-color. Print papers stay white. */
+body{background:var(--bg)}
+body:has(.dashboard),body:has(.school-admin-shell),body:has(.adm-shell),
+body:has(.cr-shell),body:has(.lr-shell),body:has(.repm-shell),
+body:has(.scom-shell),body:has(.fee-shell),body:has(.school-onboarding),
+body:has(.school-role-landing),body:has(.adm-family){
+  background:linear-gradient(155deg,#f4f8ff 0%,#eaf2ff 44%,#d9e8ff 100%);
+}
+.dashboard,.school-admin-shell,.adm-shell,.adm-family,.cr-shell,.lr-shell,
+.repm-shell,.scom-shell,.fee-shell,.school-onboarding,.school-role-landing{
+  background:linear-gradient(155deg,#f4f8ff 0%,#eaf2ff 52%,#d9e8ff 100%);
+  color:var(--ink);
+}
+.shell{background:radial-gradient(ellipse at 18% 10%,#fff 0%,transparent 47%),linear-gradient(150deg,#eaf2ff,#d9e8ff)}
+/* Light, tactile navigation, with a quiet professional blue visual hierarchy. */
+.sidebar,.school-admin-sidebar{
+  background:linear-gradient(170deg,#244c89 0%,#203e70 100%);
+  box-shadow:5px 0 28px rgba(35,78,141,.08);
+}
+.nav button:hover,.nav button.active,.school-admin-sidebar nav button.active,
+.school-admin-sidebar nav button:hover,.school-admin-sidebar nav .school-admin-nav-link:hover,
+.school-admin-sidebar nav .school-admin-nav-link:focus-visible{
+  background:rgba(255,255,255,.16);color:#fff;
+}
+.mark{background:#3378e8}
+.card,.panel,.auth-card,.modal,.school-step-panel,.school-preview-panel,
+.school-role-card,.school-admin-metric,.school-admin-modal,
+.adm-panel,.adm-metric,.cr-panel,.lr-panel,.cr-metrics>div,
+.repm-panel,.repm-stat,.scom-panel,.fee-panel,.fee-total,.fee-dialog,
+.adm-side,.cr-nav,.repm-side,.fee-sidebar{
+  border-color:var(--line);
+  box-shadow:var(--ui-shadow);
+  border-radius:16px;
+}
+.card,.panel,.school-admin-metric,.adm-metric,.cr-metrics>div,.repm-stat,.fee-total{
+  background:var(--surface);
+}
+.button:not(.danger):not(.secondary):not(.flat){background:var(--blue);color:#fff}
+.button:not(.danger):not(.secondary):not(.flat):hover{background:#2468d5}
+.button.secondary{background:#fff;border-color:var(--line);color:var(--ink)}
+.input,.auth-card input,.auth-card select{
+  border-color:#cbdcf4;
+  border-radius:10px;
+}
+.input:focus-visible,button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--ui-focus);
+  outline-offset:2px;
+}
+.panel-header,.topbar{border-color:var(--line)}
+.auth-card,.school-role-card{box-shadow:0 22px 65px rgba(40,82,142,.13)}
+.auth-card{border-radius:22px}
+.tabs button.active{background:var(--blue-light);color:#205bbb;border-color:#afcbf7}
+.adm-side>button.selected,.adm-side>button:hover,.cr-nav button:hover,.cr-nav button.active,
+.repm-side>button.active,.repm-side>button:hover,.fee-sidebar>button.active,.fee-sidebar>button:hover{
+  background:#e6f0ff;color:#245eb5;
+}
+/* Keep school primary color as a meaningful institutional accent on school admin pages. */
+.school-admin-brand,.school-admin-year,.school-preview-nav,.school-live-preview{
+  accent-color:var(--school-color,#3378e8);
+}
+/* Informational pages and printable statements must remain legible on paper. */
+@media(max-width:760px){
+  .dashboard,.school-admin-shell,.adm-shell,.cr-shell,.lr-shell,
+  .repm-shell,.scom-shell,.fee-shell{max-width:100%;min-width:0}
+  .card,.panel,.school-admin-metric,.adm-panel,.cr-panel,.lr-panel,
+  .repm-panel,.scom-panel,.fee-panel{min-width:0}
+}
+@media print{
+  body,.dashboard,.school-admin-shell,.adm-shell,.adm-family,.cr-shell,.lr-shell,
+  .repm-shell,.scom-shell,.fee-shell,.school-onboarding{
+    background:#fff!important;
+  }
+  .rep-paper,.fee-receipt-paper{box-shadow:none!important}
+}
