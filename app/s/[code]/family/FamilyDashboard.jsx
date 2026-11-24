@@ -78,6 +78,7 @@ export default function FamilyDashboard({code}){
      </div>
      <div className="row">
       <a className="button secondary" href={"/s/"+code+"/report-card"}>View Approved Child Reports</a>
+      {code==="RW-SCH-000004"&&<a className="button secondary" href={"/s/"+code+"/resources"}>Family Learning Resources</a>}
       <a className="button secondary" href={"/s/"+code+"/communications"}>Messages & School Timetable</a>
       <a className="button secondary" href={"/s/"+code+"/fees"}>My Children's School Fees</a>
       <a href={"/s/"+code+"/portal?role=parent"}>Return to Parent Portal</a>
