@@ -107,8 +107,9 @@ export async function GET(request,{params}){
        logo:brand?.logo_url||null,color:/^#[0-9a-f]{6}$/i.test(brand?.primary_color||"")?
          brand.primary_color:"#204a78"},
      actor:{...role,id:actorId},
-     year,classes:year?classes.filter(c=>c.academic_year_id===year.id):[],
-     subjects,mappings,
+     year,classes:year?classes.filter(c=>c.academic_year_id===year.id&&(role.manager||teacherAssignments.some(a=>a.class_id===c.id))):[],
+     subjects:role.manager?subjects:subjects.filter(x=>teacherAssignments.some(a=>a.subject_id===x.id)),
+     mappings:role.manager?mappings:mappings.filter(x=>teacherAssignments.some(a=>a.class_id===x.class_id&&a.subject_id===x.subject_id)),
      assignments:role.manager?allAssignments:teacherAssignments,
      myAssignments:teacherAssignments,
      teachers:teacherMembers.map(m=>({userId:m.auth_user_id,email:emails.get(m.auth_user_id)||"Verified teacher"})),
