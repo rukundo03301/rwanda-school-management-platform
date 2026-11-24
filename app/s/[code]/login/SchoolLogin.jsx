@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
+import {studentLoginEmail} from "../../../../lib/school-roles.mjs";
 
 export default function SchoolLogin({code,name,logo,color,unavailable}) {
  const [client,setClient]=useState(null);
@@ -23,15 +24,23 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
    try{
      if(!client)throw Error("School sign-in is not configured");
      if(mode==="forgot"){
+if(!email.includes("@"))throw Error("Student ID passwords are reset by the school office. Ask your teacher or the school secretary.");
        const {error}=await client.auth.resetPasswordForEmail(email.trim(),{
          redirectTo:window.location.origin+"/s/"+code+"/reset-password"
        });
        if(error)throw error;
        setMessage("If the account exists, we have emailed recovery instructions.");
      } else {
-       const {error}=await client.auth.signInWithPassword({email:email.trim(),password});
-       if(error)throw error;
-       window.location.assign("/s/"+code+"/portal");
+       // A value without @ is a school-issued Student ID.
+let loginEmail=email.trim();
+if(!loginEmail.includes("@")){
+try{loginEmail=studentLoginEmail(code,loginEmail);}
+catch{throw Error("Enter your email address or your Student ID exactly as the school gave it to you");}
+}
+const {data:signed,error}=await client.auth.signInWithPassword({email:loginEmail,password});
+if(error)throw Error(error.message==="Invalid login credentials"?"The email or Student ID and password do not match":error.message);
+// A first or reset password from the school must be replaced before continuing.
+window.location.assign("/s/"+code+(signed?.user?.user_metadata?.must_change_password===true?"/password":"/portal"));
      }
    }catch(e){setError(e.message||"Sign-in failed");}
    finally{setBusy(false);}
@@ -66,7 +75,7 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
        <div className="row"><button className="button" type="button" disabled={unavailable} onClick={()=>window.location.assign("/s/"+code+"/portal")}>Continue to my school workspace</button>
          <button className="button secondary" type="button" onClick={async()=>{await client.auth.signOut();setSignedIn(false);}}>Use another account</button></div>
      </div>:<form onSubmit={submit}>
-       <label className="field">Email address<input className="input" required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+       <label className="field">Email address or Student ID<input className="input" required type="text" autoCapitalize="none" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)}/></label>
        {mode==="login"&&<label className="field">Password<input className="input" required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
        <button className="button" type="submit" disabled={!client||busy||unavailable} style={{width:"100%"}}>{busy?"Please wait…":mode==="login"?"Sign in to your school":"Email reset link"}</button>
      </form>}
