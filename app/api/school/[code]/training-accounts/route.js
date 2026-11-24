@@ -53,7 +53,7 @@ async function createOne(ctx,entry){
   const password=randomBytes(27).toString("base64url");
   const {data:created,error:createError}=await db.auth.admin.createUser({
     email,password,email_confirm:true,
-    user_metadata:{training_identity:true,training_school_code:code,display_name:entry.label}
+    user_metadata:{training_identity:true,training_school_code:school.school_code,display_name:entry.label}
   });
   if(createError||!created?.user?.id)throw new ApiError(502,"Supabase could not create this training account. "+(createError?.code||""));
   const userId=created.user.id;
