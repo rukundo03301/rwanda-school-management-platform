@@ -190,7 +190,16 @@ export default function PlatformPage() {
     }catch(e){setError(e.message);}
     finally{setBusy(false);}
   }
-  async function action(body,endpoint="/api/platform"){
+  async function openTicketHistory(ticket){
+setBusy(true);setError("");setNotice("");
+try{
+const response=await api({action:"ticket.history",id:ticket.id});
+setForm({ticket,history:response.result||[]});
+setModal("ticketHistory");
+}catch(e){setError(e.message);}
+finally{setBusy(false);}
+}
+async function action(body,endpoint="/api/platform"){
     setBusy(true);setError("");setNotice("");
     try{
       const output=await api(body,endpoint);
@@ -266,8 +275,12 @@ export default function PlatformPage() {
         <Header title="Your platform at a glance" description="Private tenant management and manually recorded monthly school fees." action={allowed("tenants.create")?<button className="button" onClick={()=>open("newTenant")}>+ Register school</button>:null}/>
         <div className="cards">
           <Metric label="Total schools" value={data.totals.tenants}/>
-          <Metric label="Active schools" value={data.totals.active}/>
-          <Metric label="Paused / suspended" value={data.totals.paused+data.totals.suspended}/>
+          <Metric label="Onboarding" value={data.totals.onboarding}/>
+<Metric label="Active schools" value={data.totals.active}/>
+          <Metric label="Paused" value={data.totals.paused}/>
+<Metric label="Suspended" value={data.totals.suspended}/>
+<Metric label="Archived" value={data.totals.archived}/>
+<Metric label="Pending deletion" value={data.totals.deletion_requested}/>
           <Metric label="Open support tickets" value={data.totals.ticketsOpen}/>
         </div>
         {allowed("billing.read")&&<>
@@ -299,7 +312,7 @@ export default function PlatformPage() {
       {tab==="tickets"&&<>
         <Header title="Support tickets" description="Track school problems, assignment and resolution." action={allowed("tickets.manage")?<button className="button" onClick={()=>open("newTicket")}>+ New ticket</button>:null}/>
         <div className="panel"><div className="table-wrap"><table><thead><tr><th>Ticket</th><th>School</th><th>Priority</th><th>Status</th><th>Opened</th><th>Assigned</th><th>Action</th></tr></thead><tbody>
-          {(data.tickets||[]).map(t=><tr key={t.id}><td><strong>{t.title}</strong><div className="micro" style={{whiteSpace:"normal",maxWidth:290}}>{t.description}</div></td><td>{data.tenants.find(s=>s.id===t.school_id)?.name||"School"}</td><td><Pill>{t.priority}</Pill></td><td><Pill>{t.status}</Pill></td><td>{DATE(t.created_at)}</td><td>{allowed("staff.read")&&allowed("tickets.manage")?<select className="input" aria-label="Assign ticket" value={t.assigned_to||""} disabled={busy} onChange={e=>action({action:"ticket.assign",id:t.id,assigneeId:e.target.value})}><option value="">Unassigned</option>{data.staff.filter(p=>p.active&&p.permissions.includes("tickets.manage")).map(p=><option key={p.auth_user_id} value={p.auth_user_id}>{p.email}</option>)}</select>:(t.assigned_to?"Assigned":"Unassigned")}</td><td>{allowed("tickets.manage")?<select className="input" aria-label="Change ticket status" value={t.status} onChange={e=>action({action:"ticket.update",id:t.id,status:e.target.value})} disabled={busy}>{["open","in_progress","resolved"].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select>:"View only"}</td></tr>)}
+          {(data.tickets||[]).map(t=><tr key={t.id}><td><strong>{t.title}</strong><div className="micro" style={{whiteSpace:"normal",maxWidth:290}}>{t.description}</div><button type="button" className="button flat" disabled={busy} onClick={()=>openTicketHistory(t)}>View history</button></td><td>{data.tenants.find(s=>s.id===t.school_id)?.name||"School"}</td><td>{allowed("tickets.manage")?<select className="input" aria-label="Change ticket priority" value={t.priority} disabled={busy} onChange={e=>action({action:"ticket.priority",id:t.id,priority:e.target.value})}>{["low","normal","urgent"].map(p=><option key={p} value={p}>{p}</option>)}</select>:<Pill>{t.priority}</Pill>}</td><td><Pill>{t.status}</Pill></td><td>{DATE(t.created_at)}</td><td>{allowed("staff.read")&&allowed("tickets.manage")?<select className="input" aria-label="Assign ticket" value={t.assigned_to||""} disabled={busy} onChange={e=>action({action:"ticket.assign",id:t.id,assigneeId:e.target.value})}><option value="">Unassigned</option>{data.staff.filter(p=>p.active&&p.permissions.includes("tickets.manage")).map(p=><option key={p.auth_user_id} value={p.auth_user_id}>{p.email}</option>)}</select>:(t.assigned_to?"Assigned":"Unassigned")}</td><td>{allowed("tickets.manage")?<select className="input" aria-label="Change ticket status" value={t.status} onChange={e=>action({action:"ticket.update",id:t.id,status:e.target.value})} disabled={busy}>{["open","in_progress","resolved"].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select>:"View only"}</td></tr>)}
         </tbody></table>{!data.tickets.length&&<Empty title="No support tickets" description="School issues and their resolution history will appear here."/>}</div></div>
       </>}
       {tab==="billing"&&<>
@@ -348,7 +361,7 @@ export default function PlatformPage() {
       </>}
       {tab==="audit"&&<>
         <Header title="Audit history" description="Trace platform-wide actions and permissions changes."/>
-        <div className="panel"><div className="table-wrap"><table><thead><tr><th>When</th><th>Action</th><th>Actor ID</th><th>Resource</th></tr></thead><tbody>{data.audit.map(a=><tr key={a.id}><td>{DATE(a.created_at)}</td><td>{a.event}</td><td><kbd>{a.actor_id?.slice(0,13)}…</kbd></td><td><kbd>{a.resource_id?.slice(0,13)||"—"}</kbd></td></tr>)}</tbody></table>{!data.audit.length&&<Empty title="No recorded activity" description="Auditable platform operations will appear here."/>}</div></div>
+        <div className="panel"><div className="table-wrap"><table><thead><tr><th>When</th><th>Action</th><th>Actor ID</th><th>Resource</th><th>Details</th></tr></thead><tbody>{data.audit.map(a=><tr key={a.id}><td>{DATE(a.created_at)}</td><td>{a.event}</td><td><kbd>{a.actor_id?.slice(0,13)}…</kbd></td><td><kbd>{a.resource_id?.slice(0,13)||"—"}</kbd></td><td style={{whiteSpace:"normal",maxWidth:340}}>{Object.entries(a.metadata||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+(v&&typeof v==="object"?JSON.stringify(v):String(v))).join(", ")||"—"}</td></tr>)}</tbody></table>{!data.audit.length&&<Empty title="No recorded activity" description="Auditable platform operations will appear here."/>}</div></div>
       </>}
       {tab==="security"&&<>
         <Header title="Account security" description="Important actions require verified identity and two-factor authentication."/>
@@ -503,10 +516,17 @@ export default function PlatformPage() {
         {form.status==="deletion_requested"&&<div className="notice error">This creates a deletion review request only. Data is not permanently deleted. MFA is required.<Field label={"Type School ID exactly: "+form.tenant.school_code}><input className="input" value={form.confirmSchoolCode||""} onChange={e=>setForm({...form,confirmSchoolCode:e.target.value})} required/></Field></div>}
         <div className="modal-footer"><button className="button" disabled={busy||!form.status||(form.status==="deletion_requested"&&form.confirmSchoolCode!==form.tenant.school_code)} type="submit">Confirm change</button></div>
       </form>}
-      {modal==="newTicket"&&<form onSubmit={e=>{e.preventDefault();action({action:"ticket.create",schoolId:form.schoolId,title:form.title,description:form.description});}}>
+      {modal==="ticketHistory"&&<div>
+<p className="muted"><strong>{form.ticket.title}</strong> · opened {DATE(form.ticket.created_at)}</p>
+<div className="table-wrap"><table><thead><tr><th>When (Kigali)</th><th>Event</th><th>Details</th></tr></thead><tbody>
+{(form.history||[]).map(h=><tr key={h.id}><td>{new Date(h.created_at).toLocaleString("en-GB",{timeZone:"Africa/Kigali"})}</td><td>{h.event.replace("ticket.","").replaceAll("_"," ")}</td><td style={{whiteSpace:"normal"}}>{Object.entries(h.metadata||{}).filter(([k])=>k!=="school_id").map(([k,v])=>k.replaceAll("_"," ")+": "+String(v)).join(", ")||"—"}</td></tr>)}
+</tbody></table>{!(form.history||[]).length&&<Empty title="No recorded history" description="Changes to this ticket will be listed here."/>}</div>
+</div>}
+{modal==="newTicket"&&<form onSubmit={e=>{e.preventDefault();action({action:"ticket.create",schoolId:form.schoolId,title:form.title,description:form.description,priority:form.priority||"normal"});}}>
         <Field label="School"><select required className="input" value={form.schoolId||""} onChange={e=>setForm({...form,schoolId:e.target.value})}><option value="">Select school</option>{(data.tenants||[]).map(t=><option key={t.id} value={t.id}>{t.name} ({t.school_code})</option>)}</select></Field>
         <Field label="Issue title"><input required maxLength={160} className="input" value={form.title||""} onChange={e=>setForm({...form,title:e.target.value})}/></Field>
         <Field label="Description"><textarea required className="input" value={form.description||""} onChange={e=>setForm({...form,description:e.target.value})}/></Field>
+<Field label="Priority"><select className="input" value={form.priority||"normal"} onChange={e=>setForm({...form,priority:e.target.value})}><option value="low">Low</option><option value="normal">Normal</option><option value="urgent">Urgent</option></select></Field>
         <div className="modal-footer"><button type="submit" disabled={busy} className="button">Create ticket</button></div>
       </form>}
       {modal==="newMethod"&&<form onSubmit={e=>{e.preventDefault();action({action:"method.create",label:form.label,type:form.type});}}>
@@ -578,4 +598,4 @@ function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
-function modalTitle(mode){return ({newTenant:"Register a new school",demo:"Create a mockup school",purge:"Permanently wipe school tenant",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
+function modalTitle(mode){return ({newTenant:"Register a new school",demo:"Create a mockup school",purge:"Permanently wipe school tenant",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",ticketHistory:"Ticket history",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
