@@ -373,6 +373,7 @@ async function action(body,endpoint="/api/platform"){
       </>}
     </main>
     {modal&&<Modal title={modalTitle(modal)} onClose={()=>setModal(null)}>
+{error&&<div className="notice error" role="alert">{error}{/two-factor/i.test(error)?" Open Security, verify your authenticator, then try again.":""}</div>}
       {modal==="demo"&&<div className="tenant-purge-body">
         <p><strong>Mockup School: Kigali Learning Academy · DEMO</strong></p>
         <p>This creates a fictional, clearly labeled sample institution with a unique Company ID and School ID, branded public homepage, school owner access, one demo student, class, subject, timetable, homework, attendance, sample RWF invoice, and school announcement. It will not send invitation emails or collect real money.</p>
@@ -437,6 +438,7 @@ async function action(body,endpoint="/api/platform"){
             form.confirmSchoolCode!==purgePreview.school_code||
             form.confirmPhrase!=="DELETE ALL SCHOOL DATA"||(form.reason||"").trim().length<12
           }>Permanently delete school and verify wipe</button>
+{!busy&&!purgePreview.legal_hold&&(!form.acknowledge||form.confirmSchoolCode!==purgePreview.school_code||form.confirmPhrase!=="DELETE ALL SCHOOL DATA"||(form.reason||"").trim().length<12)&&<p className="micro" style={{width:"100%",textAlign:"right",margin:"6px 0 0"}}>To enable deletion: give a reason of at least 12 characters, type the School ID and the phrase exactly, and tick the box.</p>}
         </div>
       </form>}
       {modal==="newTenant"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.create",companyName:form.companyName,schoolName:form.schoolName,ownerEmail:form.ownerEmail});}}>
