@@ -1,8 +1,8 @@
 {
-  "schema_version": "2026-11-24.demo.1",
+  "schema_version": "2026-11-24.remezo.2",
   "fictional": true,
   "scope": "RW-SCH-000004",
-  "purpose": "School D demonstration; no real persons, financial transfers, logins or social accounts",
+  "purpose": "Fictional Remezo Primary School training data. Synthetic persons, no real payments or messages.",
   "academic_year": "2026-2027 (FICTIONAL TEST)",
   "learners": {
     "expected_total": 20,
@@ -388,5 +388,6 @@
     "teacher_auth": "Only preexisting verified teacher account is real; five directory profiles are NOT logins",
     "operations_and_governance": "design/demo fixture until secure school-scoped CRUD and purge-manifest updates",
     "social_media": "field definitions only; no external links claimed"
-  }
+  },
+  "schoolName": "Remezo Primary School"
 }
