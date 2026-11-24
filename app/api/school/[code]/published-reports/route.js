@@ -32,19 +32,18 @@ export async function GET(request,{params}){
       .eq("school_id",school.id).eq("status","published")
       .in("student_id",studentIds).order("published_at",{ascending:false}).limit(300));
   }
-  const [published,draft]=await Promise.all([
-    checked(db.from("platform_school_sites")
-      .select("logo_url,primary_color").eq("school_id",school.id).maybeSingle()),
-    checked(db.from("school_site_drafts")
-      .select("logo_url,primary_color").eq("school_id",school.id).maybeSingle())
-  ]);
-  const branding=published?.logo_url?published:(draft||published);
+  // Branding comes from the published website only. A private draft logo or
+    // colour is never returned here, because this endpoint answers any signed-in
+    // user of an active school (with an empty report list when they are unlinked).
+    const branding=await checked(db.from("platform_school_sites")
+      .select("logo_url,primary_color,is_published").eq("school_id",school.id).maybeSingle());
+    const live=branding?.is_published===true?branding:null;
   // All results are already filtered by verified parent-child link or
   // the student's unique school-issued identity.
   return Response.json({
     school:{name:school.name,code:school.school_code,
-      logoUrl:branding?.logo_url||null,
-      primaryColor:branding?.primary_color||"#204a78"},
+      logoUrl:live?.logo_url||null,
+      primaryColor:live?.primary_color||"#204a78"},
     reports,role:isParent?"parent":isStudent?"student":"unlinked"
   },{headers:{"Cache-Control":"private, no-store"}});
  }catch(e){return jsonError(e)}
