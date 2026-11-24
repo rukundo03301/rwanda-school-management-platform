@@ -49,7 +49,7 @@ export default async function SchoolHome({params}) {
   const hasLeader=Boolean(site.leader_name?.trim()||site.leader_message?.trim());
   const promos=Array.isArray(site.advertisements)?site.advertisements.filter(a=>a?.enabled&&a?.title&&a?.description).slice(0,3):[];
   return <main className="site-landing" style={{"--school-color":color}}>
-    <header className="site-header">{brand}<nav aria-label="School website"><a href="#about">About</a>{hasMission&&<a href="#mission">Mission &amp; Vision</a>}{hasLeader&&<a href="#leadership">Leadership</a>}{promos.length>0&&<a href="#opportunities">News &amp; Events</a>}<a href="#contact">Contact</a><a href={"/s/"+code+"/login"} className="site-portal-link">School Portal</a></nav></header>
+    <header className="site-header">{brand}<nav aria-label="School website"><a href="#about">About</a>{hasMission&&<a href="#mission">Mission &amp; Vision</a>}{hasLeader&&<a href="#leadership">Leadership</a>}{promos.length>0&&<a href="#opportunities">News &amp; Events</a>}<a href="#contact">Contact</a><a href={"/s/"+code+"/login"} className="site-portal-link">School Login</a></nav></header>
     {site.announcement&&<div className="site-announcement">{site.announcement}</div>}
     <section className="site-hero" style={site.hero_url?{backgroundImage:"linear-gradient(90deg,rgba(7,25,43,.83),rgba(7,25,43,.3)),url("+JSON.stringify(site.hero_url)+")"}:{}}>
       <div className="site-hero-content">
@@ -94,6 +94,6 @@ export default async function SchoolHome({params}) {
       {site.contact_phone&&<p>{site.contact_phone}</p>}
       {!site.contact_email&&!site.contact_phone&&<p>Official school contact details will be provided here.</p>}
     </section>
-    <footer className="site-footer"><strong>{school.name}</strong> · Official school website · <a href={"/s/"+code+"/login"} style={{color:"white"}}>School Portal</a></footer>
+    <footer className="site-footer"><strong>{school.name}</strong> · Official school website · <a href={"/s/"+code+"/login"} style={{color:"white"}}>School Login</a></footer>
   </main>;
 }
