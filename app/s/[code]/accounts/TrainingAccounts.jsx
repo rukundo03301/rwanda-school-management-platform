@@ -47,3 +47,4 @@ export default function TrainingAccounts({code}){
  <p>Teacher accounts receive one actual school class-and-subject assignment. The fictional parent account is linked to three students using the school's protected guardian relationship records. The student account belongs to one of those children. The Principal receives school administrator access. Other staff have staff memberships but require dedicated kitchen, security, bursar and maintenance workflow permissions as those modules are completed.</p>
  <p>Board members cannot yet receive a board login: board governance is not an implemented authorization role. Do not give them School Owner privileges as a workaround.</p>
  </section></main>;
+}
