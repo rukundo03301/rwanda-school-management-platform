@@ -955,3 +955,11 @@ kbd {font-family:monospace;font-size:11px;padding:2px 5px;background:#f2f5f8;bor
   .panel-header .row .input{width:100%!important;flex:1 1 140px}
   .header .row .button{flex:1 1 auto}
 }
+
+/* Table action cells: the buttons wrapped but the cell stayed too narrow, so
+   long buttons such as "Permanently delete" were clipped by the table wrapper.
+   Give action cells room, let them wrap, and let the name column wrap too. */
+.table-wrap td:first-child{white-space:normal;min-width:150px;max-width:220px}
+.table-wrap td:has(> .row){white-space:normal;min-width:240px}
+.table-wrap td:has(> .row) .row{flex-wrap:wrap;gap:6px}
+.table-wrap td:has(> .row) .row .button{white-space:nowrap}
