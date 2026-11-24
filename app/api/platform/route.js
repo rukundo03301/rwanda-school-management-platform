@@ -63,7 +63,7 @@ export async function GET(request) {
     }
     if (can("audit.read")) {
       data.audit = await checked(db.from("platform_audit")
-        .select("id,actor_id,event,resource_id,created_at").order("created_at", { ascending: false }).limit(80));
+        .select("id,actor_id,event,resource_id,metadata,created_at").order("created_at", { ascending: false }).limit(80));
     }
     const stats = await checked(db.rpc("platform_owner_stats"));
     const financial = can("billing.read")
@@ -289,10 +289,12 @@ export async function POST(request) {
       const schoolId = validateUuid(body.schoolId,"school");
       const title = safeText(body.title, 160);
       const description = safeText(body.description, 2000);
+      const priority = String(body.priority || "normal");
+      if (!["low","normal","urgent"].includes(priority)) throw new ApiError(400,"Invalid ticket priority.");
       result = await checked(db.from("platform_tickets").insert({
-        school_id:schoolId,title,description,priority:"normal",status:"open",created_by:actor.id
+        school_id:schoolId,title,description,priority,status:"open",created_by:actor.id
       }).select("id").single());
-      await audit(db,actor,"ticket.created",result.id,{school_id:schoolId});
+      await audit(db,actor,"ticket.created",result.id,{school_id:schoolId,priority});
     } else if (action === "ticket.update") {
       requirePermission(actor,"tickets.manage");
       const id = validateUuid(body.id,"ticket");
@@ -300,6 +302,20 @@ export async function POST(request) {
       if (!["open","in_progress","resolved"].includes(status)) throw new ApiError(400,"Invalid ticket status.");
       result = await checked(db.from("platform_tickets").update({status,updated_at:new Date().toISOString()}).eq("id",id).select("id").single());
       await audit(db,actor,"ticket.status_changed",id,{status});
+    } else if (action === "ticket.priority") {
+      requirePermission(actor,"tickets.manage");
+      const id = validateUuid(body.id,"ticket");
+      const priority = String(body.priority||"");
+      if (!["low","normal","urgent"].includes(priority)) throw new ApiError(400,"Invalid ticket priority.");
+      result = await checked(db.from("platform_tickets").update({priority,updated_at:new Date().toISOString()}).eq("id",id).select("id").single());
+      await audit(db,actor,"ticket.priority_changed",id,{priority});
+    } else if (action === "ticket.history") {
+      requirePermission(actor,"tickets.read");
+      const id = validateUuid(body.id,"ticket");
+      // Ticket history is the audit trail of events recorded against this ticket.
+      result = await checked(db.from("platform_audit")
+        .select("id,actor_id,event,metadata,created_at").eq("resource_id",id)
+        .like("event","ticket.%").order("created_at",{ascending:true}).limit(200));
     } else if (action === "ticket.assign") {
       requirePermission(actor,"tickets.manage");
       requirePermission(actor,"staff.read");
