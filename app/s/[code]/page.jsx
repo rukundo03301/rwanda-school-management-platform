@@ -24,7 +24,7 @@ const loadSchoolSite=cache(async(code)=>{
   const {data:site}=await db.from("platform_school_sites").select(
     "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,is_published,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements,address_text,programs_intro,admissions_intro,admissions_instructions,admissions_contact,gallery,education_levels"
   ).eq("school_id",school.id).maybeSingle();
-  const available=site?.is_published===true;
+  const available=school.status==="active"&&site?.is_published===true;
   return {school,site:available?site:null,available};
 });
 
