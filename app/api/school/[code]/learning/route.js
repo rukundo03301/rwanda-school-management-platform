@@ -48,7 +48,7 @@ export async function GET(request,{params}){
          ).eq("school_id",school.id).eq("class_id",activeClass.id)
            .eq("status","published").order("due_at",{ascending:true}).limit(200)),
          checked(db.from("school_homework_submissions")
-           .select("homework_id,response_text,submitted_at,is_late")
+           .select("homework_id,response_text,submitted_at,is_late,score,max_score,feedback,graded_at")
            .eq("school_id",school.id).eq("student_id",record.id)
            .order("submitted_at",{ascending:false}).limit(200)),
          checked(db.from("school_attendance_records")
