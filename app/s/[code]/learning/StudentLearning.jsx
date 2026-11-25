@@ -60,6 +60,12 @@ export default function StudentLearning({code}){
    <p className="muted">Everything here belongs to your school and is linked to your actual student account.</p>
    {notice&&<div className="notice ok" role="status">{notice}</div>}
    {error&&<div className="notice error" role="alert">{error}</div>}
+   {activeClass&&<div style={{display:"grid",gap:12,gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",margin:"16px 0"}}>
+    <section className="lr-panel" style={{margin:0}}><strong style={{fontSize:28}}>{homework.filter(h=>!submissions.some(x=>x.homework_id===h.id)).length}</strong><p className="micro">Homework to do</p></section>
+    <section className="lr-panel" style={{margin:0}}><strong style={{fontSize:28}}>{submissions.length}</strong><p className="micro">Homework submitted</p></section>
+    <section className="lr-panel" style={{margin:0}}><strong style={{fontSize:28}}>{submissions.filter(x=>x.score!==null&&x.score!==undefined).length}</strong><p className="micro">Homework graded</p></section>
+    <section className="lr-panel" style={{margin:0}}><strong style={{fontSize:28}}>{attendance.length?Math.round(100*attendance.filter(x=>x.status==="present"||x.status==="late").length/attendance.length)+"%":"—"}</strong><p className="micro">Days attended</p></section>
+   </div>}
    {pendingInvitations.length>0&&<section className="lr-panel"><h2>Student account invitations</h2>
     <p className="muted">Your school has approved a pending invitation for your verified email account. Student identity stays hidden until you accept it.</p>
     {pendingInvitations.map(i=><div className="lr-invite" key={i.studentId}><div><strong>School-issued Student Invitation</strong><p>Expires {i.expiresAt?.slice(0,10)}</p></div>
