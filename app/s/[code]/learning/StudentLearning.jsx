@@ -124,7 +124,7 @@ export default function StudentLearning({code}){
   {error&&<div className="notice error" role="alert">{error}</div>}
   {!activeClass?<div className="ds-panel"><h3>No current-year class enrollment</h3><p>Contact your school administration to confirm your current class before homework or attendance can appear.</p></div>:<>
   {tab==="dashboard"&&<div className="ds-grid">
-   <div className="ds-span8" style={{display:"grid",gap:14,alignContent:"start"}}>
+   <div className="ds-span8" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
     <div className="ds-stats" style={{margin:0}}>
      <Stat icon="clock" tone="blue" value={attendance.length?attended+"/"+attendance.length:"—"} label="Attendance (days)"/>
      <Stat icon="check" tone="purple" value={homework.length?submissions.length+"/"+homework.length:"—"} label="Homework done"/>
