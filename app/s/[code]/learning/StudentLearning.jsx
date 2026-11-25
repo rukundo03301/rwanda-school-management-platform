@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
+import {youtubeEmbed} from "../../../../lib/youtube-embed.mjs";
 import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 function MiniStat({label,value}){return <div className="lr-stat"><small>{label}</small><strong>{value}</strong></div>}
@@ -55,7 +56,7 @@ export default function StudentLearning({code}){
  if(error&&!data)return <main className="school-admin-loading"><h2>Student learning unavailable</h2><p role="alert">{error}</p>
   <a href={"/s/"+code+"/portal?role=student"}>Back to school</a></main>;
  if(!data)return <main className="school-admin-loading">No student records available.</main>;
- const {school,student,activeClass,academicYear,subjects,homework,submissions,attendance,pendingInvitations}=data;
+ const {school,student,activeClass,academicYear,subjects,homework,submissions,attendance,pendingInvitations,materials=[]}=data;
  const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login?role=student");};
  if(!student)return <main className="school-admin-loading">
   {pendingInvitations.length>0&&<section className="lr-panel"><h2>Student account invitations</h2>
@@ -104,7 +105,7 @@ export default function StudentLearning({code}){
   {label:"Results & Grades",icon:"chart",href:"/s/"+code+"/report-card"},
   {label:"Attendance",icon:"clock",active:tab==="attendance",onClick:()=>setTab("attendance")},
   {label:"Report Cards",icon:"file",href:"/s/"+code+"/report-card"},
-  {label:"Learning Resources",icon:"folder",href:"/s/"+code+"/resources"},
+  {label:"Learning Resources",icon:"folder",active:tab==="materials",badge:0,onClick:()=>setTab("materials")},
   {label:"Messages",icon:"chat",href:"/s/"+code+"/communications"},
   {label:"School Events",icon:"megaphone",active:tab==="events",onClick:()=>setTab("events")},
   {label:"My Profile",icon:"user",active:tab==="profile",onClick:()=>setTab("profile")},
@@ -194,6 +195,18 @@ export default function StudentLearning({code}){
      :<p className="ds-empty">No graded homework yet.</p>}
    </Card>
   </div>}
+  {tab==="materials"&&<section className="ds-panel"><h3>Learning Resources</h3>
+   <p className="muted">Videos and links your teachers have switched on for your class.</p>
+   {materials.length?<div className="ds-materials">{materials.map(m=>{const embed=m.kind==="video"?youtubeEmbed(m.url):null;
+    return <article key={m.id} className="ds-material">
+     {embed&&<iframe src={embed} title={m.title} loading="lazy" allow="encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/>}
+     <span className="ds-pill info" style={{marginLeft:0}}>{subjectName(m.subject_id)}</span>
+     <h4>{m.title}</h4>{m.description&&<p>{m.description}</p>}
+     <a className="ds-action blue" href={m.url} target="_blank" rel="noopener noreferrer">{m.kind==="video"?"Watch":"Open"}</a>
+    </article>;})}</div>
+    :<p className="ds-empty">Your teachers have not added learning resources for your class yet.</p>}
+   <p style={{marginTop:14}}><a href={"/s/"+code+"/resources"}>School learning library →</a></p>
+  </section>}
   {tab==="timetable"&&<section className="ds-panel"><h3>My weekly timetable</h3>
    {periods.length?<div className="ds-week">{days.slice(0,6).map((d,i)=><div key={d} className={"ds-day"+(i+1===today?" now":"")}>
     <strong>{d}</strong>{periods.filter(x=>x.weekday===i+1).map(x=><div key={x.id} className="ds-slot">
