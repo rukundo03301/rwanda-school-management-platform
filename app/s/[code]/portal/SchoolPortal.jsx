@@ -111,7 +111,7 @@ export default function SchoolPortal({code}) {
              ?"Your administrator role has been verified. Your permissions are enforced on every school-management request."
              :role==="teacher"?"Your teaching workspace is ready for your approved class assignments.":
               role==="student"?"Your school-approved learning account can access its own classwork.":
-              "Your role is recognized. Its dedicated workspace is still in development."}</p>
+              "Your role is recognized. Open School Notices and Calendar to get started."}</p>
          {role==="school_owner"?<div className="row">
            <a className="button" href={"/s/"+code+"/admin"}>Open School Administration</a>
            <a className="button secondary" href={"/s/"+code+"/setup"}>Manage School Website</a>
@@ -145,7 +145,7 @@ export default function SchoolPortal({code}) {
            </div>:
            <div><a className="button" href={"/s/"+code+"/communications"}>School Notices and Calendar</a>
             <a className="button secondary" href={"/s/"+code+"/fees"}>RWF Financial Workspace (if authorized)</a>
-            <p>Workspace under development for additional staff-specific operational features.</p></div>}
+            <a className="button secondary" href={"/s/"+code+"/operations"}>Operations, Stock & Board</a></div>}
        </div>:
        staffInvitePending?<div className="notice info">
          <strong>Verified school invitation available</strong>
