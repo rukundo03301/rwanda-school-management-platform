@@ -47,6 +47,8 @@ export default function SchoolPortal({code}) {
          let destination=chosen==="school_owner"&&data.school.status==="onboarding"?"/s/"+code+"/setup":schoolWorkspacePath(code,chosen);
      // Staff the owner has given finance rights (for example the Bursar) start in School Fees.
      if(chosen==="staff"){
+      // Other school staff (secretary, cook, guard, maintenance) start in School Operations.
+      destination="/s/"+code+"/operations";
       try{
        const feesRes=await fetch("/api/school/"+code+"/fees",{headers:{authorization:"Bearer "+session.access_token},cache:"no-store"});
        if(feesRes.ok){const fees=await feesRes.json();if((fees.actor?.permissions||[]).length)destination="/s/"+code+"/fees";}
