@@ -151,7 +151,7 @@ export async function POST(request,{params}){
     }
     result={...result,email,mailStatus,loginPath};
   }else if(action==="admin.permissions"){
-    requireSchoolOwner(actor);if(actor.isOwner)requireAal2(token);
+    requireSchoolOwner(actor);requireAal2(token);
     const target=validateUuid(body.userId,"staff");
     const permissions=validatedAdminPermissions(body.permissions||[]);
     const reason=schoolAdminText(body.reason||"",500);
