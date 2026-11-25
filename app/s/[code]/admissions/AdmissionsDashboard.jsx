@@ -112,7 +112,7 @@ export default function AdmissionsDashboard({code}){
       </div>
     </aside>
     <section className="adm-content">
-      <div className="adm-heading"><span className="adm-eyebrow">ACADEMIC MANAGEMENT / MODULE 3</span>
+      <div className="adm-heading"><span className="adm-eyebrow">ACADEMIC MANAGEMENT</span>
         <h1>{({overview:"Admissions & Enrollment",applications:"Applications",students:"Student Registry",
           guardians:"Verified Family Connections",access:"Admissions Access Controls"})[tab]}</h1>
         <p>Manage real applications and enrollment securely within {school.name}.</p>
