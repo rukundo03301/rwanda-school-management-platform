@@ -64,6 +64,12 @@ export default function FamilyDashboard({code}){
          <p className="micro">The child's identity is hidden until you accept the verified link. Invitation expires {i.expiresAt?.slice(0,10)}.</p>
        </div><button className="button" disabled={claiming} onClick={()=>accept(i.studentId)}>{claiming?"Checking…":"Accept family link"}</button></div>)}
      </section>}
+     {data.children.length>0&&<div style={{display:"grid",gap:12,gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",margin:"16px 0"}}>
+       <section className="adm-panel"><strong style={{fontSize:28}}>{data.children.length}</strong><p className="micro">Children at this school</p></section>
+       <section className="adm-panel"><strong style={{fontSize:28}}>{data.children.reduce((n,c)=>n+(c.homework||[]).filter(h=>!h.submittedAt).length,0)}</strong><p className="micro">Homework not yet submitted</p></section>
+       <section className="adm-panel"><strong style={{fontSize:28}}>{(()=>{const r=data.children.reduce((n,c)=>n+(c.attendance?.recorded||0),0);const p=data.children.reduce((n,c)=>n+(c.attendance?.present||0)+(c.attendance?.late||0),0);return r?Math.round(100*p/r)+"%":"—";})()}</strong><p className="micro">Days attended (present or late)</p></section>
+       <section className="adm-panel"><strong style={{fontSize:28}}>{data.children.reduce((n,c)=>n+(c.homework||[]).filter(h=>h.score!==null&&h.score!==undefined).length,0)}</strong><p className="micro">Homework graded</p></section>
+     </div>}
      <section className="adm-panel"><h2>My linked children</h2>
        {data.children.length?<div className="adm-family-cards">{data.children.map(child=><article className="adm-family-child" key={child.id}>
          <div className="adm-child-avatar">🎓</div><div><h3>{child.name}</h3><p><strong>Student ID:</strong> {child.studentCode}</p>
