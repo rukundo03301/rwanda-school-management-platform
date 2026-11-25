@@ -138,7 +138,7 @@ export default function ClassroomDashboard({code}){
       <div className="ds-chips"><span className="ds-chip"><Icon name="calendar" size={18}/>{todayLabel()}</span>
        {year?.name&&<span className="ds-chip blue">{year.name}</span>}</div></section>
      <div className="ds-grid">
-      <div className="ds-span8" style={{display:"grid",gap:14,alignContent:"start"}}>
+      <div className="ds-span8" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
        <div className="ds-stats" style={{margin:0}}>
         <Stat icon="users" tone="blue" value={teacherClasses.length} label="My Classes"/>
         <Stat icon="cap" tone="purple" value={uniqueStudentCount} label="My Students"/>
@@ -156,7 +156,7 @@ export default function ClassroomDashboard({code}){
           <div className="ds-legend">{teacherClasses.map(cls=><div key={cls.id}>{classLabel(cls.id)}<b>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</b></div>)}</div></div>
         </Card>
        </div>
-       <Card title="My Classes" icon="users" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Open →</button>}>
+       <Card title="My Classes" icon="users" size="s12" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Open →</button>}>
         {teacherClasses.length?<table className="ds-table"><thead><tr><th>Class</th><th>Subjects</th><th>Students</th><th></th></tr></thead><tbody>
          {teacherClasses.map(cls=><tr key={cls.id}><td><strong>{classLabel(cls.id)}</strong></td>
           <td>{[...new Set(myAssignments.filter(a=>a.class_id===cls.id).map(a=>subjectLabel(a.subject_id)))].join(", ")||"—"}</td>
@@ -178,7 +178,7 @@ export default function ClassroomDashboard({code}){
         </Card>
        </div>
       </div>
-      <div className="ds-span4" style={{display:"grid",gap:14,alignContent:"start"}}>
+      <div className="ds-span4" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
        <Card title="Quick Actions" icon="bolt">
         <div className="ds-actions" style={{gridTemplateColumns:"1fr"}}>
          <button className="ds-action blue" onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("homework",{classId:a.class_id,subjectId:a.subject_id});}else selectSection("homework");}}><Icon name="check"/>Create Homework</button>
