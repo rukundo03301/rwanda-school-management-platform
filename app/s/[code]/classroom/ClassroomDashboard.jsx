@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
+import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const SECTIONS=[
@@ -24,7 +25,7 @@ export default function ClassroomDashboard({code}){
  const [loading,setLoading]=useState(true),[data,setData]=useState(null);
  const [tab,setTab]=useState("overview"),[selectedClass,setSelectedClass]=useState("");
  const [modal,setModal]=useState(null),[form,setForm]=useState({});
- const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false);
+ const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[com,setCom]=useState(null);
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
   if(!c){setReady(true);setLoading(false);return;}
@@ -53,7 +54,14 @@ export default function ClassroomDashboard({code}){
   }catch(e){setError(e.message);}
   finally{setLoading(false);}
  },[api]);
- useEffect(()=>{if(ready&&session)refresh();else if(ready){setLoading(false);setData(null);}},[ready,session?.user?.id,refresh]);
+ const loadExtra=useCallback(async()=>{
+  try{
+   const {data:{session:s}}=await client.auth.getSession();
+   const r=await fetch("/api/school/"+code+"/communications",{cache:"no-store",headers:{Authorization:"Bearer "+s.access_token}});
+   setCom(r.ok?await r.json():null);
+  }catch{setCom(null);}
+ },[client,code]);
+ useEffect(()=>{if(ready&&session){refresh();loadExtra();}else if(ready){setLoading(false);setData(null);}},[ready,session?.user?.id,refresh,loadExtra]);
  const open=(mode,fields={})=>{setModal(mode);setForm(fields);setError("");setNotice("");};
  async function submit(body){
   setBusy(true);setError("");setNotice("");
@@ -101,93 +109,97 @@ export default function ClassroomDashboard({code}){
    if(["lessons","homework","attendance","submissions"].includes(t.id))return actor.teacher;
    return true;
  });
- return <div className="cr-shell" style={{"--school-color":school.color}}>
-  <header className="cr-header">
-   <div className="cr-school-brand">
-    {school.logo?<img src={school.logo} alt={school.name+" logo"} width="48" height="48"/>:<div className="cr-brand-fallback">✦</div>}
-    <div><strong>{school.name}</strong><small>{actor.teacher?"Teacher Workspace":"School Academic Management"}</small></div>
-   </div>
-   <nav><a href={"/s/"+code+"/portal?role="+(actor.teacher?"teacher":"school_owner")}>School Portal</a>
-    {actor.manager&&<a href={"/s/"+code+"/admin"}>Administration</a>}
-    <a href={"/s/"+code+"/reports"}>Assessment Gradebook</a>
-    <a href={"/s/"+code+"/communications"}>Timetable & Families</a>
-    {code==="RW-SCH-000004"&&<a href={"/s/"+code+"/resources"}>Learning Library</a>}</nav>
-  </header>
-  <div className="cr-layout">
-   <aside className="cr-nav"><span className="cr-nav-eyebrow">{actor.teacher?"TEACHER DASHBOARD":"ACADEMIC WORKSPACE"}</span>
-    {visibleTabs.map(t=><button key={t.id} className={tab===t.id?"active":""} onClick={()=>{setTab(t.id);setError("");}}>{t.label}</button>)}
-    <div className="cr-side-meta"><small>School ID</small><strong>{school.code}</strong><p>Only approved classes and members are shown.</p></div>
-   </aside>
-   <main className="cr-main">
-    <div className="cr-title"><span className="cr-eyebrow">CLASSROOM MANAGEMENT</span>
-     <h1>{({overview:"My School Classrooms",assignments:"Teacher Class Assignments",lessons:"Lesson Planning",
-      homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",
-      studentAccess:"Verified Student Accounts"})[tab]}</h1>
+ const hhmm=t=>String(t||"").slice(0,5);
+ const todayNo=({Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7})[new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Africa/Kigali"}).format(new Date())];
+ const myPeriods=(com?.timetable||[]).filter(x=>x.weekday===todayNo);
+ const toGrade=assignedSubmissions.filter(x=>!x.graded_at);
+ const TITLES={overview:"Teacher Dashboard",assignments:"Teacher Class Assignments",lessons:"Lesson Planning",homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",studentAccess:"Verified Student Accounts"};
+ const ICON={overview:"home",assignments:"users",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user"};
+ const NAMES={overview:"Dashboard",attendance:"Attendance",submissions:"Grade Submissions"};
+ const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),
+  {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
+  {label:"Assessment Gradebook",icon:"chart",href:"/s/"+code+"/reports"},
+  ...(code==="RW-SCH-000004"?[{label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"}]:[]),
+  ...(actor.manager?[{label:"Administration",icon:"gear",href:"/s/"+code+"/admin"}]:[])];
+ const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login?role="+(actor.teacher?"teacher":"school_owner"));};
+ return <DashboardShell school={{name:school.name,logoUrl:school.logo,place:actor.teacher?"Teacher workspace":"Academic workspace"}}
+  title={TITLES[tab]} user={{name:session.user.email||"School member",role:actor.teacher?"Teacher":actor.owner?"School Owner":"School Staff"}}
+  nav={navItems} notifications={actor.teacher?toGrade.length:0} onBell={()=>selectSection("submissions")}
+  helpText="Contact the school administration." onSignOut={signOut} portalHref={"/s/"+code+"/portal?role="+(actor.teacher?"teacher":"school_owner")}>
+    {!(tab==="overview"&&actor.teacher)&&<div className="cr-title">
      <p>{actor.teacher?"Only your school-approved class assignments and students appear here.":
        "Approve class teaching assignments and verified student access within this school."}</p>
-    </div>
+    </div>}
     {notice&&<div className="notice ok" role="status">{notice}</div>}
     {error&&<div className="notice error" role="alert">{error}</div>}
-    {tab==="overview"&&actor.teacher&&<div className="teach-home">
-      <div className="teach-welcome"><div><span className="cr-eyebrow">YOUR TEACHING WORKSPACE</span>
-        <h2>Welcome to your Teacher Dashboard</h2>
-        <p>Manage your assigned classes, learning activities and student submissions at {school.name}.</p></div>
-        <div className="teach-date"><span>▦ {dateLabel}</span>{year?.name&&<span className="teach-term">{year.name}</span>}</div>
+    {tab==="overview"&&actor.teacher&&<>
+     <section className="ds-banner"><div><h2>{greeting()}, Teacher!</h2>
+      <p>{toGrade.length?"You have "+toGrade.length+" submitted "+(toGrade.length===1?"task":"tasks")+" waiting for your grade.":"No submissions are waiting for your grade."} Manage your classes at {school.name}.</p></div>
+      <div className="ds-chips"><span className="ds-chip"><Icon name="calendar" size={18}/>{todayLabel()}</span>
+       {year?.name&&<span className="ds-chip blue">{year.name}</span>}</div></section>
+     <div className="ds-grid">
+      <div className="ds-span8" style={{display:"grid",gap:14,alignContent:"start"}}>
+       <div className="ds-stats" style={{margin:0}}>
+        <Stat icon="users" tone="blue" value={teacherClasses.length} label="My Classes"/>
+        <Stat icon="cap" tone="purple" value={uniqueStudentCount} label="My Students"/>
+        <Stat icon="check" tone="orange" value={activeHomework.length} label="Published Homework"/>
+        <Stat icon="file" tone="green" value={toGrade.length} label="To Grade"/>
+       </div>
+       <div className="ds-grid" style={{margin:0}}>
+        <Card title="Today's Classes" icon="calendar" size="s6" link={<a href={"/s/"+code+"/communications"}>Timetable →</a>}>
+         {myPeriods.length?<ul className="ds-list">{myPeriods.map(x=><li key={x.id} className="ds-item"><span className="ds-ico blue"><Icon name="clock"/></span>
+          <div><strong>{subjectLabel(x.subject_id)} · {classLabel(x.class_id)}</strong><small>{hhmm(x.starts_at)} to {hhmm(x.ends_at)}{x.room?" · Room "+x.room:""}</small></div></li>)}</ul>
+          :<p className="ds-empty">{(com?.timetable||[]).length?"No lessons are scheduled for you today.":"No timetable has been published for your classes yet."}</p>}
+        </Card>
+        <Card title="Attendance Today" icon="clock" size="s6" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Mark attendance →</button>}>
+         <div className="ds-split"><Ring value={todayAttendance.length?Math.round(100*presentToday/Math.max(roster.length,todayAttendance.length)):null} label={todayAttendance.length?"Present":"Not recorded"}/>
+          <div className="ds-legend">{teacherClasses.map(cls=><div key={cls.id}>{classLabel(cls.id)}<b>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</b></div>)}</div></div>
+        </Card>
+       </div>
+       <Card title="My Classes" icon="users" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Open →</button>}>
+        {teacherClasses.length?<table className="ds-table"><thead><tr><th>Class</th><th>Subjects</th><th>Students</th><th></th></tr></thead><tbody>
+         {teacherClasses.map(cls=><tr key={cls.id}><td><strong>{classLabel(cls.id)}</strong></td>
+          <td>{[...new Set(myAssignments.filter(a=>a.class_id===cls.id).map(a=>subjectLabel(a.subject_id)))].join(", ")||"—"}</td>
+          <td>{new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</td>
+          <td><button className="ds-link" onClick={()=>{setSelectedClass(cls.id);selectSection("attendance")}}>Open class →</button></td></tr>)}</tbody></table>
+         :<p className="ds-empty">Your school administrator will assign your classes and subjects.</p>}
+       </Card>
+       <div className="ds-grid" style={{margin:0}}>
+        <Card title="Homework Overview" icon="check" size="s6" link={<button className="ds-link" onClick={()=>selectSection("homework")}>View all →</button>}>
+         {recentAssignments.length?<ul className="ds-list">{recentAssignments.map(h=><li key={h.id} className="ds-item" style={{cursor:"pointer"}} onClick={()=>{setSelectedClass(h.class_id);selectSection("submissions")}}>
+          <span className="ds-ico purple"><Icon name="check"/></span><div><strong>{h.title}</strong><small>{classLabel(h.class_id)} · Due {new Date(h.due_at).toLocaleDateString("en-GB",{timeZone:"Africa/Kigali"})}</small></div>
+          <span className="ds-pill info">{submissions.filter(x=>x.homework_id===h.id).length} submitted</span></li>)}</ul>
+          :<p className="ds-empty">Create and publish homework for your assigned classes.</p>}
+        </Card>
+        <Card title="Needs Grading" icon="file" size="s6" link={<button className="ds-link" onClick={()=>selectSection("submissions")}>Open →</button>}>
+         {toGrade.length?<ul className="ds-list">{toGrade.slice(0,4).map(x=><li key={x.id} className="ds-item">
+          <span className="ds-ico orange"><Icon name="file"/></span><div><strong>{roster.find(r=>r.studentId===x.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===x.homework_id)?.title||"Homework"}</small></div></li>)}</ul>
+          :<p className="ds-empty">Nothing is waiting for a grade.</p>}
+        </Card>
+       </div>
       </div>
-      <div className="teach-dashboard-grid">
-        <div className="teach-primary">
-          <div className="teach-stats" aria-label="Teacher dashboard summary">
-            <div className="teach-stat"><span className="teach-stat-icon">♧</span><strong>{teacherClasses.length}</strong><small>My Classes</small></div>
-            <div className="teach-stat"><span className="teach-stat-icon">♙</span><strong>{uniqueStudentCount}</strong><small>My Students</small></div>
-            <div className="teach-stat"><span className="teach-stat-icon">▤</span><strong>{activeHomework.length}</strong><small>Published Homework</small></div>
-            <div className="teach-stat"><span className="teach-stat-icon">☑</span><strong>{assignedSubmissions.length}</strong><small>Submissions to Review</small></div>
-          </div>
-          <div className="teach-duo">
-            <section className="teach-box"><div className="teach-box-head"><h3>♧ My Classes</h3><button className="teach-link" onClick={()=>selectSection("attendance")}>View classes →</button></div>
-              {teacherClasses.length?<div className="teach-table-wrap"><table className="teach-table"><thead><tr><th>Class</th><th>Subjects</th><th>Students</th><th></th></tr></thead><tbody>
-                {teacherClasses.map(cls=><tr key={cls.id}><td><strong>{classLabel(cls.id)}</strong></td><td>{[...new Set(myAssignments.filter(a=>a.class_id===cls.id).map(a=>subjectLabel(a.subject_id)))].join(", ")||"—"}</td>
-                  <td>{new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</td>
-                  <td><button className="teach-link" onClick={()=>{setSelectedClass(cls.id);selectSection("attendance")}}>Open class →</button></td></tr>)}
-              </tbody></table></div>:<Blank title="No assigned classes yet" description="Your school administrator will assign your classes and subjects."/>}
-            </section>
-            <section className="teach-box"><div className="teach-box-head"><h3>▤ Homework Overview</h3><button className="teach-link" onClick={()=>selectSection("homework")}>View all →</button></div>
-              {recentAssignments.length?<div className="teach-homework-list">{recentAssignments.map(h=><button key={h.id} className="teach-homework-row" onClick={()=>{setSelectedClass(h.class_id);selectSection("submissions")}}>
-                <span className="teach-item-icon">▤</span><span className="teach-item-copy"><strong>{h.title}</strong><small>{classLabel(h.class_id)} · Due {new Date(h.due_at).toLocaleDateString("en-GB",{timeZone:"Africa/Kigali"})}</small></span>
-                <span className="teach-chip">{submissions.filter(s=>s.homework_id===h.id).length} submitted</span>
-              </button>)}</div>:<Blank title="No published homework" description="Create and publish homework for your assigned classes."/>}
-            </section>
-          </div>
-          <div className="teach-duo">
-            <section className="teach-box"><div className="teach-box-head"><h3>◉ Attendance Today</h3><button className="teach-link" onClick={()=>selectSection("attendance")}>Mark attendance →</button></div>
-              <div className="teach-attendance"><div className="teach-attendance-ring"><strong>{todayAttendance.length?Math.round(100*presentToday/Math.max(roster.length,todayAttendance.length))+"%":"—"}</strong><small>{!todayAttendance.length?"Not recorded":todayAttendance.length<roster.length?todayAttendance.length+" of "+roster.length+" recorded":"Present"}</small></div>
-              <div className="teach-attendance-lines">{teacherClasses.map(cls=><div key={cls.id}><span>{classLabel(cls.id)}</span><strong>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</strong></div>)}</div></div>
-            </section>
-            <section className="teach-box"><div className="teach-box-head"><h3>☑ Teaching Tasks</h3><button className="teach-link" onClick={()=>selectSection("submissions")}>Open submissions →</button></div>
-              <div className="teach-task-list"><button onClick={()=>selectSection("submissions")}>☐ Review {assignedSubmissions.length} student submissions</button>
-                <button onClick={()=>selectSection("lessons")}>☐ Prepare and update lesson plans</button>
-                <button onClick={()=>selectSection("attendance")}>☐ Check today's attendance</button></div>
-              <p className="teach-disclaimer">Each task opens the matching classroom module.</p>
-            </section>
-          </div>
-          <section className="teach-box teach-quick"><div className="teach-box-head"><h3>⚡ Quick Actions</h3></div><div className="teach-actions">
-            <button onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("homework",{classId:a.class_id,subjectId:a.subject_id});}else selectSection("homework");}}>▤<span>Create Homework</span></button>
-            <button onClick={()=>selectSection("attendance")}>◉<span>Record Attendance</span></button>
-            <button onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("lesson",{classId:a.class_id,subjectId:a.subject_id,lessonOn:currentDay});}else selectSection("lessons");}}>▣<span>Plan a Lesson</span></button>
-            <a href={"/s/"+code+"/communications"}>✉<span>School Messages</span></a>
-          </div></section>
+      <div className="ds-span4" style={{display:"grid",gap:14,alignContent:"start"}}>
+       <Card title="Quick Actions" icon="bolt">
+        <div className="ds-actions" style={{gridTemplateColumns:"1fr"}}>
+         <button className="ds-action blue" onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("homework",{classId:a.class_id,subjectId:a.subject_id});}else selectSection("homework");}}><Icon name="check"/>Create Homework</button>
+         <button className="ds-action green" onClick={()=>selectSection("attendance")}><Icon name="clock"/>Record Attendance</button>
+         <button className="ds-action purple" onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("lesson",{classId:a.class_id,subjectId:a.subject_id,lessonOn:currentDay});}else selectSection("lessons");}}><Icon name="book"/>Plan a Lesson</button>
+         <a className="ds-action orange" href={"/s/"+code+"/communications"}><Icon name="chat"/>School Messages</a>
         </div>
-        <aside className="teach-rail">
-          <section className="teach-box"><div className="teach-box-head"><h3>▦ Today's Lessons</h3></div>
-            {teacherTodayLessons.length?<div className="teach-rail-list">{teacherTodayLessons.map(l=><div key={l.id}><strong>{l.title}</strong><small>{classLabel(l.class_id)} · {subjectLabel(l.subject_id)}</small></div>)}</div>:<p className="teach-empty-copy">No lesson plans dated today. Your full timetable is available in School Communications.</p>}
-            <a className="teach-link" href={"/s/"+code+"/communications"}>Open timetable →</a>
-          </section>
-          <section className="teach-box"><div className="teach-box-head"><h3>◴ Recent Submissions</h3></div>
-            {assignedSubmissions.length?<div className="teach-rail-list">{[...assignedSubmissions].sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at)).slice(0,5).map(s=><div key={s.id}><strong>{roster.find(r=>r.studentId===s.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===s.homework_id)?.title||"Homework"} · {s.submitted_at?.slice(0,10)}</small></div>)}</div>:<p className="teach-empty-copy">No student submissions to display yet.</p>}
-            <button className="teach-link" onClick={()=>selectSection("submissions")}>Review submissions →</button>
-          </section>
-        </aside>
+       </Card>
+       <Card title="Today's Lesson Plans" icon="book">
+        {teacherTodayLessons.length?<ul className="ds-list">{teacherTodayLessons.map(l=><li key={l.id} className="ds-item"><span className="ds-ico green"><Icon name="book"/></span>
+         <div><strong>{l.title}</strong><small>{classLabel(l.class_id)} · {subjectLabel(l.subject_id)}</small></div></li>)}</ul>
+         :<p className="ds-empty">No lesson plans dated today.</p>}
+       </Card>
+       <Card title="Recent Submissions" icon="file" link={<button className="ds-link" onClick={()=>selectSection("submissions")}>Review →</button>}>
+        {assignedSubmissions.length?<ul className="ds-list">{[...assignedSubmissions].sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at)).slice(0,5).map(x=><li key={x.id} className="ds-item">
+         <span className="ds-ico blue"><Icon name="user"/></span><div><strong>{roster.find(r=>r.studentId===x.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===x.homework_id)?.title||"Homework"} · {x.submitted_at?.slice(0,10)}</small></div></li>)}</ul>
+         :<p className="ds-empty">No student submissions yet.</p>}
+       </Card>
       </div>
-    </div>}
+     </div>
+    </>}
     {tab==="overview"&&!actor.teacher&&<>
      <div className="cr-metrics">
       <div><small>Current academic year</small><strong>{year?.name||"Not set"}</strong><span>From school administration</span></div>
@@ -270,9 +282,7 @@ export default function ClassroomDashboard({code}){
        <td>{a.active&&<button className="button secondary small" onClick={()=>open("revokeStudent",{studentId:a.student_id,reason:""})}>Revoke account</button>}</td>
       </tr>)}</tbody></table>
       {!data.studentAccounts.length&&<Blank title="No activated student accounts" description="Students must use their verified invitation before an account becomes active."/>}</div></section></>}
-    <p className="cr-foot">School-specific learning · No platform-owner monthly fees · Attendance and student data restricted to authorized school memberships</p>
-   </main>
-  </div>
+  <p className="ds-foot">School ID {school.code} · Only approved classes and members are shown.</p>
   {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account",revokeStudent:"Revoke student account",grade:"Grade homework submission"})[modal]} close={()=>{setModal(null);setError("");}}>
    {error&&<div className="notice error" role="alert">{error}</div>}
    {modal==="grade"&&<form onSubmit={e=>{e.preventDefault();submit({action:"submission.grade",submissionId:form.submissionId,score:form.score,maxScore:form.maxScore,feedback:form.feedback||""});}}>
@@ -337,5 +347,5 @@ export default function ClassroomDashboard({code}){
     <button className="button" type="submit" disabled={busy||!form.consentAttested}>Issue student invitation</button>
    </form>}
   </Modal>}
- </div>;
+ </DashboardShell>;
 }
