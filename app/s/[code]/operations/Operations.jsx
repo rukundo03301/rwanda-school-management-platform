@@ -6,7 +6,7 @@ import {browserSupabase} from "../../../../lib/client.js";
 // The server decides what each role may see; this page only shows what it receives.
 const nice=v=>String(v||"").replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
 const GRID={display:"grid",gap:10,gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",alignItems:"end",margin:"12px 0"};
-const TILES={display:"grid",gap:12,gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",margin:"16px 0"};
+const TILES={width:"100%",display:"grid",gap:12,gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",margin:"16px 0"};
 const TABLE={width:"100%",borderCollapse:"collapse"};
 const CELL={textAlign:"left",padding:"8px 6px",borderBottom:"1px solid rgba(0,0,0,.08)",verticalAlign:"top"};
 
@@ -66,7 +66,7 @@ export default function Operations({code}){
  const socialUrl=p=>form["social_"+p]??(data.social.find(s=>s.platform===p)?.url||"");
 
  return <main className="shell ops" style={{maxWidth:1080,width:"100%",display:"block",textAlign:"left",margin:"0 auto"}}>
-  <style>{".ops .adm-panel{max-width:none;width:auto;margin:0 0 16px;text-align:left}.ops h1,.ops h2,.ops p{text-align:left}.ops label{display:grid;gap:4px;font-size:13px}.ops input,.ops select{width:100%;box-sizing:border-box;padding:8px}"}</style>
+  <style>{".ops .adm-panel{max-width:none;width:100%;box-sizing:border-box;margin:0 0 16px;text-align:left}.ops h1,.ops h2,.ops p{text-align:left}.ops label{display:grid;gap:4px;font-size:13px}.ops input,.ops select{width:100%;box-sizing:border-box;padding:8px}"}</style>
   <a href={"/s/"+code+(a.manager?"/admin":"/portal")} className="micro">{a.manager?"Back to School Administration":"Back to my school workspace"}</a>
   <h1>School Operations</h1>
   <p className="muted">{data.school.name}. Maintenance, stock, school assets{a.manager?", board of directors and social links":""}.</p>
