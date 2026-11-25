@@ -1,38 +1,88 @@
 "use client";
 import {useState} from "react";
 
-// Public Umurage welcome artwork. Preserve the entire composition rather than
-// cropping the embedded title, family or connected school feature panels.
-const FEATURES=["Attendance and homework","Fees and mobile money","Report cards","Parents and teachers together"];
-
+// A single-viewport Umurage welcome screen. The full-resolution illustration
+// remains visible using contain, with a softened full-bleed layer behind it.
+// Authentication opens only from the top-right navigation.
 const CSS=`
 .shell.lp{
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  align-items:stretch;
-  gap:clamp(20px,2.5vw,36px);
-  min-height:100vh;
-  min-height:100svh;
+  --lp-header-height:84px;
+  position:relative;
+  display:block;
   width:100%;
-  padding:clamp(18px,3vw,44px) clamp(12px,3vw,48px) clamp(32px,5vw,72px);
-  overflow-x:clip;
-  background:linear-gradient(180deg,#e9f2ff 0%,#f5f9ff 65%,#eaf2ff 100%);
+  min-width:0;
+  height:100vh;
+  height:100dvh;
+  min-height:0;
+  padding:0;
+  margin:0;
+  overflow:hidden;
+  isolation:isolate;
+  background:#eaf2ff;
 }
 .shell.lp .lp-hero{
-  width:min(100%,1400px);
-  min-width:0;
-  margin:0 auto;
-  display:flex;
-  flex-direction:column;
-  gap:18px;
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  z-index:0;
+  background:#e9f2ff;
 }
-.lp-topline{
+.lp-hero-backdrop{
+  position:absolute;
+  inset:-28px;
+  background-image:url("/umurage-hero.jpg");
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-position:center;
+  transform:scale(1.06);
+  filter:blur(22px);
+  opacity:.72;
+}
+.lp-hero-picture{
+  position:absolute;
+  top:var(--lp-header-height);
+  right:0;
+  bottom:0;
+  left:0;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.lp-hero-image{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  object-fit:contain;
+  object-position:center;
+}
+.lp-hero-shade{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(244,249,255,.10),transparent 19%,transparent 84%,rgba(217,232,255,.13));
+}
+.lp-topbar{
+  position:absolute;
+  z-index:10;
+  top:0;
+  left:0;
+  right:0;
+  min-height:var(--lp-header-height);
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:16px;
-  flex-wrap:wrap;
+  padding:12px clamp(15px,3vw,50px);
+  background:linear-gradient(180deg,rgba(250,252,255,.97),rgba(247,251,255,.91));
+  border-bottom:1px solid rgba(193,215,245,.88);
+  box-shadow:0 4px 20px rgba(29,79,150,.06);
 }
 .lp-brand{
   display:flex;
@@ -40,7 +90,7 @@ const CSS=`
   align-items:center;
   min-width:0;
   color:#153b75;
-  font-size:clamp(16px,1.5vw,21px);
+  font-size:clamp(16px,1.6vw,22px);
   font-weight:800;
   letter-spacing:-.025em;
   line-height:1.25;
@@ -49,158 +99,152 @@ const CSS=`
   flex:none;
   display:grid;
   place-items:center;
-  width:44px;
-  height:44px;
-  border-radius:14px;
-  background:linear-gradient(135deg,#347bf0,#194ea8);
+  width:45px;
+  height:45px;
+  border-radius:13px;
   color:#fff;
-  box-shadow:0 8px 20px rgba(42,102,189,.2);
+  background:linear-gradient(140deg,#3378e8,#184aab);
   font-weight:900;
+  font-size:19px;
+  box-shadow:0 8px 20px rgba(37,94,172,.17);
 }
-.lp-signin-jump{
-  flex:none;
-  display:inline-flex;
+.lp-auth-nav{
+  display:flex;
   align-items:center;
-  justify-content:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex:none;
+}
+.lp-auth-nav button{
   min-height:44px;
-  padding:10px 18px;
-  color:#1b56a4;
-  background:rgba(255,255,255,.92);
-  border:1px solid #c6daf5;
-  border-radius:999px;
-  text-decoration:none;
+  padding:10px 20px;
+  border-radius:11px;
+  font-size:14px;
   font-weight:800;
+  border:1px solid #bcd2f1;
+  color:#1b56a4;
+  background:#fff;
+  box-shadow:0 5px 18px rgba(39,92,166,.08);
 }
-.lp-signin-jump:hover,.lp-signin-jump:focus-visible{
-  background:#e2eeff;
-  outline-offset:3px;
+.lp-auth-nav button.lp-signup{
+  background:#3378e8;
+  color:#fff;
+  border-color:#3378e8;
 }
-.lp-hero-art{
-  display:block;
-  width:100%;
-  margin:0;
-  border:1px solid rgba(169,196,234,.65);
-  border-radius:clamp(14px,2vw,25px);
-  overflow:hidden;
-  background:#eaf2ff;
-  box-shadow:0 18px 48px rgba(45,84,142,.10);
-}
-.lp-hero-image{
-  display:block;
-  width:100%;
-  height:auto;
-  max-width:100%;
-  object-fit:contain;
-  object-position:center;
-}
+.lp-auth-nav button:hover{filter:brightness(.96)}
+.lp-auth-nav button:focus-visible{outline:3px solid #78a9f8;outline-offset:3px}
 .lp-fallback{
-  position:relative;
-  display:grid;
-  align-content:center;
-  min-height:min(60vh,540px);
-  padding:clamp(28px,5vw,80px);
-  background:radial-gradient(circle at 50% 70%,#c3e1ff,#eef6ff 65%,#f8fbff);
+  width:100%;
+  height:100%;
+  padding:clamp(22px,6vw,80px);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  text-align:center;
+  background:radial-gradient(circle at center,#cae3ff,#f0f7ff 72%);
 }
 .lp-fallback h2{
-  color:#143f7b;
-  font-size:clamp(28px,4.5vw,55px);
+  color:#153b75;
+  font-size:clamp(28px,4vw,54px);
   line-height:1.12;
   max-width:750px;
 }
 .lp-fallback p{
-  font-size:clamp(15px,1.7vw,19px);
-  max-width:600px;
   color:#496481;
+  font-size:clamp(15px,1.6vw,19px);
+  max-width:600px;
 }
-.lp-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.lp-chips span{
-  border-radius:999px;
-  background:#fff;
-  color:#225ca8;
-  padding:9px 13px;
-  border:1px solid #cadcf5;
-  font-size:12px;
-  font-weight:700;
-}
-.lp-below{
+.shell.lp .lp-auth-overlay{
+  position:fixed;
+  z-index:30;
+  inset:0;
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  flex-wrap:wrap;
-  gap:10px;
-  color:#526b90;
-  font-size:13px;
+  align-items:flex-start;
+  justify-content:flex-end;
+  overflow-y:auto;
+  padding:calc(var(--lp-header-height) + 16px) clamp(12px,3vw,50px) 24px;
+  background:rgba(12,32,62,.35);
+  backdrop-filter:blur(3px);
 }
-.lp-below p{margin:0}
-.shell.lp > .auth-card{
-  position:relative;
-  z-index:1;
-  align-self:flex-end;
-  justify-self:auto;
+.shell.lp .lp-auth-overlay .auth-card{
   width:min(440px,100%);
-  margin:0 max(0px,calc((100vw - 1500px)/2)) 0 0;
-  padding:clamp(20px,2.4vw,34px);
+  max-height:calc(100dvh - var(--lp-header-height) - 30px);
+  overflow-y:auto;
+  position:relative;
+  margin:0;
+  flex:none;
   background:#fff;
-  border:1px solid #d5e4f8;
+  border:1px solid #d3e1f4;
   border-radius:22px;
-  box-shadow:0 24px 65px rgba(28,73,139,.16);
-  scroll-margin-top:24px;
+  padding:clamp(20px,2.4vw,32px);
+  box-shadow:0 30px 85px rgba(17,49,102,.28);
 }
-@media(max-width:760px){
-  .shell.lp{
-    gap:19px;
-    padding:14px 12px 34px;
-  }
-  .shell.lp .lp-hero{gap:12px}
-  .lp-brand{font-size:15px}
-  .lp-brand-mark{width:38px;height:38px;border-radius:11px}
-  .lp-signin-jump{font-size:12px;padding:9px 13px}
-  .lp-hero-art{border-radius:14px}
-  .lp-below{font-size:12px}
-  .shell.lp > .auth-card{
-    align-self:center;
-    width:min(440px,100%);
-    margin:0;
-    border-radius:18px;
-  }
+.lp-auth-close{
+  position:absolute;
+  right:18px;
+  top:17px;
+  border:1px solid #d1dfef;
+  background:#f4f8ff;
+  color:#234773;
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  font-size:22px;
+  display:grid;
+  place-items:center;
 }
-@media(max-width:400px){
-  .lp-brand{font-size:13px}
-  .lp-topline{align-items:flex-start}
-  .lp-signin-jump{width:100%}
+.lp-auth-close:focus-visible{outline:3px solid #78a9f8;outline-offset:3px}
+@media(max-width:620px){
+  .shell.lp{--lp-header-height:112px}
+  .lp-topbar{align-content:center;align-items:center;flex-wrap:wrap;gap:9px;padding:10px 14px}
+  .lp-brand{font-size:15px;flex:1 1 100%}
+  .lp-brand-mark{width:34px;height:34px;border-radius:9px;font-size:16px}
+  .lp-auth-nav{margin-left:auto;gap:8px}
+  .lp-auth-nav button{min-height:38px;padding:7px 15px;font-size:12px}
+  .shell.lp .lp-auth-overlay{justify-content:center;padding:calc(var(--lp-header-height) + 8px) 10px 12px}
+  .shell.lp .lp-auth-overlay .auth-card{max-height:calc(100dvh - var(--lp-header-height) - 20px);border-radius:16px}
+}
+@media(max-height:560px) and (min-width:621px){
+  .shell.lp{--lp-header-height:64px}
+  .lp-topbar{padding-block:7px}
+  .lp-brand-mark{width:36px;height:36px}
+  .shell.lp .lp-auth-overlay{padding-top:calc(var(--lp-header-height) + 6px)}
 }
 `;
 
-export default function Landing(){
+export default function Landing({onLogin,onSignup}){
  const [imageFailed,setImageFailed]=useState(false);
- return <section className="lp-hero" aria-label="About the Umurage School Management Platform">
+ return <>
   <style>{CSS}</style>
-  <div className="lp-topline">
-   <div className="lp-brand"><span className="lp-brand-mark" aria-hidden="true">U</span><span>Umurage School Management Platform</span></div>
-   <a className="lp-signin-jump" href="#platform-sign-in">Go to secure sign in ↓</a>
-  </div>
-  <figure className="lp-hero-art">
-   {!imageFailed
-    ? <img
-       className="lp-hero-image"
-       src="/umurage-hero.jpg"
-       alt="Umurage School Management Platform: a family sitting together with connected panels for attendance, academic progress, school information, fees, announcements, and messages."
-       width="1536"
-       height="1152"
-       loading="eager"
-       fetchPriority="high"
-       decoding="async"
-       onError={()=>setImageFailed(true)}
-      />
-    : <div className="lp-fallback">
-       <h2>One safe place for every school, parent and child.</h2>
-       <p>Rwanda's school platform for attendance, homework, report cards and fees, built so every school keeps its own identity and private records.</p>
-       <div className="lp-chips">{FEATURES.map(f=><span key={f}>{f}</span>)}</div>
-      </div>}
-  </figure>
-  <div className="lp-below">
-   <p>One connected platform for schools, families, teachers and students.</p>
-   <p>Your secure sign-in is just below ↓</p>
-  </div>
- </section>;
+  <section className="lp-hero" aria-label="Umurage School Management Platform welcome image">
+    <div className="lp-hero-backdrop" aria-hidden="true"/>
+    <div className="lp-hero-picture">
+      {!imageFailed
+       ? <img
+           className="lp-hero-image"
+           src="/umurage-hero.jpg"
+           width="1536"
+           height="1152"
+           alt="Umurage School Management Platform illustration with a family and school progress, attendance, fee, announcement and messaging panels."
+           loading="eager"
+           fetchPriority="high"
+           decoding="async"
+           onError={()=>setImageFailed(true)}
+         />
+       : <div className="lp-fallback">
+          <h2>One connected school platform for every family.</h2>
+          <p>School progress, attendance, homework, fees and communication in one secure place.</p>
+         </div>}
+    </div>
+    <div className="lp-hero-shade" aria-hidden="true"/>
+  </section>
+  <header className="lp-topbar">
+    <div className="lp-brand"><span className="lp-brand-mark" aria-hidden="true">U</span><span>Umurage School Management Platform</span></div>
+    <nav className="lp-auth-nav" aria-label="Platform account">
+      <button type="button" onClick={onLogin}>Log In</button>
+      <button type="button" className="lp-signup" onClick={onSignup}>Sign Up</button>
+    </nav>
+  </header>
+ </>;
 }
