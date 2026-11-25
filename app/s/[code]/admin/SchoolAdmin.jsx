@@ -172,7 +172,7 @@ export default function SchoolAdmin({code}){
              <p><strong>1. School identity</strong><span>Logo, mission, vision, announcements and homepage.</span></p>
              <p><strong>2. Academic foundation</strong><span>Create your academic year, class names and subjects.</span></p>
              <p><strong>3. School team</strong><span>Invite school administrators, teachers and staff securely.</span></p>
-             <p><strong>4. Student enrollment</strong><span>Next module; no student records are created in this release.</span></p>
+             <p><strong>4. Student enrollment</strong><span>Enroll students, link verified parents and follow attendance and homework.</span></p>
            </div>
            <div className="row" style={{marginTop:15}}>
              {owner&&<a className="button secondary small" href={"/s/"+code+"/setup"}>Edit School Website</a>}
@@ -243,7 +243,7 @@ export default function SchoolAdmin({code}){
            <td className="micro">{x.actor_id.slice(0,8)}…</td></tr>)}</tbody></table>
          {!data.audit.length&&<Empty name="No activity recorded" hint="New school management actions will appear here."/>}</div>
      </section>}
-     <p className="school-admin-footer">School-specific management · No SaaS subscription or private platform billing data · Student records are not part of Module 2.</p>
+     <p className="school-admin-footer">School-specific management · No SaaS subscription or private platform billing data.</p>
    </main>
    {modal&&<Dialog title={({invite:"Invite school colleague",permissions:"Edit administrator permissions",revoke:"Revoke school access",
      year:"Create academic year",class:"Create class",subject:"Create subject",assignment:"Assign subject to class"})[modal]} close={()=>{setModal(null);setError("");}}>
