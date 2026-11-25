@@ -1,6 +1,6 @@
 name: Platform Owner Console CI
+# Tests run once per commit (on push). The pull request trigger was removed because it ran every commit twice.
 on:
-  pull_request:
   push:
     branches:
       - feature/platform-owner-console-v1
@@ -13,6 +13,10 @@ on:
       - feature/module-07-school-fees-rwf-v1
       - feature/platform-demo-tenant-secure-purge-v1
   workflow_dispatch:
+# A newer commit on the same branch cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
