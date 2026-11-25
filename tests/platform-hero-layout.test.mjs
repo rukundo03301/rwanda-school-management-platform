@@ -5,13 +5,15 @@ import {readFileSync} from "node:fs";
 const landing=readFileSync(new URL("../app/platform/Landing.jsx",import.meta.url),"utf8");
 const platform=readFileSync(new URL("../app/platform/page.jsx",import.meta.url),"utf8");
 
-test("Umurage landing page is one viewport, not a vertical image and login stack",()=>{
+test("Umurage wide hero covers viewport edge to edge without blurred side bands",()=>{
  assert.match(landing,/height:100dvh/);
  assert.match(landing,/overflow:hidden/);
  assert.match(landing,/className="lp-hero-image"/);
- assert.match(landing,/object-fit:contain/);
- assert.match(landing,/className="lp-hero-backdrop"/);
- assert.match(landing,/background-size:cover/);
+ assert.match(landing,/width="1672"[\s\S]*height="941"/);
+ assert.match(landing,/object-fit:cover/);
+ assert.match(landing,/object-position:center center/);
+ assert.match(landing,/inset:0/);
+ assert.doesNotMatch(landing,/object-fit:contain|lp-hero-backdrop|filter:blur\(22px\)/);
  assert.doesNotMatch(landing,/lp-below|href="#platform-sign-in"/);
 });
 
