@@ -1,8 +1,7 @@
 "use client";
 import {useState} from "react";
 
-// A single-viewport Umurage welcome screen. The full-resolution illustration
-// remains visible using contain, with a softened full-bleed layer behind it.
+// Single-screen Umurage hero. A new wide illustration fills the viewport edge to edge.
 // Authentication opens only from the top-right navigation.
 const CSS=`
 .shell.lp{
@@ -30,36 +29,21 @@ const CSS=`
   z-index:0;
   background:#e9f2ff;
 }
-.lp-hero-backdrop{
-  position:absolute;
-  inset:-28px;
-  background-image:url("/umurage-hero.jpg");
-  background-repeat:no-repeat;
-  background-size:cover;
-  background-position:center;
-  transform:scale(1.06);
-  filter:blur(22px);
-  opacity:.72;
-}
 .lp-hero-picture{
   position:absolute;
-  top:var(--lp-header-height);
-  right:0;
-  bottom:0;
-  left:0;
+  inset:0;
   z-index:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  width:100%;
+  height:100%;
   overflow:hidden;
 }
 .lp-hero-image{
   display:block;
   width:100%;
   height:100%;
-  max-width:100%;
-  object-fit:contain;
-  object-position:center;
+  max-width:none;
+  object-fit:cover;
+  object-position:center center;
 }
 .lp-hero-shade{
   position:absolute;
@@ -218,14 +202,13 @@ export default function Landing({onLogin,onSignup}){
  return <>
   <style>{CSS}</style>
   <section className="lp-hero" aria-label="Umurage School Management Platform welcome image">
-    <div className="lp-hero-backdrop" aria-hidden="true"/>
     <div className="lp-hero-picture">
       {!imageFailed
        ? <img
            className="lp-hero-image"
-           src="/umurage-hero.jpg"
-           width="1536"
-           height="1152"
+           src="/umurage-hero.jpg?v=wide-20261125"
+           width="1672"
+           height="941"
            alt="Umurage School Management Platform illustration with a family and school progress, attendance, fee, announcement and messaging panels."
            loading="eager"
            fetchPriority="high"
