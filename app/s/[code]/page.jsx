@@ -25,7 +25,13 @@ const loadSchoolSite=cache(async(code)=>{
     "tagline,about_text,announcement,logo_url,hero_url,primary_color,contact_email,contact_phone,is_published,mission_statement,vision_statement,leader_name,leader_title,leader_message,leader_photo_url,advertisements,address_text,programs_intro,admissions_intro,admissions_instructions,admissions_contact,gallery,education_levels"
   ).eq("school_id",school.id).maybeSingle();
   const available=school.status==="active"&&site?.is_published===true;
-  return {school,site:available?site:null,available};
+  // Official social pages the school saved in School Operations. Only shown while the site is published.
+ let social=[];
+ if(available){
+  const {data:links}=await db.from("school_social_links").select("platform,url").eq("school_id",school.id);
+  social=(links||[]).filter(l=>typeof l.url==="string"&&l.url.startsWith("https://"));
+ }
+ return {school,site:available?site:null,available,social};
 });
 
 export async function generateMetadata({params}){
@@ -147,7 +153,7 @@ export default async function SchoolHome({params}) {
       {address&&<p className="site-address">{address}</p>}
       {!site.contact_email&&!site.contact_phone&&!address&&<p>Official school contact details will be provided here.</p>}
     </section>
-    <footer className="site-footer"><strong>{school.name}</strong> · Official school website{address&&<> · <span className="site-address">{address}</span></>} · <a href={"/s/"+code+"/login"} style={{color:"white"}}>School Login</a></footer>
+    <footer className="site-footer"><strong>{school.name}</strong> · Official school website{address&&<> · <span className="site-address">{address}</span></>} · {(found.social||[]).map(l=><span key={l.platform}><a href={l.url} target="_blank" rel="noopener noreferrer" style={{color:"white"}}>{({youtube:"YouTube",tiktok:"TikTok",facebook:"Facebook",instagram:"Instagram",x:"X",whatsapp:"WhatsApp"})[l.platform]||l.platform}</a> · </span>)}<a href={"/s/"+code+"/login"} style={{color:"white"}}>School Login</a></footer>
     <a href="#top" className="site-back-to-top" aria-label="Back to the top of the page"><span aria-hidden="true">↑</span> Top</a>
   </main>;
 }
