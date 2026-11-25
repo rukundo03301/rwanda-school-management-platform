@@ -65,7 +65,7 @@ export default function Operations({code}){
  const itemName=id=>data.stock.find(s=>s.id===id)?.name||"Removed item";
  const socialUrl=p=>form["social_"+p]??(data.social.find(s=>s.platform===p)?.url||"");
 
- return <main className="shell" style={{maxWidth:1080}}>
+ return <main className="shell" style={{maxWidth:1080,width:"100%",display:"block",textAlign:"left",margin:"0 auto"}}>
   <a href={"/s/"+code+(a.manager?"/admin":"/portal")} className="micro">{a.manager?"Back to School Administration":"Back to my school workspace"}</a>
   <h1>School Operations</h1>
   <p className="muted">{data.school.name}. Maintenance, stock, school assets{a.manager?", board of directors and social links":""}.</p>
