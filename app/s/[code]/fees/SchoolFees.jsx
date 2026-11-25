@@ -201,7 +201,7 @@ export default function SchoolFees({code}){
       <div className="fee-kpi"><strong>{data.summary?.pending_claims??claimed.length}</strong>
        <span>Pending claims across this school</span></div>
       {canApprove&&<button className="button secondary" onClick={()=>setTab("payments")}>Review pending collections</button>}</>:
-      <><p>You can review invoices, outstanding balances and school-approved receipts. A reported Mobile Money transfer is **not** automatically confirmed.</p>
+      <><p>You can review invoices, outstanding balances and school-approved receipts. A reported Mobile Money transfer is <strong>not</strong> automatically confirmed.</p>
        <button className="button secondary" onClick={()=>setTab("family")}>View family statements</button></>}
     </section>
     <section className="fee-panel"><h2>How school payments work</h2>
