@@ -69,8 +69,13 @@ export async function GET(request,{params}){
     }
    }
   }
+  const [liveBrand,draftBrand]=await Promise.all([
+   checked(db.from("platform_school_sites").select("logo_url").eq("school_id",school.id).maybeSingle()),
+   checked(db.from("school_site_drafts").select("logo_url").eq("school_id",school.id).maybeSingle())
+  ]);
+  const logoUrl=liveBrand?.logo_url||draftBrand?.logo_url||null;
   return Response.json({
-    school:{name:school.name,code:school.school_code},
+    school:{name:school.name,code:school.school_code,logoUrl},
     pendingInvitations:invite.map(i=>({studentId:i.student_id,expiresAt:i.expires_at})),
     student,academicYear,activeClass,subjects,homework,submissions,attendance
   },{headers:noStore});
