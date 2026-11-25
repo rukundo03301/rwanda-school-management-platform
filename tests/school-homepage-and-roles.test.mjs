@@ -34,7 +34,7 @@ test("role picker cannot authorize membership, including across schools",()=>{
   assert.doesNotMatch(accessApi,/body\.role/);
   assert.match(schoolPortal,/access\?\.roles\?\.includes\(role\)===true/);
   assert.match(schoolPortal,/This role is not approved for your account/);
-  assert.match(schoolPortal,/Workspace under development/);
+  assert.match(schoolPortal,/Operations, Stock & Board/);
 });
 
 test("homepage uses published marketing content, not a draft or operator ledger",()=>{
