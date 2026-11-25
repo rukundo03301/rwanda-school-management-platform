@@ -69,6 +69,14 @@ export async function GET(request,{params}){
     }
    }
   }
+  let materials=[];
+  if(activeClass){
+   const shown=await db.from("school_learning_materials")
+    .select("id,subject_id,title,kind,url,description,created_at")
+    .eq("school_id",school.id).eq("class_id",activeClass.id).eq("published",true)
+    .order("created_at",{ascending:false}).limit(200);
+   materials=shown.error?[]:shown.data;
+  }
   const [liveBrand,draftBrand]=await Promise.all([
    checked(db.from("platform_school_sites").select("logo_url").eq("school_id",school.id).maybeSingle()),
    checked(db.from("school_site_drafts").select("logo_url").eq("school_id",school.id).maybeSingle())
@@ -77,7 +85,7 @@ export async function GET(request,{params}){
   return Response.json({
     school:{name:school.name,code:school.school_code,logoUrl},
     pendingInvitations:invite.map(i=>({studentId:i.student_id,expiresAt:i.expires_at})),
-    student,academicYear,activeClass,subjects,homework,submissions,attendance
+    student,academicYear,activeClass,subjects,homework,submissions,attendance,materials
   },{headers:noStore});
  }catch(e){return jsonError(e);}
 }
