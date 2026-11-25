@@ -170,7 +170,7 @@ export default function SchoolFees({code}){
     <p>Fees are recorded for this institution only. The platform owner's separate charges never appear here.</p></div>
   </aside>
   <main className="fee-main"><div className="fee-title">
-   <span>MODULE 7 · SCHOOL FINANCIAL MANAGEMENT</span>
+   <span>SCHOOL FINANCIAL MANAGEMENT</span>
    <h1>{({
     overview:parent&&!manager?"My Children's School Fees":"School Financial Overview",
     catalog:"School Fee Schedules",invoices:"Student Invoices",
