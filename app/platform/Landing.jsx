@@ -206,7 +206,7 @@ export default function Landing({onLogin,onSignup}){
       {!imageFailed
        ? <img
            className="lp-hero-image"
-           src="/umurage-hero.jpg?v=wide-20261125"
+           src="/umurage-hero.jpg?v=house-no-primary-20261125"
            width="1672"
            height="941"
            alt="Umurage School Management Platform illustration with a family and school progress, attendance, fee, announcement and messaging panels."
