@@ -166,7 +166,7 @@ export default function ClassroomDashboard({code}){
               <div className="teach-task-list"><button onClick={()=>selectSection("submissions")}>☐ Review {assignedSubmissions.length} student submissions</button>
                 <button onClick={()=>selectSection("lessons")}>☐ Prepare and update lesson plans</button>
                 <button onClick={()=>selectSection("attendance")}>☐ Check today's attendance</button></div>
-              <p className="teach-disclaimer">Tasks link to real modules; completion tracking is not yet implemented.</p>
+              <p className="teach-disclaimer">Each task opens the matching classroom module.</p>
             </section>
           </div>
           <section className="teach-box teach-quick"><div className="teach-box-head"><h3>⚡ Quick Actions</h3></div><div className="teach-actions">
