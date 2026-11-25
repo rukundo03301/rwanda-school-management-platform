@@ -167,7 +167,7 @@ export default function SchoolCommunications({code}){
      <p>Only verified accounts and approved school relationships are shown.</p></div>
    </aside>
    <main className="scom-main">
-    <div className="scom-headline"><span>MODULE 6 · SCHOOL OPERATIONS</span>
+    <div className="scom-headline"><span>SCHOOL COMMUNITY</span>
      <h1>{({
       overview:isParent?"Your Family at School":isTeacher?"Your Teaching Day":"School Community Overview",
       timetable:"Weekly Class Timetable",calendar:"School Calendar",
