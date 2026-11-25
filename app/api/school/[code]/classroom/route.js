@@ -3,6 +3,7 @@ import {
  teacherAssignmentAllowed,teacherClassAllowed,requiredSchoolId
 } from "../../../../../lib/school-classroom.mjs";
 import {ApiError,checked,jsonError,requireAal2} from "../../../../../lib/platform-server.js";
+import {materialInput} from "../../../../../lib/school-materials.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const noStore={"Cache-Control":"no-store"};
@@ -75,6 +76,15 @@ export async function GET(request,{params}){
          .order("submitted_at",{ascending:false}).limit(1000));
      }
    }
+   let materials=[];
+   if(role.teacher&&teacherAssignments.length){
+     const own=await db.from("school_learning_materials")
+       .select("id,class_id,subject_id,title,kind,url,description,published,created_at")
+       .eq("school_id",school.id).eq("teacher_id",actorId)
+       .order("created_at",{ascending:false}).limit(300);
+     const pairsNow=new Set(teacherAssignments.map(a=>a.class_id+"#"+a.subject_id));
+     materials=own.error?[]:own.data.filter(m=>pairsNow.has(m.class_id+"#"+m.subject_id));
+   }
    const teacherMembers=role.manager?await checked(db.from("school_memberships")
      .select("auth_user_id,role,active").eq("school_id",school.id)
      .eq("role","teacher").eq("active",true).limit(500)):[];
@@ -113,7 +123,7 @@ export async function GET(request,{params}){
      assignments:role.manager?allAssignments:teacherAssignments,
      myAssignments:teacherAssignments,
      teachers:teacherMembers.map(m=>({userId:m.auth_user_id,email:emails.get(m.auth_user_id)||"Verified teacher"})),
-     roster,lessons,homework,submissions,attendance,
+     roster,lessons,homework,submissions,attendance,materials,
      studentCandidates,studentInvites,studentAccounts
    },{headers:noStore});
  }catch(e){return jsonError(e);}
@@ -172,6 +182,37 @@ export async function POST(request,{params}){
     result=await checked(db.rpc("school_publish_homework",{
       p_school_id:school.id,p_homework:homeworkId,p_teacher:actorId
     }));
+  }else if(action==="material.create"){
+    if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
+    if(!cls||!subj)throw new ApiError(400,"Choose your assigned class and subject");
+    const mine=await checked(db.from("school_teacher_assignments").select("class_id")
+      .eq("school_id",school.id).eq("teacher_id",actorId).eq("class_id",cls)
+      .eq("subject_id",subj).eq("active",true).limit(1));
+    if(!mine.length)throw new ApiError(403,"You are not assigned to teach this subject in this class");
+    const input=materialInput(body);
+    const made=await db.from("school_learning_materials").insert({
+      school_id:school.id,class_id:cls,subject_id:subj,teacher_id:actorId,...input,published:false
+    }).select("id").single();
+    if(made.error)throw new ApiError(400,"The material could not be saved");
+    result={id:made.data.id,published:false};
+  }else if(action==="material.toggle"){
+    if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
+    const id=requiredSchoolId(body.materialId,"material");
+    const publish=body.published===true;
+    const found=await db.from("school_learning_materials").select("id,class_id,subject_id")
+      .eq("school_id",school.id).eq("id",id).eq("teacher_id",actorId).maybeSingle();
+    if(found.error||!found.data)throw new ApiError(404,"Material not found");
+    if(publish){
+      const mine=await checked(db.from("school_teacher_assignments").select("class_id")
+        .eq("school_id",school.id).eq("teacher_id",actorId).eq("class_id",found.data.class_id)
+        .eq("subject_id",found.data.subject_id).eq("active",true).limit(1));
+      if(!mine.length)throw new ApiError(403,"You are no longer assigned to this class and subject");
+    }
+    const upd=await db.from("school_learning_materials")
+      .update({published:publish,updated_at:new Date().toISOString()})
+      .eq("school_id",school.id).eq("id",id).eq("teacher_id",actorId);
+    if(upd.error)throw new ApiError(400,"The material could not be updated");
+    result={id,published:publish};
   }else if(action==="attendance.record"){
     if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
     if(!cls)throw new ApiError(400,"Choose your class");
