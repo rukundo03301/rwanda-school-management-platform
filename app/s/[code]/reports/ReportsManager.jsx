@@ -131,7 +131,7 @@ export default function ReportsManager({code}){
      onClick={()=>{setTab(s.id);setError("");}}>{s.title}</button>)}
    <div className="repm-sidefoot"><small>School ID</small><b>{school.code}</b><p>Every calculation uses school-approved curriculum references.</p></div>
   </aside><section className="repm-content">
-   <div className="repm-title"><span className="repm-eyebrow">ACADEMIC QUALITY · MODULE 5</span>
+   <div className="repm-title"><span className="repm-eyebrow">ACADEMIC QUALITY</span>
     <h1>{({overview:"Curriculum-based academic reports",curriculum:"Curriculum & Syllabuses",
       marks:"Assessment Marks",published:"Approved School Reports",
       access:"Administrator Access"})[tab]}</h1>
