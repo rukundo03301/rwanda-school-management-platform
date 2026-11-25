@@ -85,6 +85,9 @@ jobs:
           sleep 1
           supabase migration new school_auth_identity_read_v1
           cp database/school_auth_identity_read_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_auth_identity_read_v1.sql' | head -n 1)"
+          sleep 1
+          supabase migration new school_learning_materials_v1
+          cp database/school_learning_materials_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_school_learning_materials_v1.sql' | head -n 1)"
       - name: Start isolated Supabase and apply migration
         run: |
           supabase start
