@@ -119,7 +119,7 @@ export default function ClassroomDashboard({code}){
     <div className="cr-side-meta"><small>School ID</small><strong>{school.code}</strong><p>Only approved classes and members are shown.</p></div>
    </aside>
    <main className="cr-main">
-    <div className="cr-title"><span className="cr-eyebrow">CLASSROOM MANAGEMENT · MODULE 4</span>
+    <div className="cr-title"><span className="cr-eyebrow">CLASSROOM MANAGEMENT</span>
      <h1>{({overview:"My School Classrooms",assignments:"Teacher Class Assignments",lessons:"Lesson Planning",
       homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",
       studentAccess:"Verified Student Accounts"})[tab]}</h1>
