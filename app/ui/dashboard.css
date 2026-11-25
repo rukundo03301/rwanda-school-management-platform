@@ -98,3 +98,14 @@
   .ds-card,.ds-card.s3,.ds-card.s5,.ds-card.s6,.ds-card.s8,.ds-card.s12{grid-column:span 12}
   .ds-hello h2{font-size:24px}
 }
+.ds-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(120deg,var(--ds-navy),var(--ds-blue));color:#fff;border-radius:18px;padding:22px 26px;margin-bottom:14px;box-shadow:0 8px 28px rgba(10,44,128,.22)}
+.ds-banner h2{margin:0;font-size:28px;color:#fff}.ds-banner p{margin:6px 0 0;opacity:.92;max-width:560px}
+.ds-banner .ds-chip{color:var(--ds-ink)}
+.ds-sec{margin:14px 0 8px;font-size:15px;color:var(--ds-ink)}.ds-sec:first-of-type{margin-top:0}
+.ds-week{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.ds-day{background:#f6f9ff;border-radius:12px;padding:10px;display:grid;gap:8px;align-content:start}
+.ds-day.now{outline:2px solid var(--ds-blue)}
+.ds-slot{background:#fff;border-radius:10px;padding:8px;font-size:13px;display:grid;gap:2px;box-shadow:0 1px 6px rgba(10,44,128,.08)}
+.ds-slot span{color:var(--ds-muted);font-size:12px}
+.ds-card.s4{grid-column:span 4}
+@media(max-width:1100px){.ds-card.s4{grid-column:span 12}.ds-week{grid-template-columns:repeat(2,1fr)}}
