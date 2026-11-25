@@ -71,6 +71,7 @@ export default function RoleHome({code}){
    {label:"Reports & Curriculum",icon:"chart",href:"/s/"+code+"/reports"}]:[]),
   {label:"Messages & Notices",icon:"chat",href:"/s/"+code+"/communications"},
   {label:"School Operations",icon:"wrench",href:"/s/"+code+"/operations"},
+  {label:"Leave & Purchase Requests",icon:"file",href:"/s/"+code+"/requests"},
   ...(manager?[{label:"Administration",icon:"gear",href:"/s/"+code+"/admin"}]:[]),
  ];
  const first=(d.access.authEmail||"").split("@")[0];
