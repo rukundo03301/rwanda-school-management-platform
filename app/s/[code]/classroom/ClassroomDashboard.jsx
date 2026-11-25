@@ -11,6 +11,7 @@ const SECTIONS=[
  {id:"homework",label:"Homework"},
  {id:"attendance",label:"Attendance"},
  {id:"submissions",label:"Submissions"},
+ {id:"materials",label:"Learning Materials"},
  {id:"studentAccess",label:"Student Accounts"}
 ];
 function Label({name,children}){return <label className="field" style={{marginBottom:14}}><strong>{name}</strong>{children}</label>}
@@ -82,7 +83,7 @@ export default function ClassroomDashboard({code}){
  if(error&&!data)return <main className="school-admin-loading"><h2>Classroom access unavailable</h2><p role="alert">{error}</p><a href={"/s/"+code+"/portal?role=teacher"}>School Portal</a></main>;
  if(!data)return <main className="school-admin-loading">Classroom data unavailable.</main>;
 
- const {school,actor,year,classes,subjects,mappings,teachers,assignments,myAssignments,roster,homework,lessons,submissions,attendance}=data;
+ const {school,actor,year,classes,subjects,mappings,teachers,assignments,myAssignments,roster,homework,lessons,submissions,attendance,materials=[]}=data;
  const ownClasses=[...new Set(myAssignments.map(a=>a.class_id))];
  const visibleClasses=actor.teacher?classes.filter(c=>ownClasses.includes(c.id)):classes;
  const classLabel=(id)=>{const c=classes.find(x=>x.id===id);return c?c.name+(c.section?" · "+c.section:""):"Unassigned class";};
@@ -106,15 +107,15 @@ export default function ClassroomDashboard({code}){
  const visibleTabs=SECTIONS.filter(t=>{
    if(t.id==="studentAccess")return actor.owner;
    if(t.id==="assignments")return actor.manager;
-   if(["lessons","homework","attendance","submissions"].includes(t.id))return actor.teacher;
+   if(["lessons","homework","attendance","submissions","materials"].includes(t.id))return actor.teacher;
    return true;
  });
  const hhmm=t=>String(t||"").slice(0,5);
  const todayNo=({Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7})[new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Africa/Kigali"}).format(new Date())];
  const myPeriods=(com?.timetable||[]).filter(x=>x.weekday===todayNo);
  const toGrade=assignedSubmissions.filter(x=>!x.graded_at);
- const TITLES={overview:"Teacher Dashboard",assignments:"Teacher Class Assignments",lessons:"Lesson Planning",homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",studentAccess:"Verified Student Accounts"};
- const ICON={overview:"home",assignments:"users",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user"};
+ const TITLES={overview:"Teacher Dashboard",assignments:"Teacher Class Assignments",lessons:"Lesson Planning",homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",studentAccess:"Verified Student Accounts",materials:"Learning Materials"};
+ const ICON={overview:"home",assignments:"users",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user",materials:"folder"};
  const NAMES={overview:"Dashboard",attendance:"Attendance",submissions:"Grade Submissions"};
  const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
@@ -224,14 +225,24 @@ export default function ClassroomDashboard({code}){
        <td><button className="button secondary small" onClick={()=>open("revoke",{assignment:a,reason:""})}>Revoke assignment</button></td>
       </tr>)}</tbody></table>{!assignments.length&&<Blank title="No assigned teachers yet" description="Invite teachers in School Administration, define classes and subjects, then assign their teaching responsibilities."/>}</div></section>
     </>}
-    {["lessons","homework","attendance","submissions"].includes(tab)&&actor.teacher&&<>
+    {["lessons","homework","attendance","submissions","materials"].includes(tab)&&actor.teacher&&<>
      <div className="cr-class-selector">
       <label>My class <select className="input" value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
        {visibleClasses.map(c=><option key={c.id} value={c.id}>{classLabel(c.id)}</option>)}
       </select></label>
       {tab==="lessons"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("lesson",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id,lessonOn:currentDay})}>+ Lesson Plan</button>}
       {tab==="homework"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("homework",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id})}>+ Create Homework</button>}
+      {tab==="materials"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("material",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id,kind:"video"})}>+ Add Material</button>}
      </div>
+     {tab==="materials"&&<section className="cr-panel"><h2>Learning materials for this class</h2>
+       <p className="muted">Add a YouTube video or a web link. Students in this class see a material only while it is switched on.</p>
+       <div className="cr-card-grid">{materials.filter(m=>m.class_id===selectedClass).map(m=><article key={m.id} className="cr-lesson">
+        <div className="cr-card-header"><Tag>{subjectLabel(m.subject_id)}</Tag><span className="cr-status">{m.published?"Visible to students":"Hidden"}</span></div>
+        <h3>{m.title}</h3>{m.description&&<p>{m.description}</p>}
+        <small><a href={m.url} target="_blank" rel="noopener noreferrer">Open link</a> · {m.kind}</small>
+        <button className="button secondary small" disabled={busy} onClick={()=>submit({action:"material.toggle",materialId:m.id,published:!m.published})}>{m.published?"Hide from students":"Show to students"}</button>
+       </article>)}</div>
+       {!materials.some(m=>m.class_id===selectedClass)&&<Blank title="No materials yet" description="Add the first video or link for this class. It stays hidden until you switch it on."/>}</section>}
      {tab==="lessons"&&<section className="cr-panel"><h2>My lesson plans</h2><div className="cr-card-grid">
        {lessons.filter(l=>l.class_id===selectedClass).map(l=><article key={l.id} className="cr-lesson">
         <Tag>{subjectLabel(l.subject_id)}</Tag><h3>{l.title}</h3><p>{l.objectives||"No objectives added"}</p><small>Lesson date: {l.lesson_date}</small></article>)}</div>
@@ -283,8 +294,19 @@ export default function ClassroomDashboard({code}){
       </tr>)}</tbody></table>
       {!data.studentAccounts.length&&<Blank title="No activated student accounts" description="Students must use their verified invitation before an account becomes active."/>}</div></section></>}
   <p className="ds-foot">School ID {school.code} · Only approved classes and members are shown.</p>
-  {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account",revokeStudent:"Revoke student account",grade:"Grade homework submission"})[modal]} close={()=>{setModal(null);setError("");}}>
+  {modal&&<Modal title={({assign:"Assign a teacher",revoke:"Revoke teaching assignment",lesson:"Create lesson plan",homework:"Create homework draft",studentInvite:"Authorize student account",revokeStudent:"Revoke student account",grade:"Grade homework submission",material:"Add learning material"})[modal]} close={()=>{setModal(null);setError("");}}>
    {error&&<div className="notice error" role="alert">{error}</div>}
+   {modal==="material"&&<form onSubmit={e=>{e.preventDefault();submit({action:"material.create",classId:form.classId,subjectId:form.subjectId,
+     kind:form.kind||"video",title:form.title||"",url:form.url||"",description:form.description||""});}}>
+    <Label name="Assigned subject"><select className="input" value={form.subjectId||""} onChange={e=>setForm({...form,subjectId:e.target.value})}>
+     {myAssignmentsClass.map(a=><option key={a.subject_id} value={a.subject_id}>{subjectLabel(a.subject_id)}</option>)}</select></Label>
+    <Label name="Type"><select className="input" value={form.kind||"video"} onChange={e=>setForm({...form,kind:e.target.value})}>
+     <option value="video">Video (YouTube, Vimeo, TikTok or Facebook)</option><option value="link">Web link</option><option value="document">Document link (Google Drive and similar)</option></select></Label>
+    <Label name="Title"><input className="input" required minLength={3} maxLength={160} value={form.title||""} onChange={e=>setForm({...form,title:e.target.value})}/></Label>
+    <Label name="Web link (starts with https://)"><input className="input" type="url" required maxLength={500} value={form.url||""} onChange={e=>setForm({...form,url:e.target.value})}/></Label>
+    <Label name="Short description (optional)"><textarea className="input" maxLength={1000} value={form.description||""} onChange={e=>setForm({...form,description:e.target.value})}/></Label>
+    <p className="muted">The material is saved hidden. Switch it on when you want students to see it.</p>
+    <button className="button" disabled={busy} type="submit">Save material</button></form>}
    {modal==="grade"&&<form onSubmit={e=>{e.preventDefault();submit({action:"submission.grade",submissionId:form.submissionId,score:form.score,maxScore:form.maxScore,feedback:form.feedback||""});}}>
 <Label name="Score (leave empty to give feedback only)"><input className="input" type="number" min="0" step="0.5" value={form.score??""} onChange={e=>setForm({...form,score:e.target.value})}/></Label>
 <Label name="Maximum mark"><input className="input" type="number" min="1" max="1000" step="0.5" value={form.maxScore??""} onChange={e=>setForm({...form,maxScore:e.target.value})}/></Label>
