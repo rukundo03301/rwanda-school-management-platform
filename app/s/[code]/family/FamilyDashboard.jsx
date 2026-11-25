@@ -120,7 +120,7 @@ export default function FamilyDashboard({code}){
      <Stat icon="clock" tone="blue" value={attPct(child)===null?"—":attPct(child)+"%"} label="Attendance"/>
      <Stat icon="check" tone="purple" value={child.homework.length?child.homework.filter(h=>h.submittedAt).length+"/"+child.homework.length:"—"} label="Homework done"/>
      <Stat icon="trophy" tone="orange" value={avg(child)===null?"—":avg(child)+"%"} label="Homework average"/>
-     <Stat icon="wallet" tone="green" value={fees?rwf(balance):"—"} label="Fees balance"/>
+     <Stat icon="wallet" tone="green" value={fees?rwf(invoices.filter(i=>i.student_id===child.id).reduce((x,i)=>x+Number(i.balances?.balance_rwf||0),0)):"—"} label="Fees balance"/>
     </div>
     <div className="ds-grid" style={{margin:0}}>
      <Card title={child.name.split(" ")[0]+"'s Classes Today"} icon="calendar" size="s6" link={<button className="ds-link" onClick={()=>setTab("events")}>Timetable →</button>}>
