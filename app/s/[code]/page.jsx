@@ -31,7 +31,15 @@ const loadSchoolSite=cache(async(code)=>{
   const {data:links}=await db.from("school_social_links").select("platform,url").eq("school_id",school.id);
   social=(links||[]).filter(l=>typeof l.url==="string"&&l.url.startsWith("https://"));
  }
- return {school,site:available?site:null,available,social};
+ // Upcoming whole-school events from the school calendar. Class-only events are never shown publicly.
+ let events=[];
+ if(available){
+  const {data:rows}=await db.from("school_calendar_events").select("id,title,details,starts_at,location")
+    .eq("school_id",school.id).eq("status","scheduled").eq("audience","all").is("class_id",null)
+    .gte("starts_at",new Date().toISOString()).order("starts_at",{ascending:true}).limit(6);
+  events=rows||[];
+ }
+ return {school,site:available?site:null,available,social,events};
 });
 
 export async function generateMetadata({params}){
@@ -146,6 +154,10 @@ export default async function SchoolHome({params}) {
           <h3>{ad.title}</h3><p>{ad.description}</p><a href="#contact">Contact our school for details</a>
         </article>)}
       </div>
+    </section>}
+    {found.events?.length>0&&<section id="events" className="site-section site-alt">
+      <span className="site-eyebrow">School calendar</span><h2>Upcoming events</h2>
+      <ul className="site-events">{found.events.map(e=><li key={e.id}><strong>{e.title}</strong> · {new Date(e.starts_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric",timeZone:"Africa/Kigali"})}{e.location?" · "+e.location:""}{e.details&&<><br/><span>{e.details}</span></>}</li>)}</ul>
     </section>}
     <section id="contact" className="site-section"><span className="site-eyebrow">Let's connect</span><h2>Contact {school.name}</h2>
       {site.contact_email&&<p><a href={contactHref}>{site.contact_email}</a></p>}
