@@ -34,7 +34,7 @@ begin
  if first_id=second_id or first_code=second_code then
   raise exception 'Demo schools must have distinct School IDs and codes'; end if;
  inventory:=public.platform_preview_tenant_purge(first_id);
- if (inventory->>'school_scoped_tables')::integer<>55
+ if (inventory->>'school_scoped_tables')::integer<>56
   or (inventory->>'tenant_rows')::bigint<15
   or (inventory->>'stored_files')::integer<>0
   or (inventory->>'is_demo')::boolean is distinct from true
@@ -113,7 +113,7 @@ begin
  if (result->>'deleted')::boolean is distinct from true
   or exists(select 1 from public.platform_schools where id=second_id)
  then raise exception 'Second tenant deletion did not finish'; end if;
- raise notice 'PASSED: two fictional tenants created, 55-table manifest checked, drift/legal hold/wrong code blocked, two purged, data and company wiped, shared user preserved.';
+ raise notice 'PASSED: two fictional tenants created, 56-table manifest checked, drift/legal hold/wrong code blocked, two purged, data and company wiped, shared user preserved.';
 end;
 $smoke$;
 rollback;
