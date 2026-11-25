@@ -50,6 +50,7 @@ export async function GET(request,{params}){
           id:stu.id,studentCode:stu.student_code,
           name:stu.first_name+" "+stu.last_name,
           relationship:linkMap.get(stu.id)?.relationship,
+          classId:enrollment?.class_id||null,
           className:cls?cls.name+(cls.section?" — "+cls.section:""):null,
           homework:enrollment?hwAll.filter(h=>h.class_id===enrollment.class_id).slice(0,20).map(h=>{const sub=subAll.find(x=>x.homework_id===h.id&&x.student_id===stu.id);return {id:h.id,title:h.title,subject:subjMap.get(h.subject_id)||null,dueAt:h.due_at,submittedAt:sub?.submitted_at||null,isLate:Boolean(sub?.is_late),score:sub?.score??null,maxScore:sub?.max_score??null,feedback:sub?.feedback||null};}):[],
           attendance:(()=>{const rows=enrollment?attAll.filter(x=>x.student_id===stu.id&&x.class_id===enrollment.class_id):[];const count=k=>rows.filter(x=>x.status===k).length;return {recorded:rows.length,present:count("present"),absent:count("absent"),late:count("late"),excused:count("excused"),recent:rows.slice(0,10).map(x=>({on:x.attendance_on,status:x.status}))};})()
