@@ -77,7 +77,7 @@ function Login({client,onLogin}) {
       // Supabase initiates browser navigation to the provider.
     } catch(e){setLoading(false);setProblem(e.message||"Google sign-in is not available.");}
   }
-  return <main className="shell lp"><Landing/><div className="auth-card">
+  return <main className="shell lp"><Landing/><div className="auth-card" id="platform-sign-in">
     <div className="mark">R</div>
     <h1>{mode==="forgot"?"Reset your password":mode==="signup"?"Request a platform account":"Welcome back"}</h1>
     <p>{mode==="forgot"?"Enter your account email. We'll send a private password reset link.":mode==="signup"?"Only approved platform staff and the verified platform owner can use this console.":"Sign in to manage school tenants, private monthly payments, support tickets and your team."}</p>
