@@ -84,7 +84,21 @@ create table if not exists public.school_board_meetings(
 create table if not exists public.school_social_links(
   school_id uuid not null references public.platform_schools(id) on delete cascade,
   platform text not null check(platform in ('youtube','tiktok','facebook','instagram','x','whatsapp')),
-  url text not null check(url ~ '^https://[^[:space:]]{4,300}$'),
+  url text not null constraint school_social_links_url_chk check(url ~ '^https://[^[:space:]]+
+  updated_at timestamptz not null default now(),
+  primary key(school_id,platform)
+);
+
+do $$
+declare t text;
+begin
+  foreach t in array array['school_stock_items','school_stock_movements','school_assets','school_maintenance_requests','school_board_members','school_board_meetings','school_social_links'] loop
+    execute format('alter table public.%I enable row level security',t);
+    execute format('revoke all on table public.%I from anon, authenticated',t);
+    execute format('grant select, insert, update, delete on table public.%I to service_role',t);
+  end loop;
+end $$;
+ and char_length(url) between 12 and 300),
   updated_at timestamptz not null default now(),
   primary key(school_id,platform)
 );
