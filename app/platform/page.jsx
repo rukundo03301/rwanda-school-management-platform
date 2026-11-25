@@ -37,9 +37,25 @@ function Login({client,onLogin}) {
   const [password,setPassword]=useState("");
   const [showPassword,setShowPassword]=useState(false);
   const [mode,setMode]=useState("login");
+  const [authOpen,setAuthOpen]=useState(false);
   const [loading,setLoading]=useState(false);
   const [message,setMessage]=useState("");
   const [problem,setProblem]=useState("");
+  function openAuth(nextMode){
+    setMode(nextMode);
+    setAuthOpen(true);
+    setProblem("");
+    setMessage("");
+  }
+  useEffect(()=>{
+    if(!authOpen)return;
+    const onEscape=(event)=>{
+      if(event.key==="Escape"&&!loading)setAuthOpen(false);
+    };
+    window.addEventListener("keydown",onEscape);
+    document.getElementById("platform-email")?.focus();
+    return ()=>window.removeEventListener("keydown",onEscape);
+  },[authOpen,loading]);
   async function submit(e) {
     e.preventDefault();setLoading(true);setMessage("");setProblem("");
     try {
@@ -77,14 +93,18 @@ function Login({client,onLogin}) {
       // Supabase initiates browser navigation to the provider.
     } catch(e){setLoading(false);setProblem(e.message||"Google sign-in is not available.");}
   }
-  return <main className="shell lp"><Landing/><div className="auth-card" id="platform-sign-in">
+  return <main className="shell lp">
+    <Landing onLogin={()=>openAuth("login")} onSignup={()=>openAuth("signup")}/>
+    {authOpen&&<div className="lp-auth-overlay" onMouseDown={event=>{if(event.target===event.currentTarget&&!loading)setAuthOpen(false);}}>
+    <section className="auth-card" id="platform-sign-in" role="dialog" aria-modal="true" aria-label={mode==="signup"?"Request a platform account":mode==="forgot"?"Reset your password":"Sign in to Umurage"}>
+    <button type="button" className="lp-auth-close" aria-label="Close account form" disabled={loading} onClick={()=>setAuthOpen(false)}>×</button>
     <div className="mark">R</div>
     <h1>{mode==="forgot"?"Reset your password":mode==="signup"?"Request a platform account":"Welcome back"}</h1>
     <p>{mode==="forgot"?"Enter your account email. We'll send a private password reset link.":mode==="signup"?"Only approved platform staff and the verified platform owner can use this console.":"Sign in to manage school tenants, private monthly payments, support tickets and your team."}</p>
     {problem&&<div className="notice error" role="alert">{problem}</div>}
     {message&&<div className="notice ok" role="status">{message}</div>}
     <form onSubmit={submit}>
-      <Field label="Email address"><input className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></Field>
+      <Field label="Email address"><input id="platform-email" className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></Field>
       {mode!=="forgot"&&<Field label="Password">
         <div className="password-row">
           <input className="input" type={showPassword?"text":"password"} required minLength={8}
@@ -109,7 +129,7 @@ function Login({client,onLogin}) {
     </>}
     {mode!=="login"&&<button style={{marginTop:14}} className="button flat" onClick={()=>{setMode("login");setProblem("");setMessage("");}}>← Back to sign in</button>}
     <p className="micro" style={{marginTop:22,marginBottom:0}}>Google login requires an enabled Google provider. Every account still needs approved owner or staff access. The sign-in method never grants privileges.</p>
-  </div></main>;
+  </section></div>}</main>;
 }
 
 function PermissionToggleTable({permissions,onChange,disabled=false}) {
