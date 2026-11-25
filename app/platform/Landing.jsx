@@ -1,3 +1,5 @@
+"use client";
+import {useEffect,useState} from "react";
 // Public front page of the Umurage platform. Pure presentation: no data, no secrets.
 // The hero picture is /umurage-hero.jpg from the public folder; when it is missing the
 // illustrated scene below still fills the page, so nothing looks broken.
@@ -7,17 +9,19 @@ const CSS=[
 ".shell.lp{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,440px);gap:40px;align-items:center;justify-content:center;",
 "padding:40px clamp(20px,6vw,90px) 150px;position:relative;overflow:hidden;",
 "background:linear-gradient(180deg,#dcebff 0%,#eef5ff 55%,#f7fbff 100%)}",
-".lp-scene{position:absolute;left:0;right:0;bottom:0;width:100%;height:min(38vh,330px);z-index:0}",
-".lp-hero>*:not(svg),.shell.lp .auth-card{position:relative;z-index:1}",
+".lp-scene{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;z-index:0}",
+".lp-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat}",
+".lp-bg:after{content:\"\";position:absolute;inset:0;background:linear-gradient(90deg,#ffffff00 55%,#ffffff55 100%)}",
+".shell.lp.has-bg{grid-template-columns:minmax(0,1fr) minmax(320px,440px);padding-bottom:40px}",
+".lp-hero>*:not(svg):not(.lp-bg),.shell.lp .auth-card{position:relative;z-index:1}",
 ".lp-brand{display:flex;align-items:center;gap:12px;font-weight:800;color:#12408a;font-size:15px;letter-spacing:.2px}",
 ".lp-brand b{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff}",
 ".lp-hero h2{font-size:clamp(30px,4.2vw,50px);line-height:1.08;margin:18px 0 12px;color:#0d2a5c}",
 ".lp-hero p.lp-sub{font-size:clamp(16px,1.6vw,19px);color:#3b5578;max-width:560px;margin:0 0 20px}",
 ".lp-chips{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}",
 ".lp-chips span{background:#fff;border:1px solid #cfe0f7;color:#12408a;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;box-shadow:0 6px 18px #1d4ed814}",
-".lp-photo{width:min(100%,640px);border-radius:24px;box-shadow:0 22px 60px #1d4ed82e;border:6px solid #fff;display:block;background:#fff}",
 ".shell.lp .auth-card{justify-self:center;width:min(400px,100%);box-shadow:0 22px 60px #1d4ed824}",
-"@media(max-width:900px){.shell.lp{grid-template-columns:1fr;padding-bottom:190px}.lp-photo{display:none}}"
+"@media(max-width:900px){.shell.lp{grid-template-columns:1fr;padding-bottom:190px}}"
 ].join("");
 
 function Skyline(){
@@ -43,14 +47,22 @@ function Skyline(){
 }
 
 export default function Landing(){
+ const [photo,setPhoto]=useState(false);
+ useEffect(()=>{
+  const img=new Image();
+  img.onload=()=>{setPhoto(true);document.querySelector(".shell.lp")?.classList.add("has-bg");};
+  img.src="/umurage-hero.jpg";
+  return ()=>{document.querySelector(".shell.lp")?.classList.remove("has-bg");};
+ },[]);
  return <section className="lp-hero" aria-label="About the platform">
   <style>{CSS}</style>
+  {photo?<div className="lp-bg" role="img" aria-label="A family checking their child's school progress together on the Umurage platform" style={{backgroundImage:"url(/umurage-hero.jpg)"}}/>
+   :<>
   <Skyline/>
   <div className="lp-brand"><b>U</b>Umurage School Management Platform</div>
   <h2>One safe place for every school, parent and child.</h2>
   <p className="lp-sub">Rwanda's school platform for attendance, homework, report cards and fees, built so each school keeps its own name, colours and private records.</p>
   <div className="lp-chips">{FEATURES.map(f=><span key={f}>{f}</span>)}</div>
-  <img className="lp-photo" src="/umurage-hero.jpg" alt="A family checking their child's school progress together" width="1448" height="1086"
-   onError={e=>{e.currentTarget.style.display="none";}}/>
+   </>}
  </section>;
 }
