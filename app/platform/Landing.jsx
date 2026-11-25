@@ -186,7 +186,7 @@ export default function Landing(){
        src="/umurage-hero.jpg"
        alt="Umurage School Management Platform: a family sitting together with connected panels for attendance, academic progress, school information, fees, announcements, and messages."
        width="1536"
-       height="1024"
+       height="1152"
        loading="eager"
        fetchPriority="high"
        decoding="async"
