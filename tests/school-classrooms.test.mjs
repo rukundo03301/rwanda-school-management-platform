@@ -89,7 +89,7 @@ test("published homework is distinct from teacher drafts, student submits only o
  assert.match(db,/where school_id=p_school_id and id=p_homework and status='published'/);
  assert.match(db,/now\(\)>hw\.due_at/);
  assert.match(db,/unique\(school_id,homework_id,student_id\)/);
- assert.match(teacherUi,/Publish for students/);
+ assert.match(teacherUi+readFileSync("app/s/[code]/classroom/HomeworkComposer.jsx","utf8"),/Publish/);
  assert.match(studentUi,/Submit my homework/);
  assert.match(studentUi,/one submission/);
 });
