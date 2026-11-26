@@ -104,16 +104,16 @@ export default function HomeworkComposer({code,classId,subjects,assignments,clas
  const mine=assignments.filter(a=>a.class_id===classId);
  const list=homework.filter(h=>h.class_id===classId);
  const total=qs.reduce((s,q)=>s+(Number(q.marks)||0),0);
- const newForm=()=>{setF({id:null,title:"",objectives:"",instructions:"",subjectId:mine[0]?.subject_id||"",dueLocal:"",releaseLocal:"",latePolicy:"accept_flag",resultsRelease:"manual"});setQs([]);setErr("");setNote("");setPreview(false);setView("edit");};
+ const newForm=()=>{setF({id:null,title:"",objectives:"",instructions:"",subjectId:mine[0]?.subject_id||"",dueLocal:"",releaseLocal:"",latePolicy:"accept_flag",resultsRelease:"manual",timeLimit:""});setQs([]);setErr("");setNote("");setPreview(false);setView("edit");};
  async function edit(h){
   setBusy(true);setErr("");
   try{const d=await call(null,"?homeworkId="+h.id);const x=d.homework;
-   setF({id:x.id,title:x.title,objectives:x.objectives||"",instructions:x.instructions,subjectId:x.subject_id,dueLocal:toLocalInput(x.due_at),releaseLocal:toLocalInput(x.release_at),latePolicy:x.late_policy,resultsRelease:x.results_release});
+   setF({id:x.id,title:x.title,objectives:x.objectives||"",instructions:x.instructions,subjectId:x.subject_id,dueLocal:toLocalInput(x.due_at),releaseLocal:toLocalInput(x.release_at),latePolicy:x.late_policy,resultsRelease:x.results_release,timeLimit:x.time_limit_minutes?String(x.time_limit_minutes):""});
    setQs(d.questions.map(fromDb));setPreview(false);setView("edit");}
   catch(e){setErr(e.message);}finally{setBusy(false);}
  }
  const payload=()=>({action:"hw.save",homeworkId:f.id,classId,subjectId:f.subjectId,title:f.title,instructions:f.instructions,objectives:f.objectives,
-  dueAt:fromLocalInput(f.dueLocal),releaseAt:fromLocalInput(f.releaseLocal)||null,latePolicy:f.latePolicy,resultsRelease:f.resultsRelease,
+  dueAt:fromLocalInput(f.dueLocal),releaseAt:fromLocalInput(f.releaseLocal)||null,latePolicy:f.latePolicy,resultsRelease:f.resultsRelease,timeLimit:f.timeLimit?Number(f.timeLimit):null,
   questions:qs.map(q=>({kind:q.kind,prompt:q.prompt,marks:q.marks,options:q.options,correct:q.correct,tolerance:q.tolerance}))});
  async function save(publish){
   setBusy(true);setErr("");setNote("");
@@ -141,6 +141,7 @@ export default function HomeworkComposer({code,classId,subjects,assignments,clas
     <label><strong>Deadline (Rwanda time)</strong><input className="input" type="datetime-local" value={f.dueLocal} onChange={e=>setF({...f,dueLocal:e.target.value})}/></label>
     <label><strong>Show to students from (optional)</strong><input className="input" type="datetime-local" value={f.releaseLocal} onChange={e=>setF({...f,releaseLocal:e.target.value})}/></label>
     <label><strong>After the deadline</strong><select className="input" value={f.latePolicy} onChange={e=>setF({...f,latePolicy:e.target.value})}><option value="accept_flag">Accept, mark as late</option><option value="reject">Do not accept answers</option></select></label>
+    <label><strong>Time limit in minutes (optional)</strong><input className="input" type="number" min="1" max="240" value={f.timeLimit} onChange={e=>setF({...f,timeLimit:e.target.value})} placeholder="No limit"/></label>
     <label><strong>Results</strong><select className="input" value={f.resultsRelease} onChange={e=>setF({...f,resultsRelease:e.target.value})}><option value="manual">I release results myself</option><option value="auto">Show as soon as I mark</option></select></label></div></div>
   <h3 style={{marginTop:18}}>Questions {qs.length>0&&<small className="muted">· {qs.length} questions · {total} marks</small>}</h3>
   {!qs.length&&<div className="cr-info" style={{display:"grid",gap:10}}>
