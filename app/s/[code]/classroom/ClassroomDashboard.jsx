@@ -186,7 +186,7 @@ export default function ClassroomDashboard({code}){
       <div className="ds-span4" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
        <Card title="Quick Actions" icon="bolt">
         <div className="ds-actions" style={{gridTemplateColumns:"1fr"}}>
-         <button className="ds-action blue" onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("homework",{classId:a.class_id,subjectId:a.subject_id});}else selectSection("homework");}}><Icon name="check"/>Create Homework</button>
+         <button className="ds-action blue" onClick={()=>{const a=myAssignments[0];if(a)setSelectedClass(a.class_id);selectSection("homework");}}><Icon name="check"/>Create Homework</button>
          <button className="ds-action green" onClick={()=>selectSection("attendance")}><Icon name="clock"/>Record Attendance</button>
          <button className="ds-action purple" onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("lesson",{classId:a.class_id,subjectId:a.subject_id,lessonOn:currentDay});}else selectSection("lessons");}}><Icon name="book"/>Plan a Lesson</button>
          <a className="ds-action orange" href={"/s/"+code+"/communications"}><Icon name="chat"/>School Messages</a>
