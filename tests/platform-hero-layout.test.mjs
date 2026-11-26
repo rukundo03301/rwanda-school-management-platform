@@ -5,12 +5,12 @@ import {readFileSync} from "node:fs";
 const landing=readFileSync(new URL("../app/platform/Landing.jsx",import.meta.url),"utf8");
 const platform=readFileSync(new URL("../app/platform/page.jsx",import.meta.url),"utf8");
 
-test("Umurage wide hero covers viewport edge to edge without blurred side bands",()=>{
+test("Umurage uses the exact uploaded image to fill the single-screen homepage",()=>{
  assert.match(landing,/height:100dvh/);
  assert.match(landing,/overflow:hidden/);
  assert.match(landing,/className="lp-hero-image"/);
- assert.match(landing,/src="\\/umurage-hero-original\\.webp"/);
- assert.match(landing,/width="1672"[\s\S]*height="941"/);
+ assert.match(landing,/src="\/umurage-hero-original\.webp"/);
+ assert.match(landing,/width="1269"[\s\S]*height="952"/);
  assert.match(landing,/object-fit:cover/);
  assert.match(landing,/object-position:center center/);
  assert.match(landing,/inset:0/);
@@ -18,7 +18,7 @@ test("Umurage wide hero covers viewport edge to edge without blurred side bands"
  assert.doesNotMatch(landing,/lp-below|href="#platform-sign-in"/);
 });
 
-test("login and signup appear at the upper right and open the existing auth dialog",()=>{
+test("login and signup remain in the top-right header and open the existing authentication dialog",()=>{
  assert.match(landing,/className="lp-topbar"/);
  assert.match(landing,/className="lp-auth-nav"/);
  assert.match(landing,/onClick=\{onLogin\}>Log In/);
@@ -32,7 +32,7 @@ test("login and signup appear at the upper right and open the existing auth dial
  assert.match(platform,/auth\.signUp/);
 });
 
-test("auth overlay stays on the same page and adapts to narrow screens",()=>{
+test("auth overlay stays on this page and adapts to narrow screens",()=>{
  assert.match(landing,/@media\(max-width:620px\)/);
  assert.match(landing,/\.shell\.lp\s*\.lp-auth-overlay/);
  assert.match(landing,/max-height:calc\(100dvh - var\(--lp-header-height\) - 20px\)/);
