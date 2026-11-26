@@ -34,6 +34,26 @@ export async function GET(request) {
         .select("id,school_code,name,owner_email,status,is_demo,legal_hold,created_at,updated_at,company_id,platform_companies(company_code,name)")
         .order("created_at", { ascending: false }).limit(200));
     }
+    if (data.tenants.length) {
+      // Read-only health summary per school, computed from each school's own records. Never exposes student names.
+      try {
+        const ids = data.tenants.map((t) => t.id);
+        const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const [stu, att, inv, pay] = await Promise.all([
+          checked(db.from("school_students").select("school_id").eq("status", "active").in("school_id", ids).limit(20000)),
+          checked(db.from("school_attendance_records").select("school_id,status").gte("attendance_on", since).in("school_id", ids).limit(50000)),
+          checked(db.from("school_fee_invoices").select("school_id,amount_rwf").eq("status", "issued").in("school_id", ids).limit(50000)),
+          checked(db.from("school_fee_payments").select("school_id,amount_rwf").eq("status", "posted").in("school_id", ids).limit(50000)),
+        ]);
+        const stats = {};
+        for (const id of ids) stats[id] = { students: 0, marked: 0, present: 0, invoiced: 0, collected: 0 };
+        for (const r of stu) stats[r.school_id].students += 1;
+        for (const r of att) { stats[r.school_id].marked += 1; if (r.status === "present" || r.status === "late") stats[r.school_id].present += 1; }
+        for (const r of inv) stats[r.school_id].invoiced += Number(r.amount_rwf) || 0;
+        for (const r of pay) stats[r.school_id].collected += Number(r.amount_rwf) || 0;
+        data.schoolStats = stats;
+      } catch (e) { data.schoolStats = {}; }
+    }
     if (can("billing.read")) {
       data.feeTerms = await checked(db.from("platform_fee_terms")
         .select("school_id,monthly_fee_rwf,last_paid_on,next_due_on,updated_at").order("next_due_on",{ascending:true}));
