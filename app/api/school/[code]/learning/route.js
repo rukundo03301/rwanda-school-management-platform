@@ -15,7 +15,7 @@ export async function GET(request,{params}){
   const member=await checked(db.from("school_memberships").select("active")
     .eq("school_id",school.id).eq("auth_user_id",user.id)
     .eq("role","student").maybeSingle());
-  let student=null,academicYear=null,activeClass=null,subjects=[],homework=[],submissions=[],attendance=[];
+  let student=null,academicYear=null,activeClass=null,subjects=[],homework=[],submissions=[],attendance=[],questionHomeworkIds=[];
   if(member?.active){
    const account=await checked(db.from("school_student_accounts")
      .select("student_id").eq("school_id",school.id)
@@ -44,11 +44,11 @@ export async function GET(request,{params}){
          checked(db.from("school_class_subjects").select("subject_id")
            .eq("school_id",school.id).eq("class_id",activeClass.id).limit(100)),
          checked(db.from("school_homework").select(
-           "id,title,instructions,due_at,subject_id,published_at,status"
+           "id,title,instructions,due_at,subject_id,published_at,status,release_at"
          ).eq("school_id",school.id).eq("class_id",activeClass.id)
-           .eq("status","published").order("due_at",{ascending:true}).limit(200)),
+           .eq("status","published").or("release_at.is.null,release_at.lte."+new Date().toISOString()).order("due_at",{ascending:true}).limit(200)),
          checked(db.from("school_homework_submissions")
-           .select("homework_id,response_text,submitted_at,is_late,score,max_score,feedback,graded_at")
+           .select("homework_id,response_text,submitted_at,is_late,score,max_score,feedback,graded_at,released_at")
            .eq("school_id",school.id).eq("student_id",record.id)
            .order("submitted_at",{ascending:false}).limit(200)),
          checked(db.from("school_attendance_records")
@@ -61,7 +61,9 @@ export async function GET(request,{params}){
           .select("id,code,name").eq("school_id",school.id).in("id",subjectIds)):[];
         homework=hw;
         const publishedIds=new Set(hw.map(x=>x.id));
-        submissions=subs.filter(x=>publishedIds.has(x.homework_id));
+        submissions=subs.filter(x=>publishedIds.has(x.homework_id)).map(x=>x.released_at?x:{...x,score:null,max_score:null,feedback:null,graded_at:null});
+        const qrows=hw.length?await checked(db.from("school_homework_questions").select("homework_id").eq("school_id",school.id).in("homework_id",hw.map(x=>x.id)).limit(3000)):[];
+        questionHomeworkIds=[...new Set(qrows.map(x=>x.homework_id))];
         attendance=att;
        }
       }
@@ -85,7 +87,7 @@ export async function GET(request,{params}){
   return Response.json({
     school:{name:school.name,code:school.school_code,logoUrl},
     pendingInvitations:invite.map(i=>({studentId:i.student_id,expiresAt:i.expires_at})),
-    student,academicYear,activeClass,subjects,homework,submissions,attendance,materials
+    student,academicYear,activeClass,subjects,homework,submissions,attendance,materials,questionHomeworkIds
   },{headers:noStore});
  }catch(e){return jsonError(e);}
 }
@@ -106,6 +108,8 @@ export async function POST(request,{params}){
     }));
   }else if(action==="homework.submit"){
     const homeworkId=validateUuid(body.homeworkId,"homework");
+    const hasQ=await checked(db.from("school_homework_questions").select("id").eq("school_id",school.id).eq("homework_id",homeworkId).limit(1));
+    if(hasQ.length)throw new ApiError(400,"Open this homework and answer its questions");
     if(typeof body.responseText!=="string"||body.responseText.trim().length<1||
        body.responseText.length>5000)
       throw new ApiError(400,"Write a homework answer of up to 5000 characters");
