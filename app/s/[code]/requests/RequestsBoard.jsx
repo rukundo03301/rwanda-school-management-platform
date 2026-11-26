@@ -1,7 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
-import {DashboardShell,Card,Icon} from "../../../ui/DashboardShell.jsx";
+import {Card,Icon} from "../../../ui/DashboardShell.jsx";
 
 const when=d=>d?new Date(d).toLocaleDateString("en-GB",{timeZone:"Africa/Kigali",day:"numeric",month:"short",year:"numeric"}):"";
 const rwf=v=>Number(v).toLocaleString("en-US")+" RWF";
@@ -35,12 +35,7 @@ export default function RequestsBoard({code}){
  if(!data&&error)return <main className="school-admin-loading"><h2>Requests unavailable</h2><p role="alert">{error}</p><a href={"/s/"+code+"/home"}>Back to dashboard</a></main>;
  if(!data)return <main className="school-admin-loading">Opening requests…</main>;
  const set=k=>e=>setForm({...form,[k]:e.target.value});
- const pending=data.requests.filter(r=>r.status==="pending");
- const nav=[{label:"Dashboard",icon:"home",href:"/s/"+code+"/home"},{label:"Requests",icon:"file",active:true,badge:data.manager?pending.length:0}];
- const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login");};
- return <DashboardShell school={{name:"School",place:"Requests"}} title="Leave and Purchase Requests"
-  user={{name:(session.user.email||"User").split("@")[0],role:data.manager?"Approver":"Staff"}} nav={nav}
-  notifications={data.manager?pending.length:0} helpText="Your principal decides each request." onSignOut={signOut} portalHref={"/s/"+code+"/portal"}>
+ return <>
   {error&&<div className="notice error" role="alert">{error}</div>}
   <div className="ds-grid">
    <Card title="New Request" icon="plus" size="s4">
@@ -66,5 +61,5 @@ export default function RequestsBoard({code}){
     </li>)}</ul>:<p className="ds-empty">No requests yet.</p>}
    </Card>
   </div>
- </DashboardShell>;
+ </>;
 }
