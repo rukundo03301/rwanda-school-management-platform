@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
+import {initialTab} from "../../../../lib/portal-nav.mjs";
 import {youtubeEmbed} from "../../../../lib/youtube-embed.mjs";
 import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
@@ -8,7 +9,7 @@ function MiniStat({label,value}){return <div className="lr-stat"><small>{label}<
 export default function StudentLearning({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null),[error,setError]=useState(""),[notice,setNotice]=useState("");
- const [busy,setBusy]=useState(false),[tab,setTab]=useState("dashboard"),[search,setSearch]=useState(""),[com,setCom]=useState(null),[responses,setResponses]=useState({});
+ const [busy,setBusy]=useState(false),[tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["dashboard","subjects","timetable","homework","attendance","materials","events","profile","help"],"dashboard")),[search,setSearch]=useState(""),[com,setCom]=useState(null),[responses,setResponses]=useState({});
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
   if(!c){setReady(true);setLoading(false);return;}
