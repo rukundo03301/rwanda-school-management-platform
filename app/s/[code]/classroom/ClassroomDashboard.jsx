@@ -5,6 +5,7 @@ import {initialTab} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
 import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 import HomeworkComposer from "./HomeworkComposer.jsx";
+import MaterialFiles from "./MaterialFiles.jsx";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const SECTIONS=[
@@ -247,6 +248,7 @@ export default function ClassroomDashboard({code}){
         <button className="button secondary small" disabled={busy} onClick={()=>submit({action:"material.toggle",materialId:m.id,published:!m.published})}>{m.published?"Hide from students":"Show to students"}</button>
        </article>)}</div>
        {!materials.some(m=>m.class_id===selectedClass)&&<Blank title="No materials yet" description="Add the first video or link for this class. It stays hidden until you switch it on."/>}</section>}
+     {tab==="materials"&&actor.teacher&&<MaterialFiles code={code} classId={selectedClass} assignments={myAssignmentsClass} subjectLabel={subjectLabel}/>}
      {tab==="lessons"&&<section className="cr-panel"><h2>My lesson plans</h2><div className="cr-card-grid">
        {lessons.filter(l=>l.class_id===selectedClass).map(l=><article key={l.id} className="cr-lesson">
         <Tag>{subjectLabel(l.subject_id)}</Tag><h3>{l.title}</h3><p>{l.objectives||"No objectives added"}</p><small>Lesson date: {l.lesson_date}</small></article>)}</div>
