@@ -97,7 +97,7 @@ export async function POST(request,{params}){
   const {code}=await params;
   const ctx=await context(request,code);
   const {db,school,user,token}=ctx;
-  // Two-step verification is asked of the school owner only.
+
   
   const sid=school.id;
   const office=ctx.manager||ctx.staff;
