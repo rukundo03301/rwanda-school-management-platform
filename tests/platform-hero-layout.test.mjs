@@ -5,16 +5,16 @@ import {readFileSync} from "node:fs";
 const landing=readFileSync(new URL("../app/platform/Landing.jsx",import.meta.url),"utf8");
 const platform=readFileSync(new URL("../app/platform/page.jsx",import.meta.url),"utf8");
 
-test("Umurage uses the exact uploaded image to fill the single-screen homepage",()=>{
+test("Umurage uses the exact uploaded image with no cropping and no empty side bands",()=>{
  assert.match(landing,/height:100dvh/);
  assert.match(landing,/overflow:hidden/);
  assert.match(landing,/className="lp-hero-image"/);
  assert.match(landing,/src="\/umurage-hero-original\.webp"/);
  assert.match(landing,/width="1269"[\s\S]*height="952"/);
- assert.match(landing,/object-fit:cover/);
- assert.match(landing,/object-position:center center/);
- assert.match(landing,/inset:0/);
- assert.doesNotMatch(landing,/object-fit:contain|lp-hero-backdrop|filter:blur\(22px\)/);
+ assert.match(landing,/object-fit:fill/);
+ assert.match(landing,/top:var\(--lp-header-height\)/);
+ assert.match(landing,/height:calc\(100% - var\(--lp-header-height\)\)/);
+ assert.doesNotMatch(landing,/object-fit:cover|object-fit:contain|lp-hero-backdrop|lp-hero-shade|filter:blur\(22px\)/);
  assert.doesNotMatch(landing,/lp-below|href="#platform-sign-in"/);
 });
 
