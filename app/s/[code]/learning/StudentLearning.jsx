@@ -1,4 +1,5 @@
 "use client";
+import AssignmentTaker from "./AssignmentTaker.jsx";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
@@ -8,6 +9,7 @@ import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../
 
 function MiniStat({label,value}){return <div className="lr-stat"><small>{label}</small><strong>{value}</strong></div>}
 export default function StudentLearning({code}){
+ const [taking,setTaking]=useState(null);
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [busy,setBusy]=useState(false),[tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["dashboard","subjects","timetable","homework","attendance","materials","events","profile","help"],"dashboard")),[search,setSearch]=useState(""),[com,setCom]=useState(null),[responses,setResponses]=useState({});
@@ -241,16 +243,20 @@ export default function StudentLearning({code}){
   {tab==="subjects"&&<section className="ds-panel"><h3>My class and subjects</h3>
    {subjects.length?<ul className="ds-list">{subjects.map((s,i)=><li key={s.id} className="ds-item"><span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{s.name}</strong><small>{s.code}</small></div></li>)}</ul>
     :<p className="ds-empty">Your school has not assigned subjects to your current class yet.</p>}</section>}
-  {tab==="homework"&&<section className="ds-panel"><h3>Published homework{search&&" matching “"+search+"”"}</h3>
+  {tab==="homework"&&taking&&<AssignmentTaker code={code} homeworkId={taking} onDone={reload} onClose={()=>setTaking(null)}/>}
+  {tab==="homework"&&!taking&&<section className="ds-panel"><h3>Published homework{search&&" matching “"+search+"”"}</h3>
    <p className="muted">Only homework assigned to your enrolled class is visible. Your answers are private to you and your assigned teacher.</p>
    <div className="lr-homework-list">{shownHomework.map(h=>{
     const submitted=submitMap.get(h.id);
+    const isQ=(data.questionHomeworkIds||[]).includes(h.id);
     return <article className="lr-homework" key={h.id}>
      <div className="lr-homework-top"><span className="cr-tag">{subjectName(h.subject_id)}</span>
       <span className={submitted?"lr-state good":"lr-state"}>{submitted?"Submitted":"Not submitted"}</span></div>
      <h3>{h.title}</h3><p>{h.instructions}</p>
      <small>Due {fmtFull(h.due_at)} (Rwanda)</small>
-     {submitted?<div className="lr-submitted"><strong>Your submitted response</strong><p>{submitted.response_text}</p>
+     {isQ?<div className="lr-answer"><button className="button" onClick={()=>setTaking(h.id)}>{submitted?(submitted.graded_at?"View my results":"View my submission"):"Open homework and answer"}</button>
+      {submitted?.graded_at&&<small> Score {Number(submitted.score)} / {Number(submitted.max_score)}</small>}</div>
+     :submitted?<div className="lr-submitted"><strong>Your submitted response</strong><p>{submitted.response_text}</p>
       <small>{submitted.is_late?"Submitted after due date · ":""}Submitted {new Date(submitted.submitted_at).toLocaleString("en-RW",{timeZone:"Africa/Kigali"})}</small>
       {submitted.graded_at&&<div className="lr-feedback"><strong>Teacher feedback{submitted.score!=null?" · "+Number(submitted.score)+" / "+Number(submitted.max_score):""}</strong>{submitted.feedback&&<p>{submitted.feedback}</p>}</div>}</div>:
      <div className="lr-answer">
