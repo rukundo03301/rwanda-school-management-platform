@@ -10,11 +10,13 @@ export async function GET(request,{params}){
   const raw=request.headers.get("authorization")||"";
   if(!raw.startsWith("Bearer "))throw new ApiError(401,"Sign in first");
   const {authClient,db}=clients();
-  const {data:{user},error:authError}=await authClient.auth.getUser(raw.slice(7));
+  const [authResult,schoolResult]=await Promise.all([
+    authClient.auth.getUser(raw.slice(7)),
+    db.from("platform_schools").select("id,name,status,school_code").eq("school_code",code).maybeSingle()
+  ]);
+  const {data:{user},error:authError}=authResult;
   if(authError||!user||!user.email_confirmed_at)throw new ApiError(401,"Verify your identity and email before continuing");
-
-  const {data:school,error:schoolError}=await db.from("platform_schools")
-    .select("id,name,status,school_code").eq("school_code",code).maybeSingle();
+  const {data:school,error:schoolError}=schoolResult;
   if(schoolError||!school)throw new ApiError(404,"School not found");
   if(!["onboarding","active"].includes(school.status))throw new ApiError(403,"This school is currently unavailable");
 
