@@ -116,3 +116,13 @@
 .ds-material{background:#f6f9ff;border-radius:14px;padding:14px;display:grid;gap:8px;align-content:start}
 .ds-material iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:10px;background:#000}
 .ds-material h4{margin:0;font-size:16px}.ds-material p{margin:0;color:var(--ds-muted);font-size:14px}
+
+/* Module pages shown inside the shared frame: the old full-screen header is dropped (the shared
+   header replaces it). Each module's own section menu stays, shown as a tab strip, so no function is lost. */
+.pf-body{min-width:0}
+.pf-body>.scom-shell,.pf-body>.fee-shell,.pf-body>.repm-shell,.pf-body>.adm-shell,.pf-body>.school-admin-shell,.pf-body>.rep-shell,.pf-body>.shell{min-height:0!important;background:transparent!important;padding:0!important;margin:0!important;max-width:none!important;width:100%!important}
+.pf-body .scom-header,.pf-body .fee-header,.pf-body .repm-header,.pf-body .adm-header,.pf-body .school-admin-top{display:none!important}
+.pf-body .fee-layout,.pf-body .repm-layout,.pf-body .scom-layout,.pf-body .adm-layout,.pf-body .school-admin-shell{display:block!important}
+.pf-body .scom-side,.pf-body .fee-sidebar,.pf-body .repm-side,.pf-body .adm-side,.pf-body .school-admin-sidebar{position:static!important;width:auto!important;height:auto!important;min-height:0!important;display:flex!important;flex-wrap:wrap;gap:6px;background:#fff!important;border:1px solid #e3e9f3!important;border-radius:14px!important;padding:8px!important;margin-bottom:16px!important;box-shadow:none!important}
+.pf-body .scom-side nav,.pf-body .fee-sidebar nav,.pf-body .repm-side nav,.pf-body .adm-side nav,.pf-body .school-admin-sidebar nav{display:flex!important;flex-wrap:wrap;gap:6px}
+.pf-body .scom-side>*:not(nav):not(button):not(a),.pf-body .fee-sidebar>*:not(nav):not(button):not(a),.pf-body .school-admin-sidebar>*:not(nav):not(button):not(a),.pf-body .school-admin-sidebar .brand{display:none!important}
