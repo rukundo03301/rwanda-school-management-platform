@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { RWANDA_DISTRICTS, DISTRICT_PROVINCE } from "../../lib/rwanda-geo.js";
 
 // Pieces of the Platform Owner console that sit around the dashboard: top bar, sidebar card,
 // plans, school profile form, reports, communications and system health. Real platform data only.
@@ -56,8 +57,8 @@ export function SchoolProfileForm({ form, setForm, plans, busy, onSubmit }) {
   const set = (k, v) => setForm({ ...form, [k]: v });
   return <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
     <p className="muted">Where <strong>{form.tenant.name}</strong> is, what it teaches and which plan it is on. This feeds the platform map, level and plan cards.</p>
-    <Lbl label="Province"><select className="input" value={form.province || ""} onChange={(e) => set("province", e.target.value)}><option value="">Not set</option>{Object.entries(PROVINCE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Lbl>
-    <Lbl label="District (optional)"><input className="input" maxLength={60} value={form.district || ""} onChange={(e) => set("district", e.target.value)}/></Lbl>
+    <Lbl label="District"><select className="input" value={form.district || ""} onChange={(e) => setForm({ ...form, district: e.target.value, province: e.target.value ? DISTRICT_PROVINCE[e.target.value] : form.province })}><option value="">Not set</option>{Object.entries(PROVINCE_LABEL).map(([pk, pv]) => <optgroup key={pk} label={pv}>{RWANDA_DISTRICTS.filter((d) => d.p === pk).map((d) => d.n).sort().map((n) => <option key={n} value={n}>{n}</option>)}</optgroup>)}</select></Lbl>
+    <Lbl label="Province (set automatically from the district)"><select className="input" value={form.province || ""} disabled={Boolean(form.district)} onChange={(e) => set("province", e.target.value)}><option value="">Not set</option>{Object.entries(PROVINCE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Lbl>
     <Lbl label="Education level"><select className="input" value={form.educationLevel || ""} onChange={(e) => set("educationLevel", e.target.value)}><option value="">Not set</option>{Object.entries(LEVEL_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Lbl>
     <Lbl label="Plan"><select className="input" value={form.planCode || ""} onChange={(e) => set("planCode", e.target.value)}><option value="">No plan</option>{(plans || []).filter((p) => p.active).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}</select></Lbl>
     <div className="modal-footer"><button type="submit" className="button" disabled={busy}>Save school profile</button></div>
