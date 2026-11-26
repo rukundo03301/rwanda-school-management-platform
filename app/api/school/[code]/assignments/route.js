@@ -45,14 +45,14 @@ export async function GET(request,{params}){
    const st=await studentContext(db,school,user);
    if(!st)throw new ApiError(403,"Student access is not approved");
    const id=requiredSchoolId(homeworkId,"homework");
-   const hw=await checked(db.from("school_homework").select("id,title,instructions,objectives,due_at,release_at,late_policy,status,class_id,subject_id").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
+   const hw=await checked(db.from("school_homework").select("id,title,instructions,objectives,due_at,release_at,late_policy,time_limit_minutes,status,class_id,subject_id").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
    if(!hw||(hw.release_at&&new Date(hw.release_at)>new Date()))throw new ApiError(404,"Homework not found");
    const qs=await questionsOf(db,school,id);
    const sub=await checked(db.from("school_homework_submissions").select("answers,submitted_at,is_late,score,max_score,feedback,graded_at,released_at").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
-   const draft=sub?null:await checked(db.from("school_homework_drafts").select("answers,updated_at").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
+   const draft=sub?null:await checked(db.from("school_homework_drafts").select("answers,updated_at,started_at").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
    const released=!!sub?.released_at;
    return Response.json({homework:hw,questions:qs.map(publicQuestion),
-    draft:draft?.answers||{},
+    draft:draft?.answers||{},startedAt:draft?.started_at||null,serverNow:new Date().toISOString(),
     submission:sub?{submittedAt:sub.submitted_at,isLate:sub.is_late,answers:sub.answers?.a||{},
       released,score:released?sub.score:null,maxScore:released?sub.max_score:null,feedback:released?sub.feedback:null,
       marks:released?sub.answers?.m||{}:{}}:null},{headers:noStore});
@@ -79,11 +79,11 @@ export async function POST(request,{params}){
   const base=await schoolVerifiedContext(request,code);
   const {db,school,user}=base;
   let result;
-  if(action==="draft.save"||action==="submit"){
+  if(action==="draft.save"||action==="submit"||action==="start"){
    const st=await studentContext(db,school,user);
    if(!st)throw new ApiError(403,"Student access is not approved");
    const id=requiredSchoolId(body.homeworkId,"homework");
-   const hw=await checked(db.from("school_homework").select("id,due_at,release_at,late_policy,status,class_id").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
+   const hw=await checked(db.from("school_homework").select("id,due_at,release_at,late_policy,time_limit_minutes,status,class_id").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
    if(!hw||(hw.release_at&&new Date(hw.release_at)>new Date()))throw new ApiError(404,"Homework not found");
    const existing=await checked(db.from("school_homework_submissions").select("id").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
    if(existing)throw new ApiError(409,"You have already submitted this homework");
@@ -91,6 +91,19 @@ export async function POST(request,{params}){
    if(late&&hw.late_policy==="reject")throw new ApiError(403,"The deadline has passed and this homework no longer accepts answers");
    const qs=await questionsOf(db,school,id);
    if(!qs.length)throw new ApiError(400,"This homework has no questions");
+   const lim=hw.time_limit_minutes?Number(hw.time_limit_minutes)*60000:0;
+   const dr=lim?await checked(db.from("school_homework_drafts").select("started_at").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle()):null;
+   const startedAt=dr?.started_at||null;
+   const overtime=Boolean(lim&&startedAt&&Date.now()>new Date(startedAt).getTime()+lim+30000);
+   if(action==="start"){
+    if(lim&&!startedAt){
+     const s=await db.from("school_homework_drafts").upsert({school_id:school.id,homework_id:id,student_id:st.studentId,answers:{},started_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+     if(s.error)throw new ApiError(400,"The quiz could not be started");
+    }
+    return Response.json({ok:true,result:{started:true}},{headers:noStore});
+   }
+   if(lim&&!startedAt&&action==="draft.save")throw new ApiError(409,"Start the quiz first");
+   if(overtime&&action==="draft.save")throw new ApiError(403,"Your time is finished. Submit your answers now.");
    const a=cleanAnswers(qs,body.answers);
    if(action==="draft.save"){
     const up=await db.from("school_homework_drafts").upsert({school_id:school.id,homework_id:id,student_id:st.studentId,answers:a,updated_at:new Date().toISOString()});
@@ -100,11 +113,11 @@ export async function POST(request,{params}){
     const m={};let auto=0;
     for(const q of qs){const mk=autoMark(q,a[q.id]);if(mk!==null){m[q.id]=mk;auto+=mk;}}
     const ins=await db.from("school_homework_submissions").insert({school_id:school.id,homework_id:id,student_id:st.studentId,
-     response_text:"Answered "+answered(a)+" of "+qs.length+" questions",is_late:late,answers:{a,m},auto_score:Math.round(auto*100)/100}).select("id").single();
+     response_text:"Answered "+answered(a)+" of "+qs.length+" questions",is_late:late||overtime,answers:{a,m},auto_score:Math.round(auto*100)/100}).select("id").single();
     if(ins.error)throw new ApiError(409,"Your homework could not be submitted. It may already be submitted.");
     await db.from("school_homework_drafts").delete().eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId);
     await audit(db,school,user.id,"homework.submitted",ins.data.id);
-    result={submitted:true,late};
+    result={submitted:true,late:late||overtime};
    }
    return Response.json({ok:true,result},{headers:noStore});
   }
@@ -119,7 +132,9 @@ export async function POST(request,{params}){
    const row={title:text(body.title,180,3),instructions:text(body.instructions||"See the questions below.",5000,1),
     objectives:text(body.objectives||"",2000)||null,due_at:classroomDeadline(body.dueAt),
     release_at:body.releaseAt?new Date(body.releaseAt).toISOString():null,
-    late_policy:body.latePolicy==="reject"?"reject":"accept_flag",results_release:body.resultsRelease==="auto"?"auto":"manual"};
+    late_policy:body.latePolicy==="reject"?"reject":"accept_flag",results_release:body.resultsRelease==="auto"?"auto":"manual",
+    time_limit_minutes:body.timeLimit?Math.floor(Number(body.timeLimit)):null};
+   if(row.time_limit_minutes!==null&&!(row.time_limit_minutes>=1&&row.time_limit_minutes<=240))throw new ApiError(400,"Time limit must be 1 to 240 minutes");
    if(row.release_at&&Number.isNaN(Date.parse(row.release_at)))throw new ApiError(400,"Choose a valid release date");
    let id=body.homeworkId?requiredSchoolId(body.homeworkId,"homework"):null;
    if(id){
@@ -166,7 +181,7 @@ export async function POST(request,{params}){
    const qs=await questionsOf(db,school,id);
    const ins=await db.from("school_homework").insert({school_id:school.id,teacher_id:actorId,class_id:classId,subject_id:hw.subject_id,
     title:(hw.title+" (copy)").slice(0,180),instructions:hw.instructions,objectives:hw.objectives,due_at:new Date(Date.now()+7*86400000).toISOString(),
-    late_policy:hw.late_policy,results_release:hw.results_release,status:"draft"}).select("id").single();
+    late_policy:hw.late_policy,results_release:hw.results_release,time_limit_minutes:hw.time_limit_minutes,status:"draft"}).select("id").single();
    if(ins.error)throw new ApiError(400,"Could not duplicate");
    if(qs.length)await replaceQuestions(db,school,ins.data.id,qs.map(({id:_i,...q})=>q));
    result={id:ins.data.id};
