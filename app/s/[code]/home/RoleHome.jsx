@@ -78,6 +78,9 @@ export default function RoleHome({code}){
  const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login");};
  const q=search.toLowerCase();
  const NoData=({t})=><p className="ds-empty">{t}</p>;
+ const pn=(ov?.platformNotices||[]).slice(0,3);
+ const PlatformNotices=pn.length?<Card title="From the Umurage platform" icon="megaphone" size="s6">
+  <ul className="ds-list">{pn.map(n=><li key={n.id} className="ds-item"><span className="ds-ico blue"><Icon name="megaphone"/></span><div><strong>{n.title}</strong><small>{n.body}</small></div></li>)}</ul></Card>:null;
  const Notices=<Card title="School Notices" icon="megaphone" size="s6" link={link("communications","All notices")}>
   {notices.length?<ul className="ds-list">{notices.map(n=><li key={n.id} className="ds-item"><span className="ds-ico purple"><Icon name="megaphone"/></span>
    <div><strong>{n.title}</strong><small>{when(n.published_at)}</small></div></li>)}</ul>:<NoData t="No notices have been published."/>}</Card>;
@@ -138,7 +141,7 @@ export default function RoleHome({code}){
     <div className="ds-grid" style={{margin:0}}>{Maint}{Low}</div>
    </div>
    <div className="ds-span4" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
-    {Notices}{Events}
+    {PlatformNotices}{Notices}{Events}
     <Card title="Quick Actions" icon="bolt"><div className="ds-actions">
      <a className="ds-action blue" href={"/s/"+code+"/admissions"}>Admissions</a>
      <a className="ds-action green" href={"/s/"+code+"/communications"}>Post a notice</a>
@@ -232,7 +235,7 @@ export default function RoleHome({code}){
     <Stat icon="megaphone" tone="purple" value={notices.length} label="Recent notices"/>
     <Stat icon="calendar" tone="blue" value={events.length} label="Upcoming events"/>
    </div>
-   {Maint}{Low}{Notices}{Events}
+   {PlatformNotices}{Maint}{Low}{Notices}{Events}
   </div>}
  </DashboardShell>;
 }
