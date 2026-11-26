@@ -1,0 +1,9 @@
+/* Platform Owner console: navy sidebar to match the approved Umurage owner dashboard. */
+.dashboard .sidebar{background:linear-gradient(180deg,#0f2a6b 0%,#1747c5 100%);color:#fff;border-right:0}
+.dashboard .sidebar .brand strong,.dashboard .sidebar .brand small{color:#fff}
+.dashboard .sidebar .brand .mark{background:#fff;color:#1747c5}
+.dashboard .sidebar .nav button{color:#e3ecff;border-radius:12px}
+.dashboard .sidebar .nav button:hover{background:#ffffff1f;color:#fff}
+.dashboard .sidebar .nav button.active{background:#2563eb;color:#fff;box-shadow:0 8px 20px #0b1f5c55}
+.dashboard .sidebar .nav-icon{color:inherit}
+.dashboard .sidebar .sidebar-foot{color:#cfe0ff}
