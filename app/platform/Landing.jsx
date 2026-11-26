@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 
-// Single-screen Umurage hero. A new wide illustration fills the viewport edge to edge.
+// Single-screen Umurage hero. Show the exact user-provided artwork, unmodified.
 // Authentication opens only from the top-right navigation.
 const CSS=`
 .shell.lp{
@@ -206,9 +206,9 @@ export default function Landing({onLogin,onSignup}){
       {!imageFailed
        ? <img
            className="lp-hero-image"
-           src="/umurage-hero.jpg?v=house-no-primary-20261125"
-           width="1672"
-           height="941"
+           src="/umurage-hero-original.webp"
+           width="1269"
+           height="952"
            alt="Umurage School Management Platform illustration with a family and school progress, attendance, fee, announcement and messaging panels."
            loading="eager"
            fetchPriority="high"
