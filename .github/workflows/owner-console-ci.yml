@@ -94,6 +94,9 @@ jobs:
           sleep 1
           supabase migration new platform_dashboard_v1
           cp database/platform_dashboard_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_platform_dashboard_v1.sql' | head -n 1)"
+          sleep 1
+          supabase migration new platform_reports_v1
+          cp database/platform_reports_v1.sql "$(find supabase/migrations -maxdepth 1 -name '*_platform_reports_v1.sql' | head -n 1)"
       - name: Start isolated Supabase and apply migration
         run: |
           supabase start
