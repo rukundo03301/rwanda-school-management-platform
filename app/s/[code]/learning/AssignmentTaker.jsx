@@ -45,6 +45,7 @@ export function QuestionInput({q,value,onChange,disabled}){
 const fmt=d=>new Date(d).toLocaleString("en-RW",{timeZone:"Africa/Kigali"});
 export default function AssignmentTaker({code,homeworkId,onDone,onClose}){
  const [data,setData]=useState(null),[answers,setAnswers]=useState({}),[err,setErr]=useState(""),[msg,setMsg]=useState(""),[busy,setBusy]=useState(false);
+ const [endsAt,setEndsAt]=useState(null),[left,setLeft]=useState(null);
  const call=useCallback(async(body)=>{
   const c=browserSupabase();const {data:{session}}=await c.auth.getSession();
   if(!session)throw Error("Sign in again to continue");
@@ -53,7 +54,12 @@ export default function AssignmentTaker({code,homeworkId,onDone,onClose}){
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw Error(j.error||"Request failed");return j;
  },[code,homeworkId]);
- useEffect(()=>{call().then(j=>{setData(j);setAnswers(j.submission?j.submission.answers:j.draft||{});}).catch(e=>setErr(e.message));},[call]);
+ useEffect(()=>{call().then(j=>{setData(j);setAnswers(j.submission?j.submission.answers:j.draft||{});
+  const lim=j.homework.time_limit_minutes;if(lim&&j.startedAt&&!j.submission){const skew=Date.now()-new Date(j.serverNow).getTime();setEndsAt(new Date(j.startedAt).getTime()+lim*60000+skew);}}).catch(e=>setErr(e.message));},[call]);
+ useEffect(()=>{if(!endsAt)return;const t=setInterval(()=>setLeft(Math.max(0,Math.round((endsAt-Date.now())/1000))),1000);return ()=>clearInterval(t);},[endsAt]);
+ useEffect(()=>{if(left===0&&data&&!data.submission&&!autoSent.current){autoSent.current=true;setBusy(true);call({action:"submit",homeworkId,answers}).then(async()=>{await onDone?.();onClose();}).catch(e=>{setErr(e.message);setBusy(false);});}});
+ const autoSent=useRef(false);
+ async function startQuiz(){setBusy(true);setErr("");try{await call({action:"start",homeworkId});const j=await call();setData(j);const skew=Date.now()-new Date(j.serverNow).getTime();setEndsAt(new Date(j.startedAt).getTime()+j.homework.time_limit_minutes*60000+skew);}catch(e){setErr(e.message);}finally{setBusy(false);}}
  const dirty=useRef(false);
  const set=(id,v)=>{dirty.current=true;setAnswers(a=>({...a,[id]:v}));};
  useEffect(()=>{
@@ -64,6 +70,8 @@ export default function AssignmentTaker({code,homeworkId,onDone,onClose}){
  if(err&&!data)return <section className="ds-panel"><p role="alert">{err}</p><button className="button secondary" onClick={onClose}>Back</button></section>;
  if(!data)return <section className="ds-panel"><p>Opening homework…</p></section>;
  const {homework:h,questions,submission:sub}=data;
+ const timed=Boolean(h.time_limit_minutes);const notStarted=timed&&!sub&&!data.startedAt&&!endsAt;
+ const clock=left===null?"":Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
  const late=Date.now()>new Date(h.due_at).getTime();
  async function save(){setBusy(true);setErr("");try{await call({action:"draft.save",homeworkId,answers});setMsg("Draft saved");dirty.current=false;}catch(e){setErr(e.message);}finally{setBusy(false);}}
  async function submit(){
@@ -83,14 +91,16 @@ export default function AssignmentTaker({code,homeworkId,onDone,onClose}){
   {sub&&<div className="notice info">{sub.released?(sub.score!=null?"Your score: "+Number(sub.score)+" / "+Number(sub.maxScore):"Marked"):"Submitted. Your teacher has not released results yet."}{sub.isLate?" · submitted late":""}
    {sub.released&&sub.feedback&&<p style={{marginBottom:0}}><strong>Teacher feedback:</strong> {sub.feedback}</p>}</div>}
   {late&&!sub&&h.late_policy==="reject"&&<div className="notice error">The deadline has passed. This homework no longer accepts answers.</div>}
-  <ol style={{paddingLeft:20,display:"grid",gap:18}}>
+  {timed&&!sub&&<div className="notice info" role="timer"><strong>Timed quiz: {h.time_limit_minutes} minutes.</strong>{endsAt?" Time left: "+clock+". Your answers are sent automatically when time ends.":" The timer starts when you press Start and cannot be paused."}</div>}
+  {notStarted&&<button className="button" disabled={busy} onClick={startQuiz}>Start quiz</button>}
+  {!notStarted&&<ol style={{paddingLeft:20,display:"grid",gap:18}}>
    {questions.map(q=><li key={q.id}><div style={{display:"flex",justifyContent:"space-between",gap:8}}>
     <strong style={{whiteSpace:"pre-wrap"}}>{q.prompt}</strong><small className="muted">{q.marks} mark{q.marks===1?"":"s"}</small></div>
     <div style={{marginTop:8}}><QuestionInput q={q} value={answers[q.id]} onChange={v=>set(q.id,v)} disabled={!!sub||(late&&h.late_policy==="reject")}/></div>
     {sub?.released&&sub.marks[q.id]!==undefined&&<small className="muted">You scored {sub.marks[q.id]} / {q.marks}</small>}</li>)}
-  </ol>
+  </ol>}
   {err&&<div className="notice error" role="alert">{err}</div>}{msg&&!err&&<small className="muted" role="status">{msg}</small>}
-  {!sub&&!(late&&h.late_policy==="reject")&&<div style={{display:"flex",gap:8,marginTop:12}}>
+  {!sub&&!notStarted&&!(late&&h.late_policy==="reject")&&<div style={{display:"flex",gap:8,marginTop:12}}>
    <button className="button secondary" disabled={busy} onClick={save}>Save draft</button>
    <button className="button" disabled={busy} onClick={submit}>{late?"Submit late":"Submit homework"}</button></div>}
  </section>;
