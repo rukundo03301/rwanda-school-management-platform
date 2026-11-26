@@ -5,16 +5,18 @@ import { ALL_PERMISSIONS, ROLE_DEFAULTS } from "../../lib/access.mjs";
 import { formatRwf } from "../../lib/money.mjs";
 import { dueClock,kigaliDate } from "../../lib/billing-clock.mjs";
 import Landing from "./Landing.jsx";
+import OwnerDashboard from "./OwnerDashboard.jsx";
+import "./owner-dashboard.css";
 
 const NAV = [
-  ["overview","◫","Overview","tenants.read"],
-  ["tenants","▦","Tenants","tenants.read"],
+  ["overview","◫","Dashboard","tenants.read"],
+  ["tenants","▦","Schools","tenants.read"],
   ["tickets","◉","Support tickets","tickets.read"],
-  ["billing","▤","Monthly payment clock","billing.read"],
-  ["methods","▣","Payment channels","billing.methods"],
-  ["staff","♧","My staff","staff.read"],
-  ["audit","◷","Audit log","audit.read"],
-  ["security","⚿","Security",null],
+  ["billing","▤","Subscriptions","billing.read"],
+  ["methods","▣","Payments & Revenue","billing.methods"],
+  ["staff","♧","Users & Access","staff.read"],
+  ["audit","◷","Audit Logs","audit.read"],
+  ["security","⚿","Platform Settings",null],
 ];
 const LIFECYCLE = {
   onboarding:["active","paused","suspended","deletion_requested"],
@@ -279,45 +281,21 @@ async function action(body,endpoint="/api/platform"){
 
   return <div className="dashboard">
     <aside className="sidebar">
-      <div className="brand"><div className="mark">R</div><div><strong>Rwanda Education</strong><small>Platform control center</small></div></div>
+      <div className="brand"><div className="mark">R</div><div><strong>Umurage</strong><small>School Management Platform</small></div></div>
       <nav className="nav" aria-label="Management">
         {NAV.filter((item)=>!item[3]||allowed(item[3])).map(([id,icon,label])=>
           <button key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);setNotice("");setError("");}}><span className="nav-icon">{icon}</span>{label}</button>)}
       </nav>
-      <div className="sidebar-foot">Production controls require verified permissions.<br/>All financial values shown in RWF.</div>
+      <div className="sidebar-foot">Umurage Platform<br/>Secure, scalable, multi-school. All financial values shown in RWF.</div>
     </aside>
     <main className="main">
       <div className="topbar">
-        <div><strong>Platform Administration</strong><div className="micro">Rwanda School Management Platform</div></div>
+        <div><strong>Platform Owner Dashboard</strong><div className="micro">Manage schools, subscriptions, users and the entire Umurage platform</div></div>
         <div className="context"><div className="avatar">{(data.actor.email||"U")[0].toUpperCase()}</div><div><strong style={{fontSize:12}}>{data.actor.email}</strong><div className="micro">{data.actor.isOwner?"Platform Owner":data.actor.role}</div></div><button className="button secondary small" onClick={()=>client.auth.signOut()}>Sign out</button></div>
       </div>
       {error&&<div style={{marginTop:20}} className="notice error" role="alert">{error}<button className="button flat" onClick={()=>setError("")}>Dismiss</button></div>}
       {notice&&<div style={{marginTop:20}} className="notice ok" role="status">{notice}</div>}
-      {tab==="overview"&&<>
-        <Header title="Your platform at a glance" description="Private tenant management and manually recorded monthly school fees." action={allowed("tenants.create")?<button className="button" onClick={()=>open("newTenant")}>+ Register school</button>:null}/>
-        <div className="cards">
-          <Metric label="Total schools" value={data.totals.tenants}/>
-          <Metric label="Onboarding" value={data.totals.onboarding}/>
-<Metric label="Active schools" value={data.totals.active}/>
-          <Metric label="Paused" value={data.totals.paused}/>
-<Metric label="Suspended" value={data.totals.suspended}/>
-<Metric label="Archived" value={data.totals.archived}/>
-<Metric label="Pending deletion" value={data.totals.deletion_requested}/>
-          <Metric label="Open support tickets" value={data.totals.ticketsOpen}/>
-        </div>
-        {allowed("billing.read")&&<>
-          <div className="cards">
-            <Metric label="Manually recorded receipts" value={formatRwf(data.totals.manualCollectedRwf||0)}/>
-            <Metric label="Monthly fees expected" value={formatRwf(data.totals.monthlyExpectedRwf||0)}/>
-            <Metric label="Past-due schools" value={data.totals.pastDue||0}/>
-            <Metric label="Due today" value={data.totals.dueToday||0}/>
-          </div>
-          {(data.totals.pastDue>0||data.totals.dueToday>0)&&<div className="notice error">Attention: {data.totals.pastDue} school(s) past due and {data.totals.dueToday} due today. <button className="button small secondary" onClick={()=>setTab("billing")}>Open private monthly clock</button></div>}
-        </>}
-        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable stats={data.schoolStats||{}} tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canInvite={data.actor.isOwner} canPurge={data.actor.isOwner}
-          onPurge={previewPurge} onInvite={(t)=>open("inviteSchoolOwner",{tenant:t})} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
-        <div className="notice info">Monthly amounts and countdowns belong only to authorized platform staff. Schools do not see this billing ledger. These records represent what you entered manually, not verified bank or Mobile Money balances.</div>
-      </>}
+      {tab==="overview"&&<OwnerDashboard data={data} canBilling={allowed("billing.read")} canCreate={allowed("tenants.create")} go={(id)=>{setTab(id);setNotice("");setError("");}} onAddSchool={()=>open("newTenant")}/>}
       {tab==="tenants"&&<>
         <Header title="Tenants" description="Own every tenant, private monthly payment date, school identity and lifecycle controls." action={allowed("tenants.create")?<div className="row">
           {data.actor.isOwner&&<button className="button secondary" disabled={busy}
