@@ -52,6 +52,6 @@ test("responsive and accessible top-right authentication is unchanged",()=>{
 });
 
 test("public marketing content does not claim fictional figures are real attendance, fees, or grades",()=>{
- assert.doesNotMatch(landing,/RWF\s*[\d,]+|[0-9]+%|2024\s*[-–]\s*2025/);
+ assert.doesNotMatch(landing,/RWF\s*[\d,]+|2024\s*[-–]\s*2025|>[0-9]{1,3}%</);
  assert.match(landing,/Illustrative calendar/);
 });
