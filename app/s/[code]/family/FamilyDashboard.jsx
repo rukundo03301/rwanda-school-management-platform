@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
+import useTabParam from "../../../ui/useTabParam.js";
 import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 const rwf=v=>v===null||v===undefined?"—":Number(v).toLocaleString("en-US")+" RWF";
@@ -15,6 +16,7 @@ export default function FamilyDashboard({code}){
  const [data,setData]=useState(null),[com,setCom]=useState(null),[fees,setFees]=useState(null);
  const [loading,setLoading]=useState(true),[claiming,setClaiming]=useState(false);
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["dashboard","children","homework","attendance","events","fees","help"],"dashboard")),[sel,setSel]=useState(0);
+ useTabParam(["dashboard","children","homework","attendance","events","fees","help"],setTab);
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
   if(!c){setReady(true);setLoading(false);return;}
