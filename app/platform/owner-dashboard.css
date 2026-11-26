@@ -9,7 +9,7 @@
 .dashboard .sidebar .sidebar-foot{color:#cfe0ff}
 
 /* Dashboard extras */
-.od-map{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:center}.od-mapsvg{width:100%;height:auto}
+.od-map{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:12px;align-items:center}.od-mapsvg{width:100%;height:auto;max-height:340px}
 .od-statusline{margin-top:6px !important;font-size:13px;color:#4a6590}
 .od-bad{background:#fee2e2 !important;color:#b91c1c !important}
 .od-bar small{color:#5b7196}
