@@ -126,3 +126,7 @@
 .pf-body .scom-side,.pf-body .fee-sidebar,.pf-body .repm-side,.pf-body .adm-side,.pf-body .school-admin-sidebar{position:static!important;width:auto!important;height:auto!important;min-height:0!important;display:flex!important;flex-wrap:wrap;gap:6px;background:#fff!important;border:1px solid #e3e9f3!important;border-radius:14px!important;padding:8px!important;margin-bottom:16px!important;box-shadow:none!important}
 .pf-body .scom-side nav,.pf-body .fee-sidebar nav,.pf-body .repm-side nav,.pf-body .adm-side nav,.pf-body .school-admin-sidebar nav{display:flex!important;flex-wrap:wrap;gap:6px}
 .pf-body .scom-side>*:not(nav):not(button):not(a),.pf-body .fee-sidebar>*:not(nav):not(button):not(a),.pf-body .school-admin-sidebar>*:not(nav):not(button):not(a),.pf-body .school-admin-sidebar .brand{display:none!important}
+.ds-card label{display:grid;gap:6px;font-weight:600;font-size:13px;margin-bottom:12px}
+.ds-card input,.ds-card select,.ds-card textarea{width:100%;padding:10px 12px;border:1px solid #d6deec;border-radius:10px;font:inherit;box-sizing:border-box;background:#fff}
+.pf-body .adm-side>*:not(nav):not(button):not(a),.pf-body .repm-side>*:not(nav):not(button):not(a){display:none!important}
+.pf-body .adm-content,.pf-body .repm-content{padding:0!important;margin:0!important;max-width:none!important}
