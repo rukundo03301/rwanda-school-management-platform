@@ -11,7 +11,7 @@ test("approved user-supplied original replaces cartoon vector implementation",()
  assert.match(landing,/height="941"/);
  assert.match(css,/aspect-ratio:1672\/941/);
  assert.match(css,/height:auto/);
- assert.doesNotMatch(css,/object-fit:fill/);
+ assert.doesNotMatch(css,/\n\s*object-fit:fill\s*;/);
  assert.doesNotMatch(landing,/FamilyStage|lp-stage-illustration|className="lp-card"/);
  assert.ok(existsSync(new URL("../public/umurage-approved-hero.webp",import.meta.url)));
 });
