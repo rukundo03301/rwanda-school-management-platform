@@ -37,7 +37,14 @@ export async function GET(request,{params}){
   const perClass=new Map();enrolled.forEach(e=>perClass.set(e.class_id,(perClass.get(e.class_id)||0)+1));
   const att=[present,late,absent,excused];
   const attTotal=att.every(x=>x===null)?null:att.reduce((a,b)=>a+(b||0),0);
+  let platformNotices=[];
+  try{
+   const today=new Date().toISOString().slice(0,10);
+   const r=await db.from("platform_announcements").select("id,title,body,created_at,expires_on").eq("active",true).order("created_at",{ascending:false}).limit(5);
+   if(!r.error)platformNotices=(r.data||[]).filter(n=>!n.expires_on||n.expires_on>=today).map(n=>({id:n.id,title:n.title,body:n.body,created_at:n.created_at}));
+  }catch{platformNotices=[];}
   return Response.json({
+   platformNotices,
    school:{name:school.name,code:school.school_code},year,
    people:{students:enrolled.length,teachers,staff,guardians:parents},
    classes:classes.map(c=>({id:c.id,name:c.name+(c.section?" "+c.section:""),capacity:c.capacity,students:perClass.get(c.id)||0})),
