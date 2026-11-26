@@ -1,5 +1,6 @@
 // Platform Owner Dashboard. Every number comes from the platform's own records; nothing here is sample data.
-import {PROVINCE_LABEL,LEVEL_LABEL} from "./PlatformModules.jsx";
+import {PROVINCE_LABEL,LEVEL_LABEL,PayBadge} from "./PlatformModules.jsx";
+import {paymentClock,DUE_SOON_DAYS} from "../../lib/report-data.js";
 import {RWANDA_DISTRICTS,DISTRICT_PROVINCE,districtKey,MAP_W,MAP_H} from "../../lib/rwanda-geo.js";
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const nf=(n)=>Number(n||0).toLocaleString("en-US");
@@ -103,6 +104,7 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
  tenants.forEach(x=>{const dk=districtKey(x.district);const pv=x.province&&k0(prov,x.province)?x.province:(dk?DISTRICT_PROVINCE[dk]:null);
   if(dk)(byDistrict[dk]=byDistrict[dk]||[]).push(x);if(pv)prov[pv]+=1;else prov.none+=1;});
  const lvl={none:0};Object.keys(LEVEL_LABEL).forEach(k=>lvl[k]=0);tenants.forEach(x=>{if(x.education_level&&k0(lvl,x.education_level))lvl[x.education_level]+=1;else lvl.none+=1;});
+ const clock=paymentClock(tenants,data.feeTerms).filter(c=>c.state!=="ok"&&c.state!=="not_set");
  const plans=data.plans||[];const noPlan=tenants.filter(x=>!x.plan_code).length;const hl=data.health;
  const recent=tenants.slice(0,3);
  const audit=(data.audit||[]).slice(0,4);
@@ -156,6 +158,10 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
     <div>Open support tickets<span className={"od-ok"+(t.ticketsOpen>0?" od-warn":"")}>{nf(t.ticketsOpen)}</span></div>
    </div></div>
   </div>
+  {canBilling&&<div className="od-card"><h3>Payment Clock <button onClick={()=>go("billing")}>Subscriptions</button></h3>
+   {clock.length?<div className="od-act">{clock.slice(0,6).map(c=><div key={c.id}><span><b>{c.name}</b><br/><small>Monthly {rwf(c.amount)}, due {c.due}</small></span><PayBadge due={c.due}/></div>)}</div>
+    :<div className="od-empty">No school is past due or due within {DUE_SOON_DAYS} days.</div>}
+   {clock.length>6&&<div className="od-empty">And {clock.length-6} more. Open Subscriptions to see all.</div>}</div>}
   <div className="od-row4">
    <div className="od-card"><h3>Recent Platform Activity <button onClick={()=>go("audit")}>View All</button></h3>
     {audit.length?<div className="od-act">{audit.map(a=><div key={a.id}><span>{String(a.event).replace(/[._]/g," ")}</span><small>{ago(a.created_at)}</small></div>)}</div>:<div className="od-empty">No activity to show.</div>}</div>
