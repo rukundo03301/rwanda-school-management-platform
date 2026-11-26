@@ -1,0 +1,52 @@
+name: Apply school migration to APEX
+
+# Applies one reviewed SQL file from database/ to the APEX Supabase project
+# through the Supabase Management API, using the encrypted secret
+# SUPABASE_ACCESS_TOKEN. Run manually from the Actions tab.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: SQL file name inside database/ (for example school_homework_questions_v1.sql)
+        required: true
+        default: school_homework_questions_v1.sql
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: stgqhkhfpnqmsiyrvvhe
+      SQL_FILE: ${{ inputs.file }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re, sys, urllib.error, urllib.request
+          name = os.environ['SQL_FILE']
+          if not re.fullmatch(r'[a-z0-9_]+\.sql', name):
+              sys.exit('Invalid file name')
+          token = os.environ.get('SUPABASE_ACCESS_TOKEN', '')
+          if not token:
+              sys.exit('Missing GitHub secret SUPABASE_ACCESS_TOKEN; nothing applied.')
+          sql = open('database/' + name, encoding='utf-8').read()
+          url = 'https://api.supabase.com/v1/projects/' + os.environ['SUPABASE_PROJECT_REF'] + '/database/query'
+          def run(q):
+              req = urllib.request.Request(url, data=json.dumps({'query': q}).encode(), method='POST',
+                  headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  sys.exit('Supabase API failed: HTTP %d %s' % (e.code, e.read().decode()[:400]))
+          run(sql)
+          print('Applied', name)
+          print(run("select table_name from information_schema.tables where table_schema='public' and table_name like 'school_homework%' order by 1"))
+          PY
