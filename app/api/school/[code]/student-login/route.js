@@ -1,6 +1,6 @@
 import {randomInt} from "node:crypto";
 import {schoolAdminContext,schoolAdminCan} from "../../../../../lib/school-admin.mjs";
-import {ApiError,checked,jsonError,requireAal2,validateUuid} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError,validateUuid} from "../../../../../lib/platform-server.js";
 import {studentLoginEmail,STUDENT_LOGIN_DOMAIN} from "../../../../../lib/school-roles.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -43,7 +43,7 @@ export async function POST(request,{params}){
     const {code}=await params;
     const {db,school,actor,token}=await context(request,code);
     // Two-step verification is asked of the school owner only.
-    if(actor.isOwner)requireAal2(token);
+    
     const body=await request.json().catch(()=>({}));
     const action=String(body.action||"");
     if(!["create","reset"].includes(action))throw new ApiError(400,"Unsupported student login action");

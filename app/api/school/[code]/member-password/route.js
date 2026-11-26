@@ -1,6 +1,6 @@
 import {randomInt} from "node:crypto";
 import {schoolAdminContext,requireSchoolOwner} from "../../../../../lib/school-admin.mjs";
-import {ApiError,checked,jsonError,requireAal2,validateUuid} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError,validateUuid} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
@@ -54,7 +54,7 @@ export async function POST(request,{params}){
   try{
     const {code}=await params;
     const {db,school,actor,token}=await context(request,code);
-    requireAal2(token);
+    
     const body=await request.json().catch(()=>({}));
     if(body.action!=="reset")throw new ApiError(400,"Unsupported account action");
     const userId=validateUuid(body.userId,"account");

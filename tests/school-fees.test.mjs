@@ -58,7 +58,7 @@ test("only independently reviewed payments create school receipts in one transac
  assert.match(db,/insert into public\.school_fee_receipts/);
  assert.match(db,/return jsonb_build_object\('posted',true,'receipt_id'/);
  assert.match(db,/review_evidence in \('provider_statement','bank_statement','cash_count','other'\)/);
- assert.match(api,/requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/);
  assert.match(api,/action==="payment\.approve"/);
  assert.match(ui,/independently check actual provider, bank, or cash evidence/);
 });

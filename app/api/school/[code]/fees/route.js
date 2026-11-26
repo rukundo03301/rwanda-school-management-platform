@@ -3,7 +3,7 @@ import {
  normalizeFinanceRights,kigaliToday,
  FEE_CATEGORIES,PAYMENT_METHODS,REVIEW_EVIDENCE
 } from "../../../../../lib/school-fees.mjs";
-import {ApiError,checked,requireAal2,jsonError} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const privateNoStore={"Cache-Control":"private, no-store"};
@@ -177,18 +177,18 @@ export async function POST(request,{params}){
   const {db,school,user,token}=ctx;
   const body=await request.json().catch(()=>({}));
   const action=String(body.action||"");
-  const critical=()=>requireAal2(token);
+  
   let result;
   if(action==="rights.set"){
    if(!ctx.owner)throw new ApiError(403,"Only your school owner may assign finance rights");
-   critical();
+   
    result=await checked(db.rpc("school_finance_set_permissions",{
     p_school:school.id,p_target:financeId(body.userId,"person"),
     p_permissions:normalizeFinanceRights(body.permissions||[]),
     p_reason:financeText(body.reason,500,{min:8}),p_actor:user.id
    }));
   }else if(action==="fee.create"){
-   required(ctx,"fees.manage");critical();
+   required(ctx,"fees.manage");
    result=await checked(db.rpc("school_fee_create_catalog",{
     p_school:school.id,p_year:financeId(body.yearId,"academic year"),
     p_class:body.classId?financeId(body.classId,"class"):null,
@@ -199,25 +199,25 @@ export async function POST(request,{params}){
     p_actor:user.id
    }));
   }else if(action==="fee.disable"){
-   required(ctx,"fees.manage");critical();
+   required(ctx,"fees.manage");
    result=await checked(db.rpc("school_fee_disable_catalog",{
     p_school:school.id,p_fee:financeId(body.feeId,"fee"),
     p_reason:financeText(body.reason,500,{min:8}),p_actor:user.id
    }));
   }else if(action==="invoice.issue"){
-   required(ctx,"invoices.issue");critical();
+   required(ctx,"invoices.issue");
    result=await checked(db.rpc("school_fee_issue_invoice",{
     p_school:school.id,p_fee:financeId(body.feeId,"fee"),
     p_student:financeId(body.studentId,"student"),p_actor:user.id
    }));
   }else if(action==="invoice.batch"){
-   required(ctx,"invoices.issue");critical();
+   required(ctx,"invoices.issue");
    result=await checked(db.rpc("school_fee_issue_class_invoices",{
     p_school:school.id,p_fee:financeId(body.feeId,"fee"),p_actor:user.id
    }));
   }else if(action==="invoice.cancel"){
    if(!ctx.owner)throw new ApiError(403,"Only the school owner can cancel invoices");
-   critical();
+   
    result=await checked(db.rpc("school_fee_cancel_invoice",{
     p_school:school.id,p_invoice:financeId(body.invoiceId,"invoice"),
     p_reason:financeText(body.reason,500,{min:12}),p_actor:user.id
@@ -235,28 +235,28 @@ export async function POST(request,{params}){
     p_actor:user.id
    }));
   }else if(action==="payment.approve"){
-   required(ctx,"payments.approve");critical();
+   required(ctx,"payments.approve");
    result=await checked(db.rpc("school_fee_post_payment",{
     p_school:school.id,p_payment:financeId(body.paymentId,"payment"),
     p_evidence:enumValue(body.evidence,REVIEW_EVIDENCE,"evidence type"),
     p_review:financeText(body.review,500,{min:15}),p_actor:user.id
    }));
   }else if(action==="payment.reject"){
-   required(ctx,"payments.approve");critical();
+   required(ctx,"payments.approve");
    result=await checked(db.rpc("school_fee_reject_payment",{
     p_school:school.id,p_payment:financeId(body.paymentId,"payment"),
     p_reason:financeText(body.reason,500,{min:8}),p_actor:user.id
    }));
   }else if(action==="payment.reverse"){
    if(!ctx.owner)throw new ApiError(403,"Only your school owner may reverse a posted collection");
-   critical();
+   
    result=await checked(db.rpc("school_fee_reverse_payment",{
     p_school:school.id,p_payment:financeId(body.paymentId,"payment"),
     p_reason:financeText(body.reason,500,{min:12}),p_actor:user.id
    }));
   }else if(action==="invoice.credit"){
    if(!ctx.owner)throw new ApiError(403,"Only the school owner can approve fee waivers");
-   critical();
+   
    result=await checked(db.rpc("school_fee_approve_credit",{
     p_school:school.id,p_invoice:financeId(body.invoiceId,"invoice"),
     p_amount:rwfAmount(body.amount),

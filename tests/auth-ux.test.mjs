@@ -26,9 +26,9 @@ test("staff permission UI is table-based with on/off switch",()=>{
   assert.match(login,/modal==="editStaff"/);
   assert.match(login,/staff\.permissions/);
 });
-test("staff updates require MFA owner authorization in server",()=>{
+test("staff updates require verified owner authorization in server",()=>{
   assert.match(api,/action === "staff\.permissions"/);
-  assert.match(api,/requireOwner\(actor\); requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/); assert.match(api,/requireOwner\(actor\)/);
   assert.match(api,/normalizePermissions\(body\.permissions\)/);
   assert.match(sql,/platform_update_staff_permissions/);
   assert.match(sql,/staff\.permissions_changed/);

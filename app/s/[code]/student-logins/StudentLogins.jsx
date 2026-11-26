@@ -43,7 +43,7 @@ export default function StudentLogins({code}){
     <a href={"/s/"+code+"/admin"} className="micro">Back to School Administration</a>
     <h1>Student ID logins</h1>
     <p className="muted">Students sign in with their Student ID and a password. No email address is needed. Create a login, give the student the first password, and they will choose their own at first sign-in.</p>
-    {error&&<div className="notice error" role="alert">{error}{error.includes("Two-factor")&&<p><a className="button secondary" href={"/s/"+code+"/security"}>Open two-step verification</a></p>}</div>}
+    {error&&<div className="notice error" role="alert">{error}</div>}
     {issued&&<div className="notice ok" role="status"><strong>Give these sign-in details to {issued.name}</strong>
       <p>Student ID: <kbd>{issued.studentId}</kbd><br/>First password: <kbd>{issued.temporaryPassword}</kbd></p>
       <p className="micro">This password is shown once. The student must replace it at first sign-in. If it is lost, use Reset password.</p></div>}

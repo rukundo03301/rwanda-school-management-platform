@@ -217,7 +217,7 @@ export default function AdmissionsDashboard({code}){
           <option value="">Select class</option>
           {classes.filter(c=>c.academic_year_id===form.application.academic_year_id&&c.status==="active").map(c=><option key={c.id} value={c.id}>{classLabel(c)}</option>)}
         </select></TextField>}
-        {form.decision==="admit"&&<div className="notice info">Admission and Student ID creation happen together only if this class belongs to the correct school/year and has capacity. Requires MFA.</div>}
+        {form.decision==="admit"&&<div className="notice info">Admission and Student ID creation happen together only if this class belongs to the correct school/year and has capacity. Requires the appropriate school permissions.</div>}
         {form.decision==="reject"&&<div className="notice info">Rejection does not create a student record. This action cannot be casually undone in this version.</div>}
         <button className="button" disabled={busy||(form.decision==="admit"&&!form.classId)} type="submit">Confirm decision</button>
       </form>}
@@ -229,7 +229,7 @@ export default function AdmissionsDashboard({code}){
         <TextField label="Relationship"><select className="input" value={form.relationship||"parent"} onChange={e=>setForm({...form,relationship:e.target.value})}><option value="parent">Parent</option><option value="legal_guardian">Legal Guardian</option></select></TextField>
         <label className="adm-attest"><input type="checkbox" required checked={!!form.verificationAttested} onChange={e=>setForm({...form,verificationAttested:e.target.checked})}/>
           I confirm that school personnel checked this person's right to access this child's school information through an approved offline process.</label>
-        <div className="notice info">Do not upload ID documents or child photos here. This confirmation is logged. Requires MFA.</div>
+        <div className="notice info">Do not upload ID documents or child photos here. This confirmation is logged. Requires the appropriate school permissions.</div>
         <button type="submit" className="button" disabled={busy||!form.student?.id||!form.verificationAttested}>Send family invitation</button>
       </form>}
       {modal==="revokeGuardian"&&<form onSubmit={e=>{e.preventDefault();submit({action:"guardian.revoke",studentId:form.link.student_id,
@@ -250,7 +250,7 @@ export default function AdmissionsDashboard({code}){
             <span className="switch-track" aria-hidden="true"/></label></td>
           </tr>)}</tbody></table></div>
         <TextField label="Reason for access change"><textarea className="input" required minLength={8} maxLength={500} value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></TextField>
-        <button type="submit" className="button" disabled={busy}>Save permissions with MFA</button>
+        <button type="submit" className="button" disabled={busy}>Save permissions </button>
       </form>}
    </Modal>}
  </main>;

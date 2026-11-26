@@ -19,8 +19,8 @@ test("only school staff reach operations and parents and students are refused",(
  assert.match(api,/School operations are available to school staff only/);
  assert.match(api,/if\(!manager&&!staff&&!teacher\)throw new ApiError\(403/);
 });
-test("the owner needs the authenticator level for changes, others do not",()=>{
- assert.match(api,/if\(ctx\.owner\)requireAal2\(token\)/);
+test("operations retain role-specific authorization without an authenticator",()=>{
+ assert.doesNotMatch(api,/requireAal2/);
 });
 test("board, assets, stock creation and social links are owner or administrator only",()=>{
  for(const a of ["stock.add","asset.add","board.member","board.member.remove","board.meeting","social.set"]){

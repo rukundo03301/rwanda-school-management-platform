@@ -112,13 +112,13 @@ export default function SchoolPortal({code}) {
            <a className="button secondary" href={"/s/"+code+"/reports"}>Curriculum & Reports</a>
            <a className="button secondary" href={"/s/"+code+"/communications"}>School Community</a>
            <a className="button secondary" href={"/s/"+code+"/fees"}>School Fees & RWF Finance</a>
-<a className="button secondary" href={"/s/"+code+"/security"}>Two-step verification</a>
+<a className="button secondary" href={"/s/"+code+"/security"}>Account security</a>
          </div>:role==="school_admin"?<div className="row">
             <a className="button" href={"/s/"+code+"/admin"}>Open Administrator Dashboard</a>
             <a className="button secondary" href={"/s/"+code+"/reports"}>Curriculum & Reports (if authorized)</a>
             <a className="button secondary" href={"/s/"+code+"/communications"}>School Communications</a>
             <a className="button secondary" href={"/s/"+code+"/fees"}>School Finances (if authorized)</a>
-<a className="button secondary" href={"/s/"+code+"/security"}>Two-step verification</a>
+<a className="button secondary" href={"/s/"+code+"/security"}>Account security</a>
            </div>:
            role==="parent"?<div className="row">
             <a className="button" href={"/s/"+code+"/family"}>See My Verified Children</a>

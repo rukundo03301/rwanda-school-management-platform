@@ -1,6 +1,6 @@
 import {randomBytes} from "node:crypto";
 import {schoolAdminContext,requireSchoolOwner} from "../../../../../lib/school-admin.mjs";
-import {ApiError,checked,requireAal2,jsonError} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
@@ -108,7 +108,7 @@ export async function POST(request,{params}){
  try{
   const {code}=await params;
   const ctx=await context(request,code);
-  requireAal2(ctx.token);
+  
   const body=await request.json().catch(()=>({}));
   if(body.confirmTraining!==true)throw new ApiError(400,"Confirm that these are fictional training accounts.");
   if(body.key==="all"){

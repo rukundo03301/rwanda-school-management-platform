@@ -53,14 +53,14 @@ test("demo school seeds actual synthetic school workflows without emails or mone
  assert.match(schema,/demo-owner@example\.invalid/);
  assert.doesNotMatch(schema,/inviteUserByEmail|chargeCustomer|createPayment/);
 });
-test("only platform owner with verified two-factor and exact school code may permanently delete",()=>{
+test("only verified platform owner with exact school code and legal-hold checks may permanently delete",()=>{
  assert.match(api,/action === "tenant\.demo\.create"/);
  assert.match(api,/demoId\+"\/demo-logo\.webp"/);
  assert.match(api,/\.storage\.from\("school-branding"\)/);
  assert.match(api,/demo_logo_uploaded:true/);
  assert.match(api,/action === "tenant\.purge\.preview"/);
  assert.match(api,/action === "tenant\.purge"/);
- assert.match(api,/requireOwner\(actor\);requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/); assert.match(api,/requireOwner\(actor\)/);
  assert.match(api,/validSchoolCodeConfirmation\(before\.school_code,confirmCode,confirmPhrase\)/);
  assert.match(api,/before\.legal_hold/);
  assert.match(api,/platform_change_school_state/);

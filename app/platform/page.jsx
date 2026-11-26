@@ -172,7 +172,6 @@ export default function PlatformPage() {
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
   const [purgePreview,setPurgePreview]=useState(null);
-  const [mfa,setMfa]=useState(null);
 
   useEffect(()=>{ const c=browserSupabase(); setClient(c); if(!c)setLoading(false); },[]);
 
@@ -370,20 +369,20 @@ async function action(body,endpoint="/api/platform"){
         <div className="panel"><div className="table-wrap"><table><thead><tr><th>When</th><th>Action</th><th>Actor ID</th><th>Resource</th><th>Details</th></tr></thead><tbody>{data.audit.map(a=><tr key={a.id}><td>{DATE(a.created_at)}</td><td>{a.event}</td><td><kbd>{a.actor_id?.slice(0,13)}…</kbd></td><td><kbd>{a.resource_id?.slice(0,13)||"—"}</kbd></td><td style={{whiteSpace:"normal",maxWidth:340}}>{Object.entries(a.metadata||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+(v&&typeof v==="object"?JSON.stringify(v):String(v))).join(", ")||"—"}</td></tr>)}</tbody></table>{!data.audit.length&&<Empty title="No recorded activity" description="Auditable platform operations will appear here."/>}</div></div>
       </>}
       {tab==="security"&&<>
-        <Header title="Account security" description="Important actions require verified identity and two-factor authentication."/>
+        <Header title="Account security" description="Platform access is controlled by identity, roles and permissions."/>
         <div className="panel stacked">
-          <h2>Secure your platform owner account</h2><p className="muted">Enrolling a time-based authenticator is recommended. Approving staff, setting a default payment method and requesting school deletion require an MFA-verified session.</p>
-          <div className="row"><button className="button" onClick={async()=>{setError("");try{const existing=await client.auth.mfa.listFactors();if(existing.error)throw existing.error;if((existing.data?.totp||[]).some(f=>f.status==="verified"))throw new Error("An authenticator is already active on this account. Choose Verify authenticator to unlock sensitive actions.");/* An abandoned, never-verified setup blocks a new one with the same name; remove it first. */for(const f of (existing.data?.all||[]).filter(f=>f.factor_type==="totp"&&f.status!=="verified")){const u=await client.auth.mfa.unenroll({factorId:f.id});if(u.error)throw u.error;}const r=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"Rwanda Platform Owner"});if(r.error)throw r.error;setMfa(r.data);}catch(e){setError(e.message);}}}>Set up authenticator</button><button className="button secondary" onClick={async()=>{setError("");try{const r=await client.auth.mfa.getAuthenticatorAssuranceLevel();if(r.error)throw r.error;setNotice("Current level: "+r.data.currentLevel+"; next level: "+r.data.nextLevel);}catch(e){setError(e.message);}}}>Check MFA status</button><button className="button secondary" onClick={async()=>{setError("");try{const r=await client.auth.mfa.listFactors();if(r.error)throw r.error;const factor=r.data?.totp?.find(f=>f.status==="verified");if(!factor)throw new Error("No verified authenticator yet. Choose Set up authenticator first.");setMfa({id:factor.id,mode:"challenge"});setNotice("");}catch(e){setError(e.message);}}}>Verify authenticator to unlock sensitive actions</button></div>
-          {mfa?.totp&&<MfaVerify mfa={mfa} client={client} setMfa={setMfa} setNotice={setNotice} setError={setError}/>}
+          <h2>Your secure platform account</h2>
+          <p className="muted">Sign in with your verified account email and password. The Platform Owner console, school information and staff privileges remain limited to verified authorized accounts.</p>
+          <p className="muted">Platform operations retain owner-only rules, scoped staff permissions, audit history and explicit confirmation for deletion. Additional verification will be introduced in a future security release.</p>
         </div>
       </>}
     </main>
     {modal&&<Modal title={modalTitle(modal)} onClose={()=>setModal(null)}>
-{error&&<div className="notice error" role="alert">{error}{/two-factor/i.test(error)?" Open Security, verify your authenticator, then try again.":""}</div>}
+{error&&<div className="notice error" role="alert">{error}</div>}
       {modal==="demo"&&<div className="tenant-purge-body">
         <p><strong>Mockup School: Kigali Learning Academy · DEMO</strong></p>
         <p>This creates a fictional, clearly labeled sample institution with a unique Company ID and School ID, branded public homepage, school owner access, one demo student, class, subject, timetable, homework, attendance, sample RWF invoice, and school announcement. It will not send invitation emails or collect real money.</p>
-        <p className="notice info">Requires your verified platform-owner MFA session. The sample is created in your connected environment only when you confirm.</p>
+        <p className="notice info">Requires your verified platform-owner session. The sample is created in your connected environment only when you confirm.</p>
         <div className="modal-footer"><button className="button" disabled={busy}
           onClick={()=>action({action:"tenant.demo.create"})}>Create fictional demo tenant</button></div>
       </div>}
@@ -458,7 +457,7 @@ async function action(body,endpoint="/api/platform"){
       {modal==="inviteSchoolOwner"&&<div>
         <p>Invite the owner of <strong>{form.tenant.name}</strong> to their own branded school setup.</p>
         <p className="micro">Invitation will be sent to {form.tenant.owner_email}. Existing verified users may sign in with their current account without a new invitation email.</p>
-        <div className="notice info">Sending the invitation requires your MFA-authenticated platform-owner session. The school owner will not receive access to your platform billing or other schools.</div>
+        <div className="notice info">Sending the invitation requires your role authorization-authenticated platform-owner session. The school owner will not receive access to your platform billing or other schools.</div>
         <div className="modal-footer"><button className="button" disabled={busy} onClick={()=>action({action:"school.inviteOwner",schoolId:form.tenant.id})}>Email school owner</button></div>
       </div>}
       {modal==="addSchool"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.addSchool",companyId:form.companyId,schoolName:form.schoolName,ownerEmail:form.ownerEmail});}}>
@@ -522,7 +521,7 @@ async function action(body,endpoint="/api/platform"){
         <p>Current state: <Pill>{form.tenant.status}</Pill></p>
         <Field label="Change tenant status"><select className="input" required value={form.status||""} onChange={e=>setForm({...form,status:e.target.value})}><option value="">Select action</option>{(LIFECYCLE[form.tenant.status]||[]).map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></Field>
         <Field label="Reason for change"><textarea className="input" minLength={8} required placeholder="Explain why this tenant should change status" value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
-        {form.status==="deletion_requested"&&<div className="notice error">This creates a deletion review request only. Data is not permanently deleted. MFA is required.<Field label={"Type School ID exactly: "+form.tenant.school_code}><input className="input" value={form.confirmSchoolCode||""} onChange={e=>setForm({...form,confirmSchoolCode:e.target.value})} required/></Field></div>}
+        {form.status==="deletion_requested"&&<div className="notice error">This creates a deletion review request only. Data is not permanently deleted. role authorization is required.<Field label={"Type School ID exactly: "+form.tenant.school_code}><input className="input" value={form.confirmSchoolCode||""} onChange={e=>setForm({...form,confirmSchoolCode:e.target.value})} required/></Field></div>}
         <div className="modal-footer"><button className="button" disabled={busy||!form.status||(form.status==="deletion_requested"&&form.confirmSchoolCode!==form.tenant.school_code)} type="submit">Confirm change</button></div>
       </form>}
       {modal==="ticketHistory"&&<div>
@@ -545,7 +544,7 @@ async function action(body,endpoint="/api/platform"){
         <div className="modal-footer"><button type="submit" disabled={busy} className="button">Add method</button></div>
       </form>}
       {modal==="approveStaff"&&<form onSubmit={e=>{e.preventDefault();action({action:"staff.approve",id:form.request.id,role:form.role,permissions:form.permissions});}}>
-        <p className="muted">Approving <strong>{form.request.email}</strong>. Only grant the access this colleague needs; two-factor authentication is required.</p>
+        <p className="muted">Approving <strong>{form.request.email}</strong>. Only grant the access this colleague needs; appropriate authorization is required.</p>
         <Field label="Staff role"><select className="input" value={form.role} onChange={e=>setForm({...form,role:e.target.value,permissions:[...ROLE_DEFAULTS[e.target.value]]})}>{Object.keys(ROLE_DEFAULTS).map(role=><option key={role} value={role}>{role}</option>)}</select></Field>
         <div style={{fontWeight:700,marginBottom:8}}>Access permissions — switch ON to allow</div>
         <PermissionToggleTable permissions={form.permissions} onChange={(p,enabled)=>setForm({...form,permissions:enabled?[...form.permissions,p]:form.permissions.filter(x=>x!==p)})}/>
@@ -566,15 +565,6 @@ async function action(body,endpoint="/api/platform"){
 function RequestAccess({onSubmit,busy}) {
   const [reason,setReason]=useState("");
   return <form onSubmit={e=>{e.preventDefault();onSubmit(reason);}}><Field label="Request a staff invitation or access approval"><textarea className="input" required minLength={10} value={reason} onChange={e=>setReason(e.target.value)} placeholder="Your role and why the platform owner should grant access"/></Field><button className="button" disabled={busy} type="submit">Request access</button></form>;
-}
-function MfaVerify({mfa,client,setMfa,setNotice,setError}) {
-  const [code,setCode]=useState("");
-  return <div className="panel" style={{background:"#f8fafc"}}><h3 style={{fontSize:14,marginBottom:8}}>{mfa.mode==="challenge"?"Verify your sign-in":"Scan with your authenticator app"}</h3>
-    {mfa.totp?.qr_code&&<img src={mfa.totp.qr_code} width="160" height="160" alt="Authenticator QR code" style={{maxWidth:"100%"}}/>}
-    <p className="micro">{mfa.mode==="challenge"?"Open your authenticator app and enter the current six-digit code.":"Scan the QR image or enter its secret in your authenticator app. Never share this code."}</p>
-    <Field label="One-time verification code"><input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)}/></Field>
-    <button className="button" onClick={async()=>{try{const r=await client.auth.mfa.challengeAndVerify({factorId:mfa.id,code});if(r.error)throw r.error;setMfa(null);setNotice(mfa.mode==="challenge"?"Your identity is verified for MFA-protected actions.":"Authenticator activated. Your account now supports MFA-protected actions.");}catch(e){setError(e.message);}}}>{mfa.mode==="challenge"?"Verify sign-in":"Verify and activate MFA"}</button>
-  </div>;
 }
 function Metric({label,value}){return <div className="card"><div className="label">{label}</div><div className="value">{value??"—"}</div></div>;}
 function Header({title,description,action}){return <div className="header"><div><h1>{title}</h1><p>{description}</p></div>{action}</div>;}

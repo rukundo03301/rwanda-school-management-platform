@@ -1,5 +1,5 @@
 import {schoolVerifiedContext} from "../../../../../lib/school-admin.mjs";
-import {ApiError,checked,jsonError,requireAal2,validateUuid} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError,validateUuid} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
@@ -98,7 +98,7 @@ export async function POST(request,{params}){
   const ctx=await context(request,code);
   const {db,school,user,token}=ctx;
   // Two-step verification is asked of the school owner only.
-  if(ctx.owner)requireAal2(token);
+  
   const sid=school.id;
   const office=ctx.manager||ctx.staff;
   const body=await request.json().catch(()=>({}));

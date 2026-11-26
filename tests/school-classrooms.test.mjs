@@ -46,7 +46,7 @@ test("teacher class assignment requires school manager and previously verified t
  assert.match(db,/'academics\.manage'=any/);
  assert.match(db,/role='teacher' and active/);
  assert.match(db,/references public\.school_class_subjects\(school_id,class_id,subject_id\)/);
- assert.match(classroom,/requireAal2\(token\)/);
+ assert.doesNotMatch(classroom,/requireAal2/);
  assert.match(classroom,/action==="teacher\.revoke"/);
  assert.match(db,/teacher\.assignment_revoked/);
 });

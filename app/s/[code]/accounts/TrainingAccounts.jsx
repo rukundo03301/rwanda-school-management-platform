@@ -34,7 +34,7 @@ export default function TrainingAccounts({code}){
  };
  return <main className="training-accounts"><header className="training-header"><a href={"/s/"+code+"/admin"}>← School Owner Dashboard</a><h1>Remezo Primary School · Role Accounts</h1><p>Create sign-ins for the principal, teachers, staff and a parent. This page is available only to the school owner.</p></header>
  <section className="training-card"><h2>Required security</h2><p>These logins are created by the school and do not have email inboxes. If a password is lost, reset it from Staff & Parent Logins. The existing owner account remains unchanged.</p>
-  <label className="training-confirm"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/> I have completed owner two-step verification and want to create these logins.</label>
+  <label className="training-confirm"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/> I am authorized as the school owner to create fictional training accounts and want to create these logins.</label>
   {error&&<div className="notice error" role="alert">{error}</div>}
   {issued&&<div className="training-secret" role="status"><h3>New accounts · Save credentials immediately</h3>
    <p>Passwords are only shown now, never stored in GitHub. Keep them private.</p>

@@ -48,7 +48,7 @@ test("cross-school academic foreign keys prevent assigning a subject or year fro
 });
 test("school owner is required to invite admins or change their permissions",()=>{
  assert.match(api,/if\(role==="school_admin"\)requireSchoolOwner\(actor\)/);
- assert.match(api,/requireSchoolOwner\(actor\);requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/); assert.match(api,/requireSchoolOwner\(actor\)/);
  assert.match(db,/Only the school owner may update admin permissions/);
  assert.match(db,/Only school owner may invite administrators/);
  assert.match(db,/Only school owner can revoke administrator/);

@@ -2,7 +2,7 @@ import {
  communicationsContext,comText,comId,validClock,validDateTime,
  canViewAnnouncement,normalizeComPermissions,ANNOUNCEMENT_AUDIENCES
 } from "../../../../../lib/school-communications.mjs";
-import {ApiError,checked,jsonError,requireAal2} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const noStore={"Cache-Control":"private, no-store"};
@@ -290,7 +290,7 @@ export async function POST(request,{params}){
   let result;
   if(action==="permissions.set"){
    failUnless(ctx.owner,"Only the school owner can delegate communication rights");
-   requireAal2(token);
+   
    result=await checked(db.rpc("school_set_comms_permissions",{
     p_school:school.id,p_target:comId(body.userId,"administrator"),
     p_permissions:normalizeComPermissions(body.permissions||[]),
@@ -298,7 +298,7 @@ export async function POST(request,{params}){
    }));
   }else if(action==="period.add"){
    failUnless(ctx.managerTimetable,"Timetable management permission required");
-   requireAal2(token);
+   
    const day=Number(body.weekday);
    if(!Number.isInteger(day)||day<1||day>7)throw new ApiError(400,"Invalid weekday");
    result=await checked(db.rpc("school_add_timetable_period",{
@@ -311,14 +311,14 @@ export async function POST(request,{params}){
    }));
   }else if(action==="period.disable"){
    failUnless(ctx.managerTimetable,"Timetable management permission required");
-   requireAal2(token);
+   
    result=await checked(db.rpc("school_disable_timetable_period",{
     p_school:school.id,p_period:comId(body.periodId,"period"),
     p_reason:comText(body.reason,500,{min:8}),p_actor:user.id
    }));
   }else if(action==="announcement.publish"){
    failUnless(ctx.managerAnnouncements,"School announcements management permission required");
-   requireAal2(token);
+   
    const audience=String(body.audience||"");
    if(!ANNOUNCEMENT_AUDIENCES.includes(audience))throw new ApiError(400,"Invalid audience");
    result=await checked(db.rpc("school_publish_announcement",{
@@ -329,7 +329,7 @@ export async function POST(request,{params}){
    }));
   }else if(action==="announcement.archive"){
    failUnless(ctx.managerAnnouncements,"School announcements management permission required");
-   requireAal2(token);
+   
    result=await checked(db.rpc("school_archive_announcement",{
     p_school:school.id,p_id:comId(body.announcementId,"announcement"),
     p_reason:comText(body.reason,500,{min:8}),p_actor:user.id
@@ -351,7 +351,7 @@ export async function POST(request,{params}){
    result={read:true};
   }else if(action==="calendar.schedule"){
    failUnless(ctx.managerAnnouncements,"School calendar management permission required");
-   requireAal2(token);
+   
    const kind=String(body.kind||"");
    if(!["exam","meeting","holiday","activity","closure","other"].includes(kind))
     throw new ApiError(400,"Invalid school event type");
@@ -368,7 +368,7 @@ export async function POST(request,{params}){
    }));
   }else if(action==="calendar.cancel"){
    failUnless(ctx.managerAnnouncements,"School calendar management permission required");
-   requireAal2(token);
+   
    result=await checked(db.rpc("school_cancel_calendar_event",{
     p_school:school.id,p_event:comId(body.eventId,"event"),
     p_reason:comText(body.reason,500,{min:8}),p_actor:user.id

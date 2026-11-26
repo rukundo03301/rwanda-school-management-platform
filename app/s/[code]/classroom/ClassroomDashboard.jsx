@@ -322,7 +322,7 @@ export default function ClassroomDashboard({code}){
      {classes.map(c=><option key={c.id} value={c.id}>{classLabel(c.id)}</option>)}</select></Label>
     <Label name="Subject already assigned to class"><select className="input" value={form.subjectId||""} onChange={e=>setForm({...form,subjectId:e.target.value})}>
      {eligibleSubjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Label>
-    <div className="notice info">The teacher must accept their school invitation first. Assignment requires MFA and affects this school only.</div>
+    <div className="notice info">The teacher must accept their school invitation first. Assignment requires the correct school permissions and affects this school only.</div>
     <button className="button" type="submit" disabled={busy||!form.subjectId}>Assign teacher</button>
    </form>}
    {modal==="revoke"&&<form onSubmit={e=>{e.preventDefault();submit({action:"teacher.revoke",teacherId:form.assignment.teacher_id,
@@ -358,7 +358,7 @@ export default function ClassroomDashboard({code}){
     <p>Disable this student's independent access to your school. Their academic records will remain intact.</p>
     <Label name="Required audit reason"><textarea className="input" required minLength={8} maxLength={500}
       value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Label>
-    <div className="notice info">This action requires school-owner MFA. The student's verified link will stop authorizing new requests immediately.</div>
+    <div className="notice info">This action requires school-owner authorization. The student's verified link will stop authorizing new requests immediately.</div>
     <button type="submit" className="button danger" disabled={busy}>Revoke student account</button>
    </form>}
    {modal==="studentInvite"&&<form onSubmit={e=>{e.preventDefault();submit({action:"student.invite",
@@ -368,7 +368,7 @@ export default function ClassroomDashboard({code}){
     <Label name="Student's school-approved account email"><input className="input" required type="email" value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})}/></Label>
     <label className="cr-check"><input type="checkbox" required checked={!!form.consentAttested} onChange={e=>setForm({...form,consentAttested:e.target.checked})}/>
       I have verified student identity and confirmed the appropriate guardian approval or adult authorization under school policy.</label>
-    <div className="notice info">Children under 18 or whose birth dates are unknown need an active verified guardian link. No automatic nursery accounts. This requires your MFA.</div>
+    <div className="notice info">Children under 18 or whose birth dates are unknown need an active verified guardian link. No automatic nursery accounts. This requires your school permissions.</div>
     <button className="button" type="submit" disabled={busy||!form.consentAttested}>Issue student invitation</button>
    </form>}
   </Modal>}

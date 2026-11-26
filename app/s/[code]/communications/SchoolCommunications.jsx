@@ -392,7 +392,7 @@ export default function SchoolCommunications({code}){
       onChange={e=>setForm({...form,end:e.target.value})}/></Field></div>
     <Field label="Room or location (optional)"><input className="input" maxLength={60} value={form.room||""}
      onChange={e=>setForm({...form,room:e.target.value})}/></Field>
-    <button type="submit" className="button" disabled={busy||!formSubjectIsValid}>Schedule lesson with MFA</button>
+    <button type="submit" className="button" disabled={busy||!formSubjectIsValid}>Schedule lesson </button>
    </form>}
    {modal==="announce"&&<form onSubmit={e=>{e.preventDefault();save({action:"announcement.publish",...form,
     expiresAt:form.expiresAt?schoolIso(form.expiresAt):null});}}>
@@ -410,7 +410,7 @@ export default function SchoolCommunications({code}){
     <Field label="Expiration in Rwanda (optional)"><input className="input" type="datetime-local"
      value={form.expiresAt||""} onChange={e=>setForm({...form,expiresAt:e.target.value})}/></Field>
     <div className="scom-private-note">This is published only to verified accounts within the selected school audience. In-app display is active; email/SMS sending is not yet configured.</div>
-    <button type="submit" className="button" disabled={busy||form.audience==="class"&&!form.classId}>Publish with MFA</button>
+    <button type="submit" className="button" disabled={busy||form.audience==="class"&&!form.classId}>Publish </button>
    </form>}
    {modal==="event"&&<form onSubmit={e=>{e.preventDefault();save({action:"calendar.schedule",...form,
      startsAt:schoolIso(form.startsLocal),endsAt:schoolIso(form.endsLocal)});}}>
@@ -435,7 +435,7 @@ export default function SchoolCommunications({code}){
       value={form.endsLocal||""} onChange={e=>setForm({...form,endsLocal:e.target.value})}/></Field></div>
     <Field label="Location"><input className="input" maxLength={120} value={form.location||""}
       onChange={e=>setForm({...form,location:e.target.value})}/></Field>
-    <button className="button" type="submit" disabled={busy}>Save school event with MFA</button>
+    <button className="button" type="submit" disabled={busy}>Save school event </button>
    </form>}
    {["periodDisable","archive","eventCancel","closeThread"].includes(modal)&&<form onSubmit={e=>{
     e.preventDefault();
@@ -471,7 +471,7 @@ export default function SchoolCommunications({code}){
        <span className="switch-track"/></label></td></tr>)}</tbody></table></div>
     <Field label="Reason for access change"><textarea className="input" required minLength={8}
       maxLength={500} value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
-    <button type="submit" className="button" disabled={busy}>Save permissions with MFA</button>
+    <button type="submit" className="button" disabled={busy}>Save permissions </button>
    </form>}
   </Dialog>}
  </div>;

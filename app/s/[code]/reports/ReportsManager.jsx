@@ -315,7 +315,7 @@ export default function ReportsManager({code}){
    {modal==="approveProfile"&&<form onSubmit={e=>{e.preventDefault();act({action:"curriculum.approve",profileId:form.profile.id});}}>
     <p>As school owner, confirm the source is valid for the school's academic year: <strong>{form.profile.name}</strong>.</p>
     <p><a href={form.profile.source_url} target="_blank" rel="noreferrer">Review source in new tab</a></p>
-    <p>This approval does not claim ministry endorsement and requires MFA.</p>
+    <p>This approval does not claim ministry endorsement and requires authorized academic staff.</p>
     <button className="button" disabled={busy} type="submit">Approve source version</button>
    </form>}
    {modal==="approveSubject"&&<form onSubmit={e=>{e.preventDefault();act({action:"curriculum.subjectApprove",classId:form.course.class_id,subjectId:form.course.subject_id});}}>
@@ -323,7 +323,7 @@ export default function ReportsManager({code}){
     <p><strong>{courseTitle(form.course)}</strong> · {klass(form.course.class_id)?.name}</p>
     <p><a href={form.course.syllabus_url} target="_blank" rel="noreferrer">View source syllabus</a></p>
     <p className="repm-info">{units.filter(u=>u.class_id===form.course.class_id&&u.subject_id===form.course.subject_id).length} syllabus unit(s) currently entered.</p>
-    <button className="button" disabled={busy} type="submit">Approve subject mapping with MFA</button>
+    <button className="button" disabled={busy} type="submit">Approve subject mapping </button>
    </form>}
    {modal==="term"&&<form onSubmit={e=>{e.preventDefault();act({action:"term.create",yearId:year.id,...form});}}>
     <Field label="School term"><select className="input" value={form.termNumber||1} onChange={e=>setForm({...form,termNumber:Number(e.target.value)})}>
@@ -360,7 +360,7 @@ export default function ReportsManager({code}){
     <button className="button" disabled={busy||!form.subjectId||!form.studentId||!form.rawMaximum} type="submit">Record secure mark</button>
    </form>}
    {modal==="publish"&&<form onSubmit={e=>{e.preventDefault();act({action:"report.publish",termId:form.termId,studentId:form.studentId,remark:form.remark||""});}}>
-    <p>Publish a school's report only after reviewing all official mapped subjects, unit assessments, at least two projects per subject, and the end-of-term examination. Requires MFA.</p>
+    <p>Publish a school's report only after reviewing all official mapped subjects, unit assessments, at least two projects per subject, and the end-of-term examination. Requires authorized school staff.</p>
     <Field label="Student"><select className="input" required value={form.studentId||""} onChange={e=>setForm({...form,studentId:e.target.value})}>
      {roster.map(s=><option key={s.studentId} value={s.studentId}>{s.name} · {s.studentCode}</option>)}</select></Field>
     <Field label="Term"><select className="input" required value={form.termId||""} onChange={e=>setForm({...form,termId:e.target.value})}>
@@ -395,7 +395,7 @@ export default function ReportsManager({code}){
       <span className="switch-track"/></label></td></tr>)}</tbody></table></div>
     <Field label="Reason required for access change"><textarea required minLength={8} maxLength={600} className="input"
      value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
-    <button className="button" disabled={busy} type="submit">Save ON/OFF permissions with MFA</button>
+    <button className="button" disabled={busy} type="submit">Save ON/OFF permissions </button>
    </form>}
   </Modal>}
  </main>;

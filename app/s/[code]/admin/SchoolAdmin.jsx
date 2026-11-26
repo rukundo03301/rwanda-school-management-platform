@@ -130,7 +130,7 @@ export default function SchoolAdmin({code}){
          <a className="school-admin-nav-link" href={"/s/"+code+"/admissions"}><span aria-hidden="true">✧</span>Admissions & Students</a>}
        {(owner||actor.permissions?.includes("people.manage"))&&<a className="school-admin-nav-link" href={"/s/"+code+"/student-logins"}><span aria-hidden="true">☷</span>Student ID Logins</a>}
        {owner&&<a className="school-admin-nav-link" href={"/s/"+code+"/staff-logins"}><span aria-hidden="true">☷</span>Staff & Parent Logins</a>}
-       {owner&&<a className="school-admin-nav-link" href={"/s/"+code+"/security"}><span aria-hidden="true">⚿</span>Two-step Verification</a>}
+       {owner&&<a className="school-admin-nav-link" href={"/s/"+code+"/security"}><span aria-hidden="true">⚿</span>Account Security</a>}
        {true&&<a className="school-admin-nav-link" href={"/s/"+code+"/password"}><span aria-hidden="true">⚿</span>Change My Password</a>}
        {(owner||actor.permissions?.includes("academics.manage"))&&
          <a className="school-admin-nav-link" href={"/s/"+code+"/classroom"}><span aria-hidden="true">▦</span>Classrooms & Teachers</a>}
@@ -259,7 +259,7 @@ export default function SchoolAdmin({code}){
          <Permissions value={form.permissions||[]} onChange={(permission,on)=>setForm({
            ...form,permissions:on?[...(form.permissions||[]),permission]:(form.permissions||[]).filter(x=>x!==permission)
          })}/></>}
-       <div className="notice info">Requires two-factor verification. Email is sent where the authentication provider allows it; otherwise share the school's login page.</div>
+       <div className="notice info">Requires authorization by your assigned school role. Email is sent where the authentication provider allows it; otherwise share the school's login page.</div>
        <button className="button" disabled={busy} type="submit">{busy?"Saving…":"Create verified invitation"}</button>
      </form>}
      {modal==="permissions"&&<form onSubmit={e=>{e.preventDefault();act({action:"admin.permissions",

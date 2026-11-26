@@ -44,8 +44,8 @@ export default function StaffLogins({code}){
     <a href={"/s/"+code+"/admin"} className="micro">Back to School Administration</a>
     <h1>Staff, teacher and parent logins</h1>
     <p className="muted">Reset a password and give the new one to the person. They will choose their own at next sign-in. Student logins are on a separate page.</p>
-    <p><a className="button secondary small" href={"/s/"+code+"/student-logins"}>Student ID logins</a> <a className="button secondary small" href={"/s/"+code+"/security"}>Two-step verification</a></p>
-    {error&&<div className="notice error" role="alert">{error}{error.includes("Two-factor")&&<p><a className="button secondary" href={"/s/"+code+"/security"}>Open two-step verification</a></p>}</div>}
+    <p><a className="button secondary small" href={"/s/"+code+"/student-logins"}>Student ID logins</a> <a className="button secondary small" href={"/s/"+code+"/security"}>Account security</a></p>
+    {error&&<div className="notice error" role="alert">{error}</div>}
     {issued&&<div className="notice ok" role="status"><strong>New sign-in details</strong>
       <p>Login: <kbd>{issued.login}</kbd><br/>New password: <kbd>{issued.temporaryPassword}</kbd></p>
       <p className="micro">Shown once. The person must replace it at next sign-in.</p></div>}

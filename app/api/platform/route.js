@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { authenticate, requirePermission, requireOwner, requireAal2, validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
+import { authenticate, requirePermission, requireOwner,  validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
 import { loadDashboardExtras, dashboardAction } from "../../../lib/platform-dashboard.js";
 import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput } from "../../../lib/access.mjs";
 import { validateManualPayment,parseDate } from "../../../lib/billing-clock.mjs";
@@ -138,7 +138,7 @@ export async function POST(request) {
     let result = null;
 
     if (action === "tenant.demo.create") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       result=await checked(db.rpc("platform_create_demo_school",{p_actor:actor.id}));
       // Sample branding is physically stored in this school's own Storage
       // prefix, so the permanent-deletion flow can exercise actual file cleanup.
@@ -176,7 +176,7 @@ export async function POST(request) {
       const id=validateUuid(body.schoolId,"school");
       result=await checked(db.rpc("platform_preview_tenant_purge",{p_school:id}));
     } else if (action === "tenant.purge") {
-      requireOwner(actor);requireAal2(token);
+      requireOwner(actor);
       const schoolId=validateUuid(body.schoolId,"school");
       const confirmCode=String(body.confirmSchoolCode||"");
       const confirmPhrase=String(body.confirmPhrase||"");
@@ -230,7 +230,7 @@ export async function POST(request) {
         p_owner_email:payload.owner_email,p_actor:actor.id
       }));
     } else if (action === "fee.terms") {
-      requirePermission(actor,"billing.record"); requireAal2(token);
+      requirePermission(actor,"billing.record"); 
       const schoolId=validateUuid(body.schoolId,"school");
       const monthlyAmount=Number(body.monthlyAmountRwf);
       if(!Number.isSafeInteger(monthlyAmount)||monthlyAmount<0) throw new ApiError(400,"Invalid whole-RWF monthly amount");
@@ -240,7 +240,7 @@ export async function POST(request) {
         p_first_due_on:body.firstDueOn,p_actor:actor.id
       }));
     } else if (action === "fee.paid") {
-      requirePermission(actor,"billing.record"); requireAal2(token);
+      requirePermission(actor,"billing.record"); 
       const schoolId=validateUuid(body.schoolId,"school");
       const info=valid(()=>validateManualPayment(body));
       if(!["mobile_money","bank_transfer","cash","other"].includes(body.method))throw new ApiError(400,"Invalid recorded payment method");
@@ -250,7 +250,7 @@ export async function POST(request) {
         p_reference:info.reference,p_notes:info.notes,p_actor:actor.id
       }));
     } else if (action === "fee.void") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const id=validateUuid(body.id,"payment");
       const reason=safeText(body.reason,500);
       if(reason.length<8)throw new ApiError(400,"Enter a correction reason");
@@ -285,7 +285,7 @@ export async function POST(request) {
       result=await checked(db.from("platform_school_sites").upsert(record,{onConflict:"school_id"}).select("school_id").single());
       await audit(db,actor,"tenant.brand_updated",schoolId,{published:record.is_published});
     } else if (action === "school.inviteOwner") {
-      requireOwner(actor);requireAal2(token);
+      requireOwner(actor);
       const schoolId=validateUuid(body.schoolId,"school");
       const school=await checked(db.from("platform_schools")
         .select("id,school_code,name,owner_email,status").eq("id",schoolId).single());
@@ -325,7 +325,7 @@ export async function POST(request) {
         if(!review?.review_requested_at)throw new ApiError(400,
           "The school owner must complete onboarding and request platform review before activation.");
       }
-      if (target === "deletion_requested") { requireOwner(actor); requireAal2(token); if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
+      if (target === "deletion_requested") { requireOwner(actor);  if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
       result = await checked(db.rpc("platform_change_school_state", {
         p_school_id: schoolId, p_target: target, p_reason: reason, p_actor: actor.id
       }));
@@ -374,7 +374,7 @@ export async function POST(request) {
       }).eq("id",id).select("id").single());
       await audit(db,actor,"ticket.assigned",id,{assigned_to:assigneeId});
     } else if (action === "staff.invite") {
-      requireOwner(actor);requireAal2(token);
+      requireOwner(actor);
       const email=String(body.email||"").trim().toLowerCase();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)throw new ApiError(400,"Invalid staff email");
       const role=String(body.role||"");
@@ -390,7 +390,7 @@ export async function POST(request) {
       await audit(db,actor,"staff.invited",invite.user.id,{email,role,permissions});
       result={invited:true,email};
     } else if (action === "staff.approve") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const requestId = validateUuid(body.id,"request");
       const role = String(body.role||"");
       if (!ROLE_DEFAULTS[role]) throw new ApiError(400,"Invalid staff role.");
@@ -402,7 +402,7 @@ export async function POST(request) {
         p_request_id:requestId,p_role:role,p_permissions:permissions,p_actor:actor.id
       }));
     } else if (action === "staff.permissions") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const staffId = validateUuid(body.id,"staff");
       if (staffId===actor.id) throw new ApiError(400,"You cannot edit your own owner permissions.");
       const role = String(body.role||"");
@@ -418,7 +418,7 @@ export async function POST(request) {
         p_reason:reason,p_actor:actor.id
       }));
     } else if (action === "staff.disable") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const staffId = validateUuid(body.id,"staff");
       if (staffId === actor.id) throw new ApiError(400,"You cannot disable your own owner account.");
       result = await checked(db.rpc("platform_disable_staff", {p_staff_id:staffId,p_actor:actor.id}));
@@ -433,7 +433,7 @@ export async function POST(request) {
     } else if (action === "method.toggle" || action === "method.default") {
       requirePermission(actor,"billing.methods");
       const id = validateUuid(body.id,"payment method");
-      if (action === "method.default") requireAal2(token);
+      
       result = await checked(db.rpc("platform_configure_payment_method", {
         p_method_id:id,p_set_default:action === "method.default",
         p_enabled: action === "method.toggle" ? Boolean(body.enabled) : true,p_actor:actor.id

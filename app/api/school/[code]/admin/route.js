@@ -2,7 +2,7 @@ import {
   schoolAdminContext,requireSchoolPermission,requireSchoolOwner,
   validatedAdminPermissions,schoolAdminText,schoolAdminAudit,schoolAdminCan
 } from "../../../../../lib/school-admin.mjs";
-import {ApiError,checked,validateUuid,requireAal2,jsonError} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,validateUuid,jsonError} from "../../../../../lib/platform-server.js";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -126,7 +126,7 @@ export async function POST(request,{params}){
   const action=String(body.action||"");
   let result;
   if(action==="member.invite"){
-    requireSchoolPermission(actor,"people.invite");if(actor.isOwner)requireAal2(token);
+    requireSchoolPermission(actor,"people.invite");
     const email=schoolAdminText(body.email||"",254).toLowerCase();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new ApiError(400,"Enter a valid staff email address");
     const role=allowedInvitedRole(body.role);
@@ -151,7 +151,7 @@ export async function POST(request,{params}){
     }
     result={...result,email,mailStatus,loginPath};
   }else if(action==="admin.permissions"){
-    requireSchoolOwner(actor);requireAal2(token);
+    requireSchoolOwner(actor);
     const target=validateUuid(body.userId,"staff");
     const permissions=validatedAdminPermissions(body.permissions||[]);
     const reason=schoolAdminText(body.reason||"",500);
@@ -161,7 +161,7 @@ export async function POST(request,{params}){
       p_reason:reason,p_actor:actor.id
     }));
   }else if(action==="member.revoke"){
-    requireSchoolPermission(actor,"people.manage");if(actor.isOwner)requireAal2(token);
+    requireSchoolPermission(actor,"people.manage");
     const target=validateUuid(body.userId,"staff");
     const role=allowedInvitedRole(body.role);
     if(role==="school_admin")requireSchoolOwner(actor);
