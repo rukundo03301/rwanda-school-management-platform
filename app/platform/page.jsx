@@ -274,7 +274,7 @@ async function action(body,endpoint="/api/platform"){
   if(!session)return <Login client={client} onLogin={setSession}/>;
   if(!data&& !error)return <main className="shell">Checking your access...</main>;
   if(error&&!data)return <main className="shell"><div className="auth-card"><h1>Console unavailable</h1><div className="notice error">{error}</div><button className="button" onClick={refresh}>Try again</button><button style={{marginTop:10}} className="button secondary" onClick={()=>client.auth.signOut()}>Sign out</button></div></main>;
-  if(data.needsApproval&&data.schools?.length){if(typeof window!=="undefined")window.location.replace("/s/"+data.schools[0].code);return <main className="shell">Opening your school...</main>;}
+  if(data.needsApproval&&data.schools?.length){if(typeof window!=="undefined")window.location.replace("/s/"+data.schools[0].code+"/portal");return <main className="shell">Opening your school...</main>;}
   if(data.needsApproval)return <main className="shell"><div className="auth-card"><div className="mark">R</div><h1>Access pending</h1><p>This account has no approved platform-owner or staff permissions. Selecting a role does not grant access.</p><RequestAccess onSubmit={(reason)=>action({reason},"/api/platform/request-access")} busy={busy}/>{error&&<div className="notice error">{error}</div>}{notice&&<div className="notice ok">{notice}</div>}<button className="button secondary" onClick={()=>client.auth.signOut()}>Sign out</button></div></main>;
 
   return <div className="dashboard">
