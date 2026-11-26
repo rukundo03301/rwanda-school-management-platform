@@ -1,4 +1,5 @@
 // Platform Owner Dashboard. Every number comes from the platform's own records; nothing here is sample data.
+import {PROVINCE_LABEL,LEVEL_LABEL} from "./PlatformModules.jsx";
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const nf=(n)=>Number(n||0).toLocaleString("en-US");
 const rwf=(n)=>"RWF "+nf(n);
@@ -58,6 +59,20 @@ const CSS=[
 "@media(max-width:900px){.od-hero,.od-row2,.od-row4{grid-template-columns:1fr}.od-stats{grid-template-columns:repeat(2,1fr)}.od-row3{grid-template-columns:1fr}}"
 ].join("");
 
+const k0=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const LEVEL_TONE=[["#fdf2f8","#be185d"],["#eff6ff","#1d4ed8"],["#ecfdf5","#15803d"],["#f5f3ff","#6d28d9"]];
+function RwandaMap({counts}){
+ const P=[["western","M95 65 L120 80 L150 85 L130 128 L100 160 L90 185 L65 170 L50 130 L60 95 L75 75Z","#93c5fd",[88,125]],
+  ["northern","M110 40 L150 18 L205 28 L235 60 L210 85 L175 90 L150 85 L120 80 L95 65Z","#60a5fa",[160,55]],
+  ["eastern","M235 60 L262 110 L255 170 L225 200 L190 185 L185 140 L175 125 L175 90 L210 85Z","#3b82f6",[218,130]],
+  ["southern","M100 160 L130 128 L175 125 L185 140 L190 185 L160 215 L120 205 L90 185Z","#bfdbfe",[140,175]]];
+ return <svg className="od-mapsvg" viewBox="0 0 300 235" role="img" aria-label="Schematic map of Rwanda provinces">
+  {P.map(p=><path key={p[0]} d={p[1]} fill={p[2]} stroke="#fff" strokeWidth="3" strokeLinejoin="round"/>)}
+  <ellipse cx="152" cy="106" rx="26" ry="20" fill="#1d4ed8" stroke="#fff" strokeWidth="3"/>
+  {P.map(p=>counts[p[0]]>0&&<g key={"c"+p[0]}><circle cx={p[3][0]} cy={p[3][1]} r="12" fill="#fff" stroke="#1d4ed8" strokeWidth="2"/><text x={p[3][0]} y={p[3][1]+4} textAnchor="middle" fontSize="12" fontWeight="800" fill="#1d4ed8">{counts[p[0]]}</text></g>)}
+  {counts.kigali>0&&<g><circle cx="152" cy="106" r="12" fill="#fff" stroke="#1d4ed8" strokeWidth="2"/><text x="152" y="110" textAnchor="middle" fontSize="12" fontWeight="800" fill="#1d4ed8">{counts.kigali}</text></g>}
+ </svg>;
+}
 function Growth({months,schools,students,revenue}){
  const W=560,H=210,L=34,R=18,T=12,B=26,w=W-L-R,h=H-T-B;
  const mx=(a)=>Math.max(1,...a);const ms=mx(schools),mt=mx(students),mr=mx(revenue);
@@ -87,11 +102,14 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
  const change=lastM>0?Math.round(100*(thisM-lastM)/lastM):null;
  const terms=data.feeTerms||[];
  const statusRows=[["Onboarding",t.onboarding,"#fff7ed","#c2410c"],["Active",t.active,"#ecfdf5","#15803d"],["Paused",t.paused,"#eff6ff","#1d4ed8"],["Suspended",t.suspended,"#fef2f2","#b91c1c"]];
+ const prov={none:0};Object.keys(PROVINCE_LABEL).forEach(k=>prov[k]=0);tenants.forEach(x=>{if(x.province&&k0(prov,x.province))prov[x.province]+=1;else prov.none+=1;});
+ const lvl={none:0};Object.keys(LEVEL_LABEL).forEach(k=>lvl[k]=0);tenants.forEach(x=>{if(x.education_level&&k0(lvl,x.education_level))lvl[x.education_level]+=1;else lvl.none+=1;});
+ const plans=data.plans||[];const noPlan=tenants.filter(x=>!x.plan_code).length;const hl=data.health;
  const recent=tenants.slice(0,3);
  const audit=(data.audit||[]).slice(0,4);
  return <div className="od"><style>{CSS}</style>
   <div className="od-hero">
-   <div className="od-welcome"><h2>Welcome, Platform Owner</h2><p>Here is what is happening across all schools on Umurage today.</p></div>
+   <div className="od-welcome"><h2>Welcome, Platform Owner</h2><p>Here is what is happening across all schools on Umurage today.</p><p className="od-statusline">{nf(t.active)} active, {nf(t.onboarding)} onboarding, {nf(t.paused)} paused, {nf(t.suspended)} suspended, {nf(t.archived)} archived</p></div>
    <div className="od-quick"><h3>Quick Actions</h3><div className="od-qgrid">
     {canCreate&&<button className="pri" onClick={onAddSchool}><Ico d={I.plus}/>Add School</button>}
     <button onClick={()=>go("billing")}><Ico d={I.clock}/>Subscriptions</button>
@@ -110,41 +128,41 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
    <div className="od-card"><h3>Platform Growth (Last 12 Months)</h3>
     <div className="od-legend"><span><i style={{background:"#2563eb"}}/>Schools ({nf(t.tenants)})</span><span><i style={{background:"#16a34a"}}/>Students ({nf(students)})</span>{canBilling&&<span><i style={{background:"#f97316"}}/>Revenue RWF</span>}</div>
     <Growth months={months} schools={schoolsSeries} students={studentsSeries} revenue={canBilling?revSeries:months.map(()=>0)}/></div>
-   <div className="od-card"><h3>Schools by Status <button onClick={()=>go("tenants")}>View all</button></h3>
-    <div className="od-tiles">{statusRows.map(r=><div key={r[0]} className="od-tile" style={{background:r[2],color:r[3]}}><b>{nf(r[1])}</b>{r[0]}</div>)}</div>
-    <div className="od-list" style={{marginTop:10}}><div className="od-item"><span>Archived</span><span className="od-badge" style={{background:"#64748b"}}>{nf(t.archived)}</span></div><div className="od-item"><span>Pending deletion</span><span className="od-badge" style={{background:"#b91c1c"}}>{nf(t.deletion_requested)}</span></div></div></div>
+   <div className="od-card"><h3>Schools Distribution (Rwanda) <button onClick={()=>go("reports")}>Reports</button></h3>
+    <div className="od-map"><RwandaMap counts={prov}/>
+     <div className="od-list">{Object.entries(PROVINCE_LABEL).map(([k,v])=><div key={k} className="od-item"><span>{v}</span><span className="od-badge">{nf(prov[k])}</span></div>)}
+      {prov.none>0&&<div className="od-item"><span>Province not set</span><span className="od-badge" style={{background:"#64748b"}}>{nf(prov.none)}</span></div>}</div></div>
+    <div className="od-empty">Schematic map. Set each school's province from the Schools page.</div></div>
   </div>
   <div className="od-row3">
-   <div className="od-card"><h3>Monthly Fee Clock</h3>
-    {canBilling?<>
-     <div className="od-bar"><span><b>Schools with fee terms</b><b>{terms.length}</b></span><i><u style={{width:(t.tenants?Math.min(100,100*terms.length/t.tenants):0)+"%"}}/></i></div>
-     <div className="od-bar"><span><b>Past due</b><b>{nf(t.pastDue)}</b></span><i><u style={{width:(terms.length?Math.min(100,100*(t.pastDue||0)/terms.length):0)+"%",background:"#dc2626"}}/></i></div>
-     <div className="od-bar"><span><b>Due today</b><b>{nf(t.dueToday)}</b></span><i><u style={{width:(terms.length?Math.min(100,100*(t.dueToday||0)/terms.length):0)+"%",background:"#f59e0b"}}/></i></div>
-     <div className="od-empty">Expected each month: {rwf(t.monthlyExpectedRwf)}</div></>
-     :<div className="od-empty">You do not have permission to view billing.</div>}</div>
+   <div className="od-card"><h3>Schools by Education Level</h3>
+    <div className="od-tiles">{Object.entries(LEVEL_LABEL).map(([k,v],i)=><div key={k} className="od-tile" style={{background:LEVEL_TONE[i][0],color:LEVEL_TONE[i][1]}}><b>{nf(lvl[k])}</b>{v}</div>)}</div>
+    {lvl.none>0&&<div className="od-empty">{lvl.none} school(s) have no level set.</div>}</div>
+   <div className="od-card"><h3>Subscription Plans <button onClick={()=>go("billing")}>Plans</button></h3>
+    {plans.length?<>{plans.filter(p=>p.active).map((p,i)=>{const n=tenants.filter(x=>x.plan_code===p.code).length;const pct=tenants.length?Math.round(100*n/tenants.length):0;
+     return <div key={p.code} className="od-bar"><span><b>{p.name}</b><b>{pct}%</b></span><i><u style={{width:pct+"%",background:["#2563eb","#16a34a","#7c3aed","#f97316"][i%4]}}/></i><small>{n} school(s){p.monthly_fee_rwf==null?"":" - "+rwf(p.monthly_fee_rwf)+" a month"}</small></div>;})}
+     {noPlan>0&&<div className="od-empty">{noPlan} school(s) have no plan set.</div>}</>
+     :<div className="od-empty">Plans appear once the latest database update is applied.</div>}</div>
    <div className="od-card"><h3>Revenue Overview <button onClick={()=>go("billing")}>Open</button></h3>
     {canBilling?<><div className="od-big">{rwf(t.manualCollectedRwf)}</div>
      {change===null?<span className="od-up" style={{background:"#eef3fb",color:"#475f86"}}>No earlier month to compare</span>:<span className={"od-up"+(change<0?" od-down":"")}>{change>=0?"+":""}{change}% vs last month</span>}
-     <div className="od-empty">This month: {rwf(thisM)}</div></>
+     <div className="od-empty">This month: {rwf(thisM)}</div>
+     <div className="od-empty">Expected each month: {rwf(t.monthlyExpectedRwf)}. Past due: {nf(t.pastDue)}. Due today: {nf(t.dueToday)}.</div></>
      :<div className="od-empty">Restricted</div>}</div>
-   <div className="od-card"><h3>System Health</h3><div className="od-health">
+   <div className="od-card"><h3>System Health <button onClick={()=>go("health")}>Details</button></h3><div className="od-health">
     <div>Platform status<span className="od-ok">Operational</span></div>
-    <div>Database<span className="od-ok">Healthy</span></div>
+    <div>Database<span className={"od-ok"+(hl&&!hl.database.ok?" od-bad":"")}>{hl&&!hl.database.ok?"Problem":"Healthy"}</span></div>
+    <div>File storage<span className={"od-ok"+(hl&&!hl.storage.ok?" od-bad":"")}>{hl&&!hl.storage.ok?"Problem":"Healthy"}</span></div>
+    <div>Backups<span className="od-ok od-warn">Not verified</span></div>
     <div>Open support tickets<span className={"od-ok"+(t.ticketsOpen>0?" od-warn":"")}>{nf(t.ticketsOpen)}</span></div>
-    <div>Access requests<span className={"od-ok"+((data.requests||[]).length>0?" od-warn":"")}>{(data.requests||[]).length}</span></div>
-   </div></div>
-   <div className="od-card"><h3>Support &amp; Review</h3><div className="od-health">
-    <div>Schools in onboarding review<span className="od-ok">{(data.onboardingReviews||[]).length}</span></div>
-    <div>Staff accounts<span className="od-ok">{(data.staff||[]).length}</span></div>
-    <div>Payment channels enabled<span className="od-ok">{(data.methods||[]).filter(m=>m.enabled).length}</span></div>
    </div></div>
   </div>
   <div className="od-row4">
    <div className="od-card"><h3>Recent Platform Activity <button onClick={()=>go("audit")}>View All</button></h3>
     {audit.length?<div className="od-act">{audit.map(a=><div key={a.id}><span>{String(a.event).replace(/[._]/g," ")}</span><small>{ago(a.created_at)}</small></div>)}</div>:<div className="od-empty">No activity to show.</div>}</div>
    <div className="od-card"><h3>Recently Added Schools <button onClick={()=>go("tenants")}>View All</button></h3>
-    {recent.length?<table className="od-table"><thead><tr><th>School Name</th><th>Status</th><th>Company</th><th>Joined</th></tr></thead>
-     <tbody>{recent.map(r=><tr key={r.id}><td>{r.name}</td><td><span className="od-badge" style={{background:r.status==="active"?"#16a34a":"#2563eb"}}>{String(r.status).replace(/_/g," ")}</span></td><td>{r.platform_companies?.name||"None"}</td><td>{day(r.created_at)}</td></tr>)}</tbody></table>
+    {recent.length?<table className="od-table"><thead><tr><th>School Name</th><th>Level</th><th>Location</th><th>Plan</th><th>Joined</th></tr></thead>
+     <tbody>{recent.map(r=><tr key={r.id}><td>{r.name}</td><td>{LEVEL_LABEL[r.education_level]||"Not set"}</td><td>{r.district?r.district+", ":""}{PROVINCE_LABEL[r.province]||"Not set"}</td><td>{(plans.find(p=>p.code===r.plan_code)||{}).name||"No plan"}</td><td>{day(r.created_at)}</td></tr>)}</tbody></table>
      :<div className="od-empty">Registered schools will appear here.</div>}</div>
   </div>
  </div>;
