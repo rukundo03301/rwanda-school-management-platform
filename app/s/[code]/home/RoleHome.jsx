@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
+import {initialTab} from "../../../../lib/portal-nav.mjs";
 import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 const rwf=v=>v===null||v===undefined||v===""?"—":Number(v).toLocaleString("en-US")+" RWF";
@@ -10,7 +11,7 @@ const tones=["blue","purple","orange","green","pink","red"];
 
 export default function RoleHome({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
- const [d,setD]=useState(null),[loading,setLoading]=useState(true),[section,setSection]=useState(null),[search,setSearch]=useState("");
+ const [d,setD]=useState(null),[loading,setLoading]=useState(true),[section,setSection]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["overview","finance","inventory","board","staff"],null)),[search,setSearch]=useState("");
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
   if(!c){setReady(true);setLoading(false);return;}
