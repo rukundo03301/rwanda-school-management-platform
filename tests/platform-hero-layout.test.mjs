@@ -9,6 +9,7 @@ test("Umurage wide hero covers viewport edge to edge without blurred side bands"
  assert.match(landing,/height:100dvh/);
  assert.match(landing,/overflow:hidden/);
  assert.match(landing,/className="lp-hero-image"/);
+ assert.match(landing,/src="\\/umurage-hero-original\\.webp"/);
  assert.match(landing,/width="1672"[\s\S]*height="941"/);
  assert.match(landing,/object-fit:cover/);
  assert.match(landing,/object-position:center center/);
