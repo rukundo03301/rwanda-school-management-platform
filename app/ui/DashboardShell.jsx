@@ -1,6 +1,7 @@
 "use client";
 import "./dashboard.css";
 import {useState} from "react";
+import Link from "next/link";
 
 const ICONS={
  home:["M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"],
@@ -88,7 +89,7 @@ export function DashboardShell({school,title,subtitle,nav,user,notifications=0,o
   </div>
   <aside className="ds-side">
    <nav className="ds-nav" aria-label="Sections">{nav.map(n=>n.href
-     ?<a key={n.label} href={n.href} className={n.active?"on":""}><Icon name={n.icon}/>{n.label}{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</a>
+     ?<Link key={n.label} href={n.href} prefetch className={n.active?"on":""}><Icon name={n.icon}/>{n.label}{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</Link>
      :<button key={n.label} className={n.active?"on":""} onClick={()=>{n.onClick?.();setOpen(false);}}><Icon name={n.icon}/>{n.label}{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</button>)}
    </nav>
    {helpText&&<div className="ds-help"><Icon name="help" size={30}/><div><strong>{helpTitle}</strong>{helpText}</div></div>}
