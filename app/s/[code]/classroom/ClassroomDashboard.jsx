@@ -4,6 +4,7 @@ import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
 import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
+import HomeworkComposer from "./HomeworkComposer.jsx";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const SECTIONS=[
@@ -234,7 +235,7 @@ export default function ClassroomDashboard({code}){
        {visibleClasses.map(c=><option key={c.id} value={c.id}>{classLabel(c.id)}</option>)}
       </select></label>
       {tab==="lessons"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("lesson",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id,lessonOn:currentDay})}>+ Lesson Plan</button>}
-      {tab==="homework"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("homework",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id})}>+ Create Homework</button>}
+      
       {tab==="materials"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("material",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id,kind:"video"})}>+ Add Material</button>}
      </div>
      {tab==="materials"&&<section className="cr-panel"><h2>Learning materials for this class</h2>
@@ -250,13 +251,7 @@ export default function ClassroomDashboard({code}){
        {lessons.filter(l=>l.class_id===selectedClass).map(l=><article key={l.id} className="cr-lesson">
         <Tag>{subjectLabel(l.subject_id)}</Tag><h3>{l.title}</h3><p>{l.objectives||"No objectives added"}</p><small>Lesson date: {l.lesson_date}</small></article>)}</div>
        {!lessons.some(l=>l.class_id===selectedClass)&&<Blank title="No lesson plans" description="Add an actual lesson plan for your class. Plans are private to verified school staff."/>}</section>}
-     {tab==="homework"&&<section className="cr-panel"><h2>Homework for this class</h2>
-       <div className="cr-card-grid">{homework.filter(h=>h.class_id===selectedClass).map(h=><article key={h.id} className="cr-lesson">
-        <div className="cr-card-header"><Tag>{subjectLabel(h.subject_id)}</Tag><span className="cr-status">{h.status}</span></div>
-        <h3>{h.title}</h3><p>{h.instructions}</p><small>Due: {new Date(h.due_at).toLocaleString("en-RW",{timeZone:"Africa/Kigali"})}</small>
-        {h.status==="draft"&&<button className="button secondary small" disabled={busy} onClick={()=>submit({action:"homework.publish",homeworkId:h.id})}>Publish for students</button>}
-       </article>)}</div>
-       {!homework.some(h=>h.class_id===selectedClass)&&<Blank title="No homework posted" description="Draft and publish the first real assignment for this class."/>}</section>}
+     {tab==="homework"&&<HomeworkComposer code={code} classId={selectedClass} subjects={subjects} assignments={myAssignments} classLabel={classLabel} subjectLabel={subjectLabel} homework={homework} onChanged={refresh}/>}
      {tab==="attendance"&&<section className="cr-panel"><div className="cr-section-head">
        <div><h2>Take class attendance</h2><p>Only students enrolled in your assigned class are listed. Attendance uses the Rwanda calendar date.</p></div>
        <label>Date <input className="input" type="date" max={currentDay} defaultValue={currentDay} id="cr-attendance-date" onChange={e=>setForm({...form,attendanceDate:e.target.value})}/></label>
