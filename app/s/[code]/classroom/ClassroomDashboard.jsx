@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
+import useTabParam from "../../../ui/useTabParam.js";
 import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -26,6 +27,7 @@ export default function ClassroomDashboard({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null);
  const [tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["overview","lessons","homework","attendance","submissions","materials"],"overview")),[selectedClass,setSelectedClass]=useState("");
+ useTabParam(["overview","lessons","homework","attendance","submissions","materials"],setTab);
  const [modal,setModal]=useState(null),[form,setForm]=useState({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[com,setCom]=useState(null);
  useEffect(()=>{
