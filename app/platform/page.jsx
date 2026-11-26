@@ -6,7 +6,7 @@ import { formatRwf } from "../../lib/money.mjs";
 import { dueClock,kigaliDate } from "../../lib/billing-clock.mjs";
 import Landing from "./Landing.jsx";
 import OwnerDashboard from "./OwnerDashboard.jsx";
-import { TopBar, SidebarCard, SchoolProfileForm, PlansPanel, ReportsPanel, CommunicationsPanel, HealthPanel } from "./PlatformModules.jsx";
+import { TopBar, SidebarCard, SchoolProfileForm, PlansPanel, ReportsPanel, CommunicationsPanel, HealthPanel, PayBadge, RowMenu } from "./PlatformModules.jsx";
 import "./owner-dashboard.css";
 
 const NAV = [
@@ -298,11 +298,11 @@ async function action(body,endpoint="/api/platform"){
       {error&&<div style={{marginTop:20}} className="notice error" role="alert">{error}<button className="button flat" onClick={()=>setError("")}>Dismiss</button></div>}
       {notice&&<div style={{marginTop:20}} className="notice ok" role="status">{notice}</div>}
       {tab==="overview"&&<OwnerDashboard data={data} canBilling={allowed("billing.read")} canCreate={allowed("tenants.create")} go={(id)=>{setTab(id);setNotice("");setError("");}} onAddSchool={()=>open("newTenant")}/>}
-      {tab==="reports"&&<ReportsPanel data={data}/>}
+      {tab==="reports"&&<ReportsPanel data={data} canSave={allowed("tenants.read")} canDelete={allowed("tenants.lifecycle")} busy={busy} onAct={action}/>}
       {tab==="comms"&&<CommunicationsPanel data={data} canManage={allowed("tickets.manage")} busy={busy} onSend={action}/>}
       {tab==="health"&&<HealthPanel data={data} onRefresh={refresh}/>}
       {tab==="tenants"&&<>
-        <Header title="Tenants" description="Own every tenant, private monthly payment date, school identity and lifecycle controls." action={allowed("tenants.create")?<div className="row">
+        <Header title="Schools" description="Every school on the platform, where it is, and when its next monthly payment is due." action={allowed("tenants.create")?<div className="row">
           {data.actor.isOwner&&<button className="button secondary" disabled={busy}
            onClick={()=>open("demo")}>+ Create Mockup School</button>}
           <button className="button secondary" onClick={()=>open("addSchool")}>+ School in existing company</button>
@@ -334,7 +334,7 @@ async function action(body,endpoint="/api/platform"){
           {(data.tenants||[]).map(t=>{const fee=data.feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(fee?.next_due_on);
             return <tr key={t.id}><td><strong>{t.name}</strong><div className="micro">{t.school_code}</div></td>
               <td>{fee?formatRwf(fee.monthly_fee_rwf):"Not configured"}</td><td>{fee?.last_paid_on||"—"}</td>
-              <td>{fee?.next_due_on||"—"}</td><td><Pill>{clock.state==="overdue"?"Past due":clock.state==="due_today"?"Due today":clock.state==="upcoming"?"Up to date":"Not set"}</Pill><div className="micro">{clock.label}</div></td>
+              <td>{fee?.next_due_on||"—"}</td><td><PayBadge due={fee?.next_due_on}/><div className="micro">{clock.label}</div></td>
               <td>{allowed("billing.record")&&<div className="row"><button className="button small secondary" onClick={()=>open("terms",{tenant:t,monthlyAmountRwf:fee?.monthly_fee_rwf||"",firstDueOn:fee?.next_due_on||kigaliDate()})}>Set fee</button>
                 <button className="button small" disabled={!fee?.monthly_fee_rwf} onClick={()=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:fee?.monthly_fee_rwf||""})}>Mark paid</button></div>}</td></tr>})}
           </tbody></table>{!data.tenants.length&&<Empty title="No schools" description="Register a school first; only you can set its monthly fee and record payments."/>}</div>
@@ -586,25 +586,30 @@ function siteForm(site) {
 }
 function TenantTable({tenants,feeTerms=[],stats={},onProfile,canManage,canRecord,canBrand,
   canInvite,canPurge,onInvite,onPurge,onState,onPaid,onTerms,onBrand}) {
-  return <div className="table-wrap"><table>
-    <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>School health</th><th>Next monthly due</th><th>Actions</th></tr></thead>
-    <tbody>{tenants.map(t=>{const terms=feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(terms?.next_due_on);
+  const prov={kigali:"Kigali City",northern:"Northern Province",southern:"Southern Province",eastern:"Eastern Province",western:"Western Province"};
+  const lvl={nursery:"Nursery",primary:"Primary",secondary:"Secondary",college:"College / University"};
+  return <div className="table-wrap pm-nowrap"><table>
+    <thead><tr><th>School</th><th>Location, level and plan</th><th>Status</th><th>Students and health</th><th>Next monthly payment</th><th>Actions</th></tr></thead>
+    <tbody>{tenants.map(t=>{const terms=feeTerms.find(f=>f.school_id===t.id);
+      const h=stats[t.id];
       return <tr key={t.id}><td><strong>{t.name}</strong>
         {t.is_demo&&<span className="badge" style={{marginLeft:8}}>DEMO · SYNTHETIC</span>}
-        <div className="micro">{t.platform_companies?.name||"—"}</div></td>
-        <td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td>
-        <td><Pill>{t.status}</Pill></td><td>{(()=>{const h=stats[t.id];if(!h)return "—";const rate=h.marked?Math.round(100*h.present/h.marked)+"% present":"no attendance yet";const pct=h.invoiced?Math.round(100*h.collected/h.invoiced)+"% fees collected":"no invoices yet";return <div><strong>{h.students}</strong> students<div className="micro">{rate}, last 30 days</div><div className="micro">{pct}</div></div>;})()}</td><td>{terms?.next_due_on||"—"}<div className="micro">{clock.label}</div></td>
-        <td><div className="row">
-          {canManage&&<button className="button secondary small" onClick={()=>onProfile(t)}>School profile</button>}
-          {canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage status</button>}
-          {canRecord&&<><button className="button secondary small" onClick={()=>onTerms(t)}>Set fee</button><button disabled={!terms?.monthly_fee_rwf} className="button small" onClick={()=>onPaid(t)}>Mark paid</button></>}
-          {canBrand&&<button className="button secondary small" onClick={()=>onBrand(t)}>School site</button>}
-          {canInvite&&!t.is_demo&&<button className="button secondary small" onClick={()=>onInvite(t)}>Invite school owner</button>}
-          {canPurge&&<button className="button small danger" disabled={t.legal_hold}
-            title={t.legal_hold?"Deletion blocked: legal hold":"Permanently remove school and data"}
-            onClick={()=>onPurge(t)}>Permanently delete</button>}
-          <a href={"/s/"+t.school_code} target="_blank" rel="noreferrer">Preview</a><a href={"/s/"+t.school_code+"/login"} target="_blank" rel="noreferrer">School sign-in</a>
-        </div></td>
+        <div className="micro"><kbd>{t.school_code}</kbd> {t.owner_email}</div></td>
+        <td>{[t.district,prov[t.province]].filter(Boolean).join(", ")||<span className="micro">Location not set</span>}<div className="micro">{lvl[t.education_level]||"Level not set"}{t.plan_code?" · "+t.plan_code:""}</div></td>
+        <td><Pill>{t.status}</Pill></td>
+        <td>{h?<div><strong>{h.students}</strong> students<div className="micro">{h.marked?Math.round(100*h.present/h.marked)+"% present (30 days)":"No attendance yet"}</div><div className="micro">{h.invoiced?Math.round(100*h.collected/h.invoiced)+"% fees collected":"No invoices yet"}</div></div>:"—"}</td>
+        <td>{terms?.next_due_on?<><PayBadge due={terms.next_due_on}/><div className="micro">{terms.next_due_on}</div></>:<span className="pm-badge none">No fee set</span>}</td>
+        <td><div className="row"><a className="button small" href={"/s/"+t.school_code+"/login"} target="_blank" rel="noreferrer">Open school</a>
+          <RowMenu items={[
+            canManage&&{label:"School profile",onClick:()=>onProfile(t)},
+            canManage&&{label:"Manage status",onClick:()=>onState(t)},
+            canRecord&&{label:"Set monthly fee",onClick:()=>onTerms(t)},
+            canRecord&&{label:"Mark paid",disabled:!terms?.monthly_fee_rwf,onClick:()=>onPaid(t)},
+            canBrand&&{label:"School website and branding",onClick:()=>onBrand(t)},
+            canInvite&&!t.is_demo&&{label:"Invite school owner",onClick:()=>onInvite(t)},
+            {label:"Preview public site",href:"/s/"+t.school_code},
+            canPurge&&{label:"Permanently delete",danger:true,disabled:t.legal_hold,title:t.legal_hold?"Deletion blocked: legal hold":"Permanently remove school and data",onClick:()=>onPurge(t)}
+          ]}/></div></td>
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
