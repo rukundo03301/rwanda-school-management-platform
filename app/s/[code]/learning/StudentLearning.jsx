@@ -1,5 +1,6 @@
 "use client";
 import AssignmentTaker from "./AssignmentTaker.jsx";
+import StudentMaterialFiles from "./StudentMaterialFiles.jsx";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
@@ -210,6 +211,7 @@ export default function StudentLearning({code}){
      <a className="ds-action blue" href={m.url} target="_blank" rel="noopener noreferrer">{m.kind==="video"?"Watch":"Open"}</a>
     </article>;})}</div>
     :<p className="ds-empty">Your teachers have not added learning resources for your class yet.</p>}
+   <StudentMaterialFiles code={code} subjectName={subjectName}/>
    <p style={{marginTop:14}}><a href={"/s/"+code+"/resources"}>School learning library →</a></p>
   </section>}
   {tab==="timetable"&&<section className="ds-panel"><h3>My weekly timetable</h3>
