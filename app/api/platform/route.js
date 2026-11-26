@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { authenticate, requirePermission, requireOwner, requireAal2, validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
+import { loadDashboardExtras, dashboardAction } from "../../../lib/platform-dashboard.js";
 import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput } from "../../../lib/access.mjs";
 import { validateManualPayment,parseDate } from "../../../lib/billing-clock.mjs";
 import {validSchoolCodeConfirmation,removeTenantStorage,TENANT_DELETE_PHRASE} from "../../../lib/tenant-purge.mjs";
@@ -33,6 +34,11 @@ export async function GET(request) {
       data.tenants = await checked(db.from("platform_schools")
         .select("id,school_code,name,owner_email,status,is_demo,legal_hold,created_at,updated_at,company_id,platform_companies(company_code,name)")
         .order("created_at", { ascending: false }).limit(200));
+    }
+    {
+      const extra = await loadDashboardExtras(db, data.tenants);
+      data.tenants = data.tenants.map((t) => ({ ...t, ...(extra.profiles[t.id] || {}) }));
+      data.plans = extra.plans; data.announcements = extra.announcements; data.health = extra.health;
     }
     if (data.tenants.length) {
       // Read-only health summary per school, computed from each school's own records. Never exposes student names.
@@ -204,6 +210,8 @@ export async function POST(request) {
       if(remaining)throw new ApiError(500,"School record remains; deletion cannot be confirmed");
       result={...deleted,storage_objects_removed:storageRemoved,
         school_code:confirmCode,verification:"school_removed_and_storage_empty"};
+    } else if (["school.profile", "plan.save", "announce.create", "announce.toggle"].includes(action)) {
+      result = await dashboardAction(action, body, { db, actor, token });
     } else if (action === "tenant.create") {
       requirePermission(actor,"tenants.create");
       const payload = valid(()=>validateTenantInput(body));
