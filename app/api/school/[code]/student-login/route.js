@@ -42,7 +42,7 @@ export async function POST(request,{params}){
   try{
     const {code}=await params;
     const {db,school,actor,token}=await context(request,code);
-    // Two-step verification is asked of the school owner only.
+
     
     const body=await request.json().catch(()=>({}));
     const action=String(body.action||"");
