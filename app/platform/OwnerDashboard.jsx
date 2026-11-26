@@ -1,5 +1,6 @@
 // Platform Owner Dashboard. Every number comes from the platform's own records; nothing here is sample data.
 import {PROVINCE_LABEL,LEVEL_LABEL} from "./PlatformModules.jsx";
+import {RWANDA_DISTRICTS,DISTRICT_PROVINCE,districtKey,MAP_W,MAP_H} from "../../lib/rwanda-geo.js";
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const nf=(n)=>Number(n||0).toLocaleString("en-US");
 const rwf=(n)=>"RWF "+nf(n);
@@ -61,16 +62,12 @@ const CSS=[
 
 const k0=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const LEVEL_TONE=[["#fdf2f8","#be185d"],["#eff6ff","#1d4ed8"],["#ecfdf5","#15803d"],["#f5f3ff","#6d28d9"]];
-function RwandaMap({counts}){
- const P=[["western","M95 65 L120 80 L150 85 L130 128 L100 160 L90 185 L65 170 L50 130 L60 95 L75 75Z","#93c5fd",[88,125]],
-  ["northern","M110 40 L150 18 L205 28 L235 60 L210 85 L175 90 L150 85 L120 80 L95 65Z","#60a5fa",[160,55]],
-  ["eastern","M235 60 L262 110 L255 170 L225 200 L190 185 L185 140 L175 125 L175 90 L210 85Z","#3b82f6",[218,130]],
-  ["southern","M100 160 L130 128 L175 125 L185 140 L190 185 L160 215 L120 205 L90 185Z","#bfdbfe",[140,175]]];
- return <svg className="od-mapsvg" viewBox="0 0 300 235" role="img" aria-label="Schematic map of Rwanda provinces">
-  {P.map(p=><path key={p[0]} d={p[1]} fill={p[2]} stroke="#fff" strokeWidth="3" strokeLinejoin="round"/>)}
-  <ellipse cx="152" cy="106" rx="26" ry="20" fill="#1d4ed8" stroke="#fff" strokeWidth="3"/>
-  {P.map(p=>counts[p[0]]>0&&<g key={"c"+p[0]}><circle cx={p[3][0]} cy={p[3][1]} r="12" fill="#fff" stroke="#1d4ed8" strokeWidth="2"/><text x={p[3][0]} y={p[3][1]+4} textAnchor="middle" fontSize="12" fontWeight="800" fill="#1d4ed8">{counts[p[0]]}</text></g>)}
-  {counts.kigali>0&&<g><circle cx="152" cy="106" r="12" fill="#fff" stroke="#1d4ed8" strokeWidth="2"/><text x="152" y="110" textAnchor="middle" fontSize="12" fontWeight="800" fill="#1d4ed8">{counts.kigali}</text></g>}
+function RwandaMap({byDistrict,onPick}){
+ const max=Math.max(1,...Object.values(byDistrict).map(x=>x.length));
+ const shade=n=>n?"rgba(37,99,235,"+(0.28+0.72*n/max).toFixed(2)+")":"#d6e4fa";
+ return <svg className="od-mapsvg" viewBox={"0 0 "+MAP_W+" "+MAP_H} role="img" aria-label="Map of Rwanda districts shaded by number of schools">
+  {RWANDA_DISTRICTS.map(d=>{const list=byDistrict[d.n]||[];return <path key={d.n} d={d.d} fill={shade(list.length)} stroke="#fff" strokeWidth="2.500" strokeLinejoin="round" style={{cursor:list.length?"pointer":"default"}} onClick={()=>list.length&&onPick(list[0])}><title>{d.n}{" - "+list.length+" school(s)"+(list.length?": "+list.map(s=>s.name).join(", "):"")}</title></path>;})}
+  {RWANDA_DISTRICTS.map(d=>{const n=(byDistrict[d.n]||[]).length;return n?<g key={"c"+d.n} pointerEvents="none"><circle cx={d.x} cy={d.y} r="19" fill="#fff" stroke="#1d4ed8" strokeWidth="4"/><text x={d.x} y={d.y+8} textAnchor="middle" fontSize="24" fontWeight="800" fill="#1d4ed8">{n}</text></g>:null;})}
  </svg>;
 }
 function Growth({months,schools,students,revenue}){
@@ -102,7 +99,9 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
  const change=lastM>0?Math.round(100*(thisM-lastM)/lastM):null;
  const terms=data.feeTerms||[];
  const statusRows=[["Onboarding",t.onboarding,"#fff7ed","#c2410c"],["Active",t.active,"#ecfdf5","#15803d"],["Paused",t.paused,"#eff6ff","#1d4ed8"],["Suspended",t.suspended,"#fef2f2","#b91c1c"]];
- const prov={none:0};Object.keys(PROVINCE_LABEL).forEach(k=>prov[k]=0);tenants.forEach(x=>{if(x.province&&k0(prov,x.province))prov[x.province]+=1;else prov.none+=1;});
+ const prov={none:0};Object.keys(PROVINCE_LABEL).forEach(k=>prov[k]=0);const byDistrict={};
+ tenants.forEach(x=>{const dk=districtKey(x.district);const pv=x.province&&k0(prov,x.province)?x.province:(dk?DISTRICT_PROVINCE[dk]:null);
+  if(dk)(byDistrict[dk]=byDistrict[dk]||[]).push(x);if(pv)prov[pv]+=1;else prov.none+=1;});
  const lvl={none:0};Object.keys(LEVEL_LABEL).forEach(k=>lvl[k]=0);tenants.forEach(x=>{if(x.education_level&&k0(lvl,x.education_level))lvl[x.education_level]+=1;else lvl.none+=1;});
  const plans=data.plans||[];const noPlan=tenants.filter(x=>!x.plan_code).length;const hl=data.health;
  const recent=tenants.slice(0,3);
@@ -129,10 +128,10 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
     <div className="od-legend"><span><i style={{background:"#2563eb"}}/>Schools ({nf(t.tenants)})</span><span><i style={{background:"#16a34a"}}/>Students ({nf(students)})</span>{canBilling&&<span><i style={{background:"#f97316"}}/>Revenue RWF</span>}</div>
     <Growth months={months} schools={schoolsSeries} students={studentsSeries} revenue={canBilling?revSeries:months.map(()=>0)}/></div>
    <div className="od-card"><h3>Schools Distribution (Rwanda) <button onClick={()=>go("reports")}>Reports</button></h3>
-    <div className="od-map"><RwandaMap counts={prov}/>
+    <div className="od-map"><RwandaMap byDistrict={byDistrict} onPick={()=>go("tenants")}/>
      <div className="od-list">{Object.entries(PROVINCE_LABEL).map(([k,v])=><div key={k} className="od-item"><span>{v}</span><span className="od-badge">{nf(prov[k])}</span></div>)}
       {prov.none>0&&<div className="od-item"><span>Province not set</span><span className="od-badge" style={{background:"#64748b"}}>{nf(prov.none)}</span></div>}</div></div>
-    <div className="od-empty">Schematic map. Set each school's province from the Schools page.</div></div>
+    <div className="od-empty">Shaded by schools per district. Set a school's district from Schools, School profile. Boundaries: geoBoundaries, CC BY 4.0.</div></div>
   </div>
   <div className="od-row3">
    <div className="od-card"><h3>Schools by Education Level</h3>
