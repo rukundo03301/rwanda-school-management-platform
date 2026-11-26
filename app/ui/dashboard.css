@@ -130,3 +130,6 @@
 .ds-card input,.ds-card select,.ds-card textarea{width:100%;padding:10px 12px;border:1px solid #d6deec;border-radius:10px;font:inherit;box-sizing:border-box;background:#fff}
 .pf-body .adm-side>*:not(nav):not(button):not(a),.pf-body .repm-side>*:not(nav):not(button):not(a){display:none!important}
 .pf-body .adm-content,.pf-body .repm-content{padding:0!important;margin:0!important;max-width:none!important}
+.pf-body .school-admin-sidebar nav{display:flex!important;flex-wrap:wrap;gap:6px}
+.pf-body .scom-side button,.pf-body .fee-sidebar button,.pf-body .repm-side button,.pf-body .adm-side button,.pf-body .school-admin-sidebar button{width:auto!important;flex:0 0 auto;display:inline-flex!important;align-items:center;gap:6px;margin:0!important;padding:8px 14px!important;border:0!important;border-radius:999px!important;background:#eef3fb!important;color:#243b63!important;font-weight:600;font-size:13px;cursor:pointer;opacity:1!important}
+.pf-body .scom-side button.active,.pf-body .scom-side button.selected,.pf-body .fee-sidebar button.active,.pf-body .fee-sidebar button.selected,.pf-body .repm-side button.active,.pf-body .repm-side button.selected,.pf-body .adm-side button.active,.pf-body .adm-side button.selected,.pf-body .school-admin-sidebar button.active,.pf-body .school-admin-sidebar button.selected{background:#2f6fe4!important;color:#fff!important}
