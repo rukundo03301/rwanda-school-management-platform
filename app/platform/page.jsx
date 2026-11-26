@@ -314,7 +314,7 @@ async function action(body,endpoint="/api/platform"){
           </div>
           {(data.totals.pastDue>0||data.totals.dueToday>0)&&<div className="notice error">Attention: {data.totals.pastDue} school(s) past due and {data.totals.dueToday} due today. <button className="button small secondary" onClick={()=>setTab("billing")}>Open private monthly clock</button></div>}
         </>}
-        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canInvite={data.actor.isOwner} canPurge={data.actor.isOwner}
+        <div className="panel"><div className="panel-header"><h2>Recent schools</h2><button className="button secondary small" onClick={()=>setTab("tenants")}>Manage all tenants</button></div><TenantTable stats={data.schoolStats||{}} tenants={(data.tenants||[]).slice(0,5)} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canInvite={data.actor.isOwner} canPurge={data.actor.isOwner}
           onPurge={previewPurge} onInvite={(t)=>open("inviteSchoolOwner",{tenant:t})} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/></div>
         <div className="notice info">Monthly amounts and countdowns belong only to authorized platform staff. Schools do not see this billing ledger. These records represent what you entered manually, not verified bank or Mobile Money balances.</div>
       </>}
@@ -327,7 +327,7 @@ async function action(body,endpoint="/api/platform"){
         </div>:null}/>
         <div className="panel">
           <div className="panel-header"><div className="row"><input aria-label="Search tenants" className="input" style={{width:260}} placeholder="Search school, ID or owner" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Tenant status" className="input" style={{width:150}} value={filter} onChange={e=>setFilter(e.target.value)}>{["all",...Object.keys(LIFECYCLE)].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div><span className="muted">{tenants.length} results</span></div>
-          <TenantTable tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canPurge={data.actor.isOwner} onPurge={previewPurge} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
+          <TenantTable stats={data.schoolStats||{}} tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canPurge={data.actor.isOwner} onPurge={previewPurge} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
           {(data.totals.tenants>=200)&&<p className="micro">Showing latest 200 tenants. Server pagination is required before large-scale production use.</p>}
         </div>
       </>}
@@ -599,16 +599,16 @@ function siteForm(site) {
     heroUrl:site?.hero_url||"",primaryColor:site?.primary_color||"#204a78",
     contactEmail:site?.contact_email||"",contactPhone:site?.contact_phone||"",isPublished:Boolean(site?.is_published)};
 }
-function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,
+function TenantTable({tenants,feeTerms=[],stats={},canManage,canRecord,canBrand,
   canInvite,canPurge,onInvite,onPurge,onState,onPaid,onTerms,onBrand}) {
   return <div className="table-wrap"><table>
-    <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>Next monthly due</th><th>Actions</th></tr></thead>
+    <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>School health</th><th>Next monthly due</th><th>Actions</th></tr></thead>
     <tbody>{tenants.map(t=>{const terms=feeTerms.find(f=>f.school_id===t.id);const clock=dueClock(terms?.next_due_on);
       return <tr key={t.id}><td><strong>{t.name}</strong>
         {t.is_demo&&<span className="badge" style={{marginLeft:8}}>DEMO · SYNTHETIC</span>}
         <div className="micro">{t.platform_companies?.name||"—"}</div></td>
         <td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td>
-        <td><Pill>{t.status}</Pill></td><td>{terms?.next_due_on||"—"}<div className="micro">{clock.label}</div></td>
+        <td><Pill>{t.status}</Pill></td><td>{(()=>{const h=stats[t.id];if(!h)return "—";const rate=h.marked?Math.round(100*h.present/h.marked)+"% present":"no attendance yet";const pct=h.invoiced?Math.round(100*h.collected/h.invoiced)+"% fees collected":"no invoices yet";return <div><strong>{h.students}</strong> students<div className="micro">{rate}, last 30 days</div><div className="micro">{pct}</div></div>;})()}</td><td>{terms?.next_due_on||"—"}<div className="micro">{clock.label}</div></td>
         <td><div className="row">
           {canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage status</button>}
           {canRecord&&<><button className="button secondary small" onClick={()=>onTerms(t)}>Set fee</button><button disabled={!terms?.monthly_fee_rwf} className="button small" onClick={()=>onPaid(t)}>Mark paid</button></>}
@@ -617,7 +617,7 @@ function TenantTable({tenants,feeTerms=[],canManage,canRecord,canBrand,
           {canPurge&&<button className="button small danger" disabled={t.legal_hold}
             title={t.legal_hold?"Deletion blocked: legal hold":"Permanently remove school and data"}
             onClick={()=>onPurge(t)}>Permanently delete</button>}
-          <a href={"/s/"+t.school_code} target="_blank" rel="noreferrer">Preview</a>
+          <a href={"/s/"+t.school_code} target="_blank" rel="noreferrer">Preview</a><a href={"/s/"+t.school_code+"/login"} target="_blank" rel="noreferrer">School sign-in</a>
         </div></td>
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
