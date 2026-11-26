@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 
-// Single-screen Umurage hero. Show the exact user-provided artwork, unmodified.
+// Single-screen Umurage hero. Use the exact user-provided artwork, without cropping or editing.
 // Authentication opens only from the top-right navigation.
 const CSS=`
 .shell.lp{
@@ -29,12 +29,18 @@ const CSS=`
   z-index:0;
   background:#e9f2ff;
 }
+/* Keep every pixel and every written panel visible. The supplied picture is 4:3,
+   while most browser screens are widescreen; fit fills the available rectangle
+   without any cover cropping or empty bars. The header occupies its own space. */
 .lp-hero-picture{
   position:absolute;
-  inset:0;
+  top:var(--lp-header-height);
+  left:0;
+  right:0;
+  bottom:0;
   z-index:1;
   width:100%;
-  height:100%;
+  height:calc(100% - var(--lp-header-height));
   overflow:hidden;
 }
 .lp-hero-image{
@@ -42,15 +48,7 @@ const CSS=`
   width:100%;
   height:100%;
   max-width:none;
-  object-fit:cover;
-  object-position:center center;
-}
-.lp-hero-shade{
-  position:absolute;
-  inset:0;
-  z-index:2;
-  pointer-events:none;
-  background:linear-gradient(180deg,rgba(244,249,255,.10),transparent 19%,transparent 84%,rgba(217,232,255,.13));
+  object-fit:fill;
 }
 .lp-topbar{
   position:absolute;
@@ -220,7 +218,6 @@ export default function Landing({onLogin,onSignup}){
           <p>School progress, attendance, homework, fees and communication in one secure place.</p>
          </div>}
     </div>
-    <div className="lp-hero-shade" aria-hidden="true"/>
   </section>
   <header className="lp-topbar">
     <div className="lp-brand"><span className="lp-brand-mark" aria-hidden="true">U</span><span>Umurage School Management Platform</span></div>
