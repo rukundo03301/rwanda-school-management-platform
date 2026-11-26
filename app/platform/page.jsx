@@ -6,17 +6,21 @@ import { formatRwf } from "../../lib/money.mjs";
 import { dueClock,kigaliDate } from "../../lib/billing-clock.mjs";
 import Landing from "./Landing.jsx";
 import OwnerDashboard from "./OwnerDashboard.jsx";
+import { TopBar, SidebarCard, SchoolProfileForm, PlansPanel, ReportsPanel, CommunicationsPanel, HealthPanel } from "./PlatformModules.jsx";
 import "./owner-dashboard.css";
 
 const NAV = [
   ["overview","◫","Dashboard","tenants.read"],
   ["tenants","▦","Schools","tenants.read"],
-  ["tickets","◉","Support tickets","tickets.read"],
   ["billing","▤","Subscriptions","billing.read"],
   ["methods","▣","Payments & Revenue","billing.methods"],
   ["staff","♧","Users & Access","staff.read"],
-  ["audit","◷","Audit Logs","audit.read"],
   ["security","⚿","Platform Settings",null],
+  ["reports","▥","Reports & Analytics","tenants.read"],
+  ["comms","✉","Communications","tenants.read"],
+  ["tickets","◉","Support tickets","tickets.read"],
+  ["health","♡","System Health","tenants.read"],
+  ["audit","◷","Audit Logs","audit.read"],
 ];
 const LIFECYCLE = {
   onboarding:["active","paused","suspended","deletion_requested"],
@@ -271,6 +275,7 @@ async function action(body,endpoint="/api/platform"){
     return search.includes(query.trim().toLowerCase()) && (filter==="all"||t.status===filter);
   });
 
+  const openProfile=(t)=>open("profile",{tenant:t,province:t.province||"",district:t.district||"",educationLevel:t.education_level||"",planCode:t.plan_code||""});
   if(loading)return <main className="shell">Loading secure account...</main>;
   if(!client)return <main className="shell"><div className="auth-card"><h1>Setup required</h1><p>Provide the Supabase URL and publishable key in the deployment environment. No records are available until secure connection is configured.</p></div></main>;
   if(!session)return <Login client={client} onLogin={setSession}/>;
@@ -286,16 +291,16 @@ async function action(body,endpoint="/api/platform"){
         {NAV.filter((item)=>!item[3]||allowed(item[3])).map(([id,icon,label])=>
           <button key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);setNotice("");setError("");}}><span className="nav-icon">{icon}</span>{label}</button>)}
       </nav>
-      <div className="sidebar-foot">Umurage Platform<br/>Secure, scalable, multi-school. All financial values shown in RWF.</div>
+      <SidebarCard/>
     </aside>
     <main className="main">
-      <div className="topbar">
-        <div><strong>Platform Owner Dashboard</strong><div className="micro">Manage schools, subscriptions, users and the entire Umurage platform</div></div>
-        <div className="context"><div className="avatar">{(data.actor.email||"U")[0].toUpperCase()}</div><div><strong style={{fontSize:12}}>{data.actor.email}</strong><div className="micro">{data.actor.isOwner?"Platform Owner":data.actor.role}</div></div><button className="button secondary small" onClick={()=>client.auth.signOut()}>Sign out</button></div>
-      </div>
+      <TopBar data={data} onGo={(id)=>{setTab(id);setNotice("");setError("");}} onPick={(h)=>{setTab(h.tab);if(h.tab==="tenants")setQuery(h.query);}} onSignOut={()=>client.auth.signOut()}/>
       {error&&<div style={{marginTop:20}} className="notice error" role="alert">{error}<button className="button flat" onClick={()=>setError("")}>Dismiss</button></div>}
       {notice&&<div style={{marginTop:20}} className="notice ok" role="status">{notice}</div>}
       {tab==="overview"&&<OwnerDashboard data={data} canBilling={allowed("billing.read")} canCreate={allowed("tenants.create")} go={(id)=>{setTab(id);setNotice("");setError("");}} onAddSchool={()=>open("newTenant")}/>}
+      {tab==="reports"&&<ReportsPanel data={data}/>}
+      {tab==="comms"&&<CommunicationsPanel data={data} canManage={allowed("tickets.manage")} busy={busy} onSend={action}/>}
+      {tab==="health"&&<HealthPanel data={data} onRefresh={refresh}/>}
       {tab==="tenants"&&<>
         <Header title="Tenants" description="Own every tenant, private monthly payment date, school identity and lifecycle controls." action={allowed("tenants.create")?<div className="row">
           {data.actor.isOwner&&<button className="button secondary" disabled={busy}
@@ -305,7 +310,7 @@ async function action(body,endpoint="/api/platform"){
         </div>:null}/>
         <div className="panel">
           <div className="panel-header"><div className="row"><input aria-label="Search tenants" className="input" style={{width:260}} placeholder="Search school, ID or owner" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Tenant status" className="input" style={{width:150}} value={filter} onChange={e=>setFilter(e.target.value)}>{["all",...Object.keys(LIFECYCLE)].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div><span className="muted">{tenants.length} results</span></div>
-          <TenantTable stats={data.schoolStats||{}} tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canPurge={data.actor.isOwner} onPurge={previewPurge} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
+          <TenantTable onProfile={openProfile} stats={data.schoolStats||{}} tenants={tenants} feeTerms={data.feeTerms||[]} canManage={allowed("tenants.lifecycle")} canRecord={allowed("billing.record")} canBrand={allowed("tenants.brand")} canPurge={data.actor.isOwner} onPurge={previewPurge} onState={(t)=>open("state",{tenant:t})} onPaid={(t)=>open("paid",{tenant:t,paidOn:kigaliDate(),amountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||""})} onTerms={(t)=>open("terms",{tenant:t,monthlyAmountRwf:data.feeTerms.find(f=>f.school_id===t.id)?.monthly_fee_rwf||"",firstDueOn:data.feeTerms.find(f=>f.school_id===t.id)?.next_due_on||kigaliDate()})} onBrand={(t)=>open("brand",{tenant:t,...siteForm(data.sites.find(x=>x.school_id===t.id))})}/>
           {(data.totals.tenants>=200)&&<p className="micro">Showing latest 200 tenants. Server pagination is required before large-scale production use.</p>}
         </div>
       </>}
@@ -316,6 +321,7 @@ async function action(body,endpoint="/api/platform"){
         </tbody></table>{!data.tickets.length&&<Empty title="No support tickets" description="School issues and their resolution history will appear here."/>}</div></div>
       </>}
       {tab==="billing"&&<>
+        <PlansPanel plans={data.plans||[]} tenants={data.tenants||[]} isOwner={Boolean(data.actor.isOwner)} busy={busy} onSave={action}/>
         <Header title="Private monthly payment clock" description="Record what you received offline. No subscription checkout, no automated charges, and no billing details visible to schools."/>
         <div className="cards">
           <Metric label="Total manually recorded" value={formatRwf(data.totals.manualCollectedRwf||0)}/>
@@ -441,6 +447,7 @@ async function action(body,endpoint="/api/platform"){
 {!busy&&!purgePreview.legal_hold&&(!form.acknowledge||form.confirmSchoolCode!==purgePreview.school_code||form.confirmPhrase!=="DELETE ALL SCHOOL DATA"||(form.reason||"").trim().length<12)&&<p className="micro" style={{width:"100%",textAlign:"right",margin:"6px 0 0"}}>To enable deletion: give a reason of at least 12 characters, type the School ID and the phrase exactly, and tick the box.</p>}
         </div>
       </form>}
+      {modal==="profile"&&<SchoolProfileForm form={form} setForm={setForm} plans={data.plans||[]} busy={busy} onSubmit={()=>action({action:"school.profile",schoolId:form.tenant.id,province:form.province,district:form.district,educationLevel:form.educationLevel,planCode:form.planCode})}/>}
       {modal==="newTenant"&&<form onSubmit={e=>{e.preventDefault();action({action:"tenant.create",companyName:form.companyName,schoolName:form.schoolName,ownerEmail:form.ownerEmail});}}>
         <p className="muted">The platform will automatically generate a unique Company ID and School ID. School access remains in onboarding until approved.</p>
         <Field label="Company or school group"><input className="input" required maxLength={120} value={form.companyName||""} onChange={e=>setForm({...form,companyName:e.target.value})}/></Field>
@@ -577,7 +584,7 @@ function siteForm(site) {
     heroUrl:site?.hero_url||"",primaryColor:site?.primary_color||"#204a78",
     contactEmail:site?.contact_email||"",contactPhone:site?.contact_phone||"",isPublished:Boolean(site?.is_published)};
 }
-function TenantTable({tenants,feeTerms=[],stats={},canManage,canRecord,canBrand,
+function TenantTable({tenants,feeTerms=[],stats={},onProfile,canManage,canRecord,canBrand,
   canInvite,canPurge,onInvite,onPurge,onState,onPaid,onTerms,onBrand}) {
   return <div className="table-wrap"><table>
     <thead><tr><th>School</th><th>Company ID</th><th>School ID</th><th>Owner contact</th><th>Status</th><th>School health</th><th>Next monthly due</th><th>Actions</th></tr></thead>
@@ -588,6 +595,7 @@ function TenantTable({tenants,feeTerms=[],stats={},canManage,canRecord,canBrand,
         <td><kbd>{t.platform_companies?.company_code||"—"}</kbd></td><td><kbd>{t.school_code}</kbd></td><td>{t.owner_email}</td>
         <td><Pill>{t.status}</Pill></td><td>{(()=>{const h=stats[t.id];if(!h)return "—";const rate=h.marked?Math.round(100*h.present/h.marked)+"% present":"no attendance yet";const pct=h.invoiced?Math.round(100*h.collected/h.invoiced)+"% fees collected":"no invoices yet";return <div><strong>{h.students}</strong> students<div className="micro">{rate}, last 30 days</div><div className="micro">{pct}</div></div>;})()}</td><td>{terms?.next_due_on||"—"}<div className="micro">{clock.label}</div></td>
         <td><div className="row">
+          {canManage&&<button className="button secondary small" onClick={()=>onProfile(t)}>School profile</button>}
           {canManage&&<button className="button secondary small" onClick={()=>onState(t)}>Manage status</button>}
           {canRecord&&<><button className="button secondary small" onClick={()=>onTerms(t)}>Set fee</button><button disabled={!terms?.monthly_fee_rwf} className="button small" onClick={()=>onPaid(t)}>Mark paid</button></>}
           {canBrand&&<button className="button secondary small" onClick={()=>onBrand(t)}>School site</button>}
@@ -600,4 +608,4 @@ function TenantTable({tenants,feeTerms=[],stats={},canManage,canRecord,canBrand,
       </tr>})}</tbody>
     </table>{!tenants.length&&<Empty title="No schools found" description="Your real registered tenants will appear here. Register the first school to begin."/>}</div>;
 }
-function modalTitle(mode){return ({newTenant:"Register a new school",demo:"Create a mockup school",purge:"Permanently wipe school tenant",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",ticketHistory:"Ticket history",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
+function modalTitle(mode){return ({profile:"School profile",newTenant:"Register a new school",demo:"Create a mockup school",purge:"Permanently wipe school tenant",addSchool:"Add school to a company",terms:"Monthly payment terms",paid:"Record monthly payment",voidPayment:"Correct payment entry",brand:"School website & branding",inviteStaff:"Invite platform staff",inviteSchoolOwner:"Invite verified school owner",state:"Manage tenant lifecycle",newTicket:"Open a support ticket",ticketHistory:"Ticket history",newMethod:"Add payment option",approveStaff:"Review staff permissions",editStaff:"Edit staff access",disableStaff:"Revoke staff access"})[mode]||"Manage";}
