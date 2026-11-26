@@ -38,7 +38,7 @@ export async function GET(request) {
     {
       const extra = await loadDashboardExtras(db, data.tenants);
       data.tenants = data.tenants.map((t) => ({ ...t, ...(extra.profiles[t.id] || {}) }));
-      data.plans = extra.plans; data.announcements = extra.announcements; data.health = extra.health;
+      data.plans = extra.plans; data.announcements = extra.announcements; data.health = extra.health; data.reports = extra.reports;
     }
     if (data.tenants.length) {
       // Read-only health summary per school, computed from each school's own records. Never exposes student names.
@@ -210,7 +210,7 @@ export async function POST(request) {
       if(remaining)throw new ApiError(500,"School record remains; deletion cannot be confirmed");
       result={...deleted,storage_objects_removed:storageRemoved,
         school_code:confirmCode,verification:"school_removed_and_storage_empty"};
-    } else if (["school.profile", "plan.save", "announce.create", "announce.toggle"].includes(action)) {
+    } else if (["school.profile", "plan.save", "announce.create", "announce.toggle", "report.save", "report.delete"].includes(action)) {
       result = await dashboardAction(action, body, { db, actor, token });
     } else if (action === "tenant.create") {
       requirePermission(actor,"tenants.create");
