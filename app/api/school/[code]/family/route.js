@@ -37,8 +37,8 @@ export async function GET(request,{params}){
       const classMap=new Map(classes.map(c=>[c.id,c]));
       const linkMap=new Map(links.map(l=>[l.student_id,l]));
       const [hwAll,subAll,attAll,subjAll]=classIds.length?await Promise.all([
-        checked(db.from("school_homework").select("id,title,due_at,subject_id,class_id").eq("school_id",school.id).in("class_id",classIds).eq("status","published").order("due_at",{ascending:false}).limit(300)),
-        checked(db.from("school_homework_submissions").select("homework_id,student_id,submitted_at,is_late,score,max_score,feedback,graded_at").eq("school_id",school.id).in("student_id",ids).limit(600)),
+        checked(db.from("school_homework").select("id,title,due_at,subject_id,class_id").eq("school_id",school.id).in("class_id",classIds).eq("status","published").or("release_at.is.null,release_at.lte."+new Date().toISOString()).order("due_at",{ascending:false}).limit(300)),
+        checked(db.from("school_homework_submissions").select("homework_id,student_id,submitted_at,is_late,score,max_score,feedback,graded_at,released_at").eq("school_id",school.id).in("student_id",ids).limit(600)),
         checked(db.from("school_attendance_records").select("student_id,attendance_on,status,class_id").eq("school_id",school.id).in("student_id",ids).in("class_id",classIds).order("attendance_on",{ascending:false}).limit(900)),
         checked(db.from("school_subjects").select("id,name").eq("school_id",school.id).limit(200))
       ]):[[],[],[],[]];
@@ -52,7 +52,7 @@ export async function GET(request,{params}){
           relationship:linkMap.get(stu.id)?.relationship,
           classId:enrollment?.class_id||null,
           className:cls?cls.name+(cls.section?" — "+cls.section:""):null,
-          homework:enrollment?hwAll.filter(h=>h.class_id===enrollment.class_id).slice(0,20).map(h=>{const sub=subAll.find(x=>x.homework_id===h.id&&x.student_id===stu.id);return {id:h.id,title:h.title,subject:subjMap.get(h.subject_id)||null,dueAt:h.due_at,submittedAt:sub?.submitted_at||null,isLate:Boolean(sub?.is_late),score:sub?.score??null,maxScore:sub?.max_score??null,feedback:sub?.feedback||null};}):[],
+          homework:enrollment?hwAll.filter(h=>h.class_id===enrollment.class_id).slice(0,20).map(h=>{const sub0=subAll.find(x=>x.homework_id===h.id&&x.student_id===stu.id);const sub=sub0&&!sub0.released_at?{...sub0,score:null,max_score:null,feedback:null,graded_at:null}:sub0;return {id:h.id,title:h.title,subject:subjMap.get(h.subject_id)||null,dueAt:h.due_at,submittedAt:sub?.submitted_at||null,isLate:Boolean(sub?.is_late),score:sub?.score??null,maxScore:sub?.max_score??null,feedback:sub?.feedback||null};}):[],
           attendance:(()=>{const rows=enrollment?attAll.filter(x=>x.student_id===stu.id&&x.class_id===enrollment.class_id):[];const count=k=>rows.filter(x=>x.status===k).length;return {recorded:rows.length,present:count("present"),absent:count("absent"),late:count("late"),excused:count("excused"),recent:rows.slice(0,10).map(x=>({on:x.attendance_on,status:x.status}))};})()
         };
       });
