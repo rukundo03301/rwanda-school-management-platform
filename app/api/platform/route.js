@@ -17,7 +17,16 @@ export const dynamic = "force-dynamic";
 export async function GET(request) {
   try {
     const { actor, db } = await authenticate(request);
-    if (!actor.active) return Response.json({ actor, needsApproval: true }, { headers: { "Cache-Control": "no-store" } });
+    if (!actor.active) {
+      // Signed-in school members belong in their school, not in the platform console. Only the caller's own memberships are returned.
+      const { data: mem } = await db.from("school_memberships").select("school_id,role").eq("auth_user_id", actor.id).eq("active", true);
+      let schools = [];
+      if (mem && mem.length) {
+        const { data: rows } = await db.from("platform_schools").select("id,school_code,name,status").in("id", mem.map((m) => m.school_id));
+        schools = (rows || []).filter((r) => ["onboarding", "active"].includes(r.status)).map((r) => ({ code: r.school_code, name: r.name }));
+      }
+      return Response.json({ actor, needsApproval: true, schools }, { headers: { "Cache-Control": "no-store" } });
+    }
     const can = (permission) => actor.isOwner || actor.permissions.includes(permission);
     const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], onboardingReviews: [], audit: [] };
     if (can("tenants.read")) {
