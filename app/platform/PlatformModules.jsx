@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { RWANDA_DISTRICTS, DISTRICT_PROVINCE } from "../../lib/rwanda-geo.js";
+import { dueClock } from "../../lib/billing-clock.mjs";
+import { paymentClock, buildReport, reportToSheets, reportToDoc, reportCsv, DUE_SOON_DAYS } from "../../lib/report-data.js";
+import { buildXlsx, buildDocx, downloadBytes, MIME_XLSX, MIME_DOCX } from "../../lib/export-files.js";
 
 // Pieces of the Platform Owner console that sit around the dashboard: top bar, sidebar card,
 // plans, school profile form, reports, communications and system health. Real platform data only.
@@ -27,10 +30,12 @@ export function TopBar({ data, onGo, onPick, onSignOut }) {
     window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
   }, []);
   const t = data.totals || {};
+  const clock = paymentClock(data.tenants, data.feeTerms);
   const items = [
     [t.ticketsOpen, "open support tickets", "tickets"],
     [(data.requests || []).length, "staff access requests", "staff"],
-    [t.pastDue, "schools past due", "billing"],
+    [clock.filter((c) => c.state === "overdue").length, "schools past due on their monthly payment", "billing"],
+    [clock.filter((c) => c.state === "today" || c.state === "soon").length, "payments due within " + DUE_SOON_DAYS + " days", "billing"],
     [(data.onboardingReviews || []).length, "schools waiting for onboarding review", "tenants"],
   ].filter((i) => i[0] > 0);
   const count = items.reduce((a, i) => a + i[0], 0);
@@ -78,33 +83,49 @@ export function PlansPanel({ plans, tenants, isOwner, busy, onSave }) {
       </tr>; })}</tbody></table>{!(plans || []).length && <div className="empty"><strong>Plans are not available yet</strong><div>They appear once the latest database update has been applied.</div></div>}</div></div>;
 }
 
-function Bars({ rows, color = "#2563eb", fmt = nf }) {
-  const mx = Math.max(1, ...rows.map((r) => r[1]));
-  return <div className="pm-bars">{rows.length ? rows.map((r) => <div key={r[0]}><span><b>{r[0]}</b><b>{fmt(r[1])}</b></span><i><u style={{ width: Math.max(2, 100 * r[1] / mx) + "%", background: color }}/></i></div>) : <div className="pm-none">No data yet.</div>}</div>;
+const fileDate = () => new Date().toISOString().slice(0, 10);
+export const saveXlsx = (rep, name) => downloadBytes((name || "umurage-report-" + rep.generatedOn) + ".xlsx", MIME_XLSX, buildXlsx(reportToSheets(rep)));
+export const saveDocx = (rep, name) => downloadBytes((name || "umurage-report-" + rep.generatedOn) + ".docx", MIME_DOCX, buildDocx(reportToDoc(rep)));
+const saveCsv = (rep) => downloadBytes("umurage-report-" + rep.generatedOn + ".csv", "text/csv", new TextEncoder().encode(reportCsv(rep)));
+
+export function PayBadge({ due }) {
+  const c = due ? dueClock(due) : { state: "not_set", days: 0, label: "No fee set" };
+  const st = c.state === "overdue" ? "bad" : c.state === "due_today" || (c.state === "upcoming" && c.days <= DUE_SOON_DAYS) ? "warn" : c.state === "upcoming" ? "ok" : "none";
+  const txt = c.state === "upcoming" ? "Due in " + c.days + (c.days === 1 ? " day" : " days") : c.label;
+  return <span className={"pm-badge " + st}>{txt}</span>;
 }
 
-export function ReportsPanel({ data }) {
-  const tenants = data.tenants || [], stats = data.schoolStats || {};
-  const att = tenants.map((t) => { const s = stats[t.id]; return [t.name, s && s.marked ? Math.round(100 * s.present / s.marked) : 0]; });
-  const students = tenants.map((t) => [t.name, (stats[t.id] || {}).students || 0]);
-  const fees = tenants.map((t) => { const s = stats[t.id]; return [t.name, s && s.invoiced ? Math.round(100 * s.collected / s.invoiced) : 0]; });
-  const count = (key, labels) => { const o = {}; tenants.forEach((t) => { const k = t[key] ? labels[t[key]] || t[key] : "Not set"; o[k] = (o[k] || 0) + 1; }); return Object.entries(o); };
-  function csv() {
-    const head = ["School", "School ID", "Status", "Province", "District", "Level", "Plan", "Students", "Attendance % (30 days)", "Fees invoiced RWF", "Fees collected RWF"];
-    const q = (v) => '"' + String(v ?? "").replaceAll('"', '""') + '"';
-    const lines = tenants.map((t) => { const s = stats[t.id] || {}; return [t.name, t.school_code, t.status, PROVINCE_LABEL[t.province] || "", t.district || "", LEVEL_LABEL[t.education_level] || "", t.plan_code || "", s.students || 0, s.marked ? Math.round(100 * s.present / s.marked) : "", s.invoiced || 0, s.collected || 0].map(q).join(","); });
-    const blob = new Blob([[head.map(q).join(",")].concat(lines).join("\n")], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "umurage-schools-report.csv"; a.click(); URL.revokeObjectURL(a.href);
-  }
-  return <div className="pm-page"><div className="pm-head"><div><h2>Reports and analytics</h2><p>Computed live from each school's own records. No student names are shown.</p></div><button className="button" onClick={csv}>Download schools report (CSV)</button></div>
-    <div className="pm-grid">
-      <div className="od-card"><h3>Students per school</h3><Bars rows={students}/></div>
-      <div className="od-card"><h3>Attendance, last 30 days</h3><Bars rows={att} color="#16a34a" fmt={(v) => v + "%"}/></div>
-      <div className="od-card"><h3>Fees collected</h3><Bars rows={fees} color="#f97316" fmt={(v) => v + "%"}/></div>
-      <div className="od-card"><h3>Schools by province</h3><Bars rows={count("province", PROVINCE_LABEL)}/></div>
-      <div className="od-card"><h3>Schools by level</h3><Bars rows={count("education_level", LEVEL_LABEL)}/></div>
-      <div className="od-card"><h3>Schools by plan</h3><Bars rows={count("plan_code", Object.fromEntries((data.plans || []).map((p) => [p.code, p.name])))}/></div>
-    </div></div>;
+export function ReportsPanel({ data, canSave, canDelete, busy, onAct }) {
+  const rep = buildReport(data);
+  const [confirm, setConfirm] = useState("");
+  const saved = data.reports || [];
+  return <div className="pm-page">
+    <div className="pm-head"><div><h2>Reports and analytics</h2><p>One live report for the whole platform, taken from each school's own records. No student names are included.</p></div>
+      <div className="pm-actions"><button className="button" onClick={() => saveXlsx(rep)}>Download Excel</button><button className="button" onClick={() => saveDocx(rep)}>Download Word</button><button className="button secondary" onClick={() => saveCsv(rep)}>CSV</button>
+        {canSave && <button className="button secondary" disabled={busy} onClick={() => onAct({ action: "report.save", title: "Platform report " + rep.generatedOn, report: rep })}>Save a copy</button>}</div></div>
+    <div className="pm-kpis">{rep.kpis.map((k) => <div key={k[0]} className="pm-kpi"><b>{typeof k[1] === "number" ? nf(k[1]) : k[1]}</b><span>{k[0]}</span></div>)}</div>
+    <div className="od-card"><h3>Schools</h3>
+      <div className="table-wrap"><table><thead><tr><th>School</th><th>Location</th><th>Level and plan</th><th>Students</th><th>Attendance</th><th>Fees collected</th><th>Next payment</th></tr></thead>
+        <tbody>{rep.schools.map((r) => <tr key={r.code}><td><strong>{r.name}</strong><div className="micro">{r.code}</div></td>
+          <td>{[r.district, r.province].filter(Boolean).join(", ") || "Not set"}</td><td>{r.level || "Not set"}<div className="micro">{r.plan}</div></td>
+          <td>{nf(r.students)}</td><td>{r.attendance == null ? "No data" : r.attendance + "%"}</td>
+          <td>{r.collectedPct == null ? "No invoices" : r.collectedPct + "%"}<div className="micro">{rwf(r.collected)} of {rwf(r.invoiced)}</div></td>
+          <td>{r.nextDue ? <><PayBadge due={r.nextDue}/><div className="micro">{r.nextDue}</div></> : <span className="pm-badge none">No fee set</span>}</td></tr>)}</tbody></table>
+        {!rep.schools.length && <div className="pm-none">No schools yet.</div>}</div></div>
+    <div className="od-card"><h3>Where the schools are</h3><div className="pm-spread">{rep.spread.map(([g, list]) => <div key={g}><b>{g}</b><div className="pm-chips">{list.map(([k, n]) => <span key={k}>{k}: {n}</span>)}</div></div>)}</div></div>
+    <div className="od-card"><h3>Saved reports</h3>
+      {saved.length ? <div className="table-wrap"><table><thead><tr><th>Report</th><th>Saved</th><th>Schools</th><th></th></tr></thead><tbody>{saved.map((r) => <tr key={r.id}><td><strong>{r.title}</strong></td><td>{when(r.created_at)}</td><td>{(r.payload?.schools || []).length}</td>
+        <td><div className="row"><button className="button small" onClick={() => saveXlsx(r.payload, "report-" + String(r.created_at).slice(0, 10))}>Excel</button><button className="button small" onClick={() => saveDocx(r.payload, "report-" + String(r.created_at).slice(0, 10))}>Word</button>
+          {canDelete && (confirm === r.id ? <><button className="button small danger" disabled={busy} onClick={() => { onAct({ action: "report.delete", id: r.id }); setConfirm(""); }}>Confirm delete</button><button className="button secondary small" onClick={() => setConfirm("")}>Keep</button></> : <button className="button secondary small" onClick={() => setConfirm(r.id)}>Delete</button>)}</div></td></tr>)}</tbody></table></div>
+        : <div className="pm-none">{canSave ? "Nothing saved yet. Use Save a copy to keep today's numbers." : "Nothing saved yet."}</div>}</div>
+  </div>;
+}
+
+export function RowMenu({ items }) {
+  return <details className="pm-menu"><summary className="button secondary small">Manage</summary>
+    <div className="pm-menulist">{items.filter(Boolean).map((i, k) => i.href
+      ? <a key={k} href={i.href} target="_blank" rel="noreferrer">{i.label}</a>
+      : <button key={k} className={i.danger ? "danger" : ""} disabled={i.disabled} title={i.title} onClick={(e) => { e.currentTarget.closest("details").removeAttribute("open"); i.onClick(); }}>{i.label}</button>)}</div></details>;
 }
 
 export function CommunicationsPanel({ data, canManage, busy, onSend }) {
