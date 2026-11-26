@@ -39,11 +39,12 @@ export async function GET(request) {
       try {
         const ids = data.tenants.map((t) => t.id);
         const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-        const [stu, att, inv, pay] = await Promise.all([
-          checked(db.from("school_students").select("school_id").eq("status", "active").in("school_id", ids).limit(20000)),
+        const [stu, att, inv, pay, mem2] = await Promise.all([
+          checked(db.from("school_students").select("school_id,created_at").eq("status", "active").in("school_id", ids).limit(20000)),
           checked(db.from("school_attendance_records").select("school_id,status").gte("attendance_on", since).in("school_id", ids).limit(50000)),
           checked(db.from("school_fee_invoices").select("school_id,amount_rwf").eq("status", "issued").in("school_id", ids).limit(50000)),
           checked(db.from("school_fee_payments").select("school_id,amount_rwf").eq("status", "posted").in("school_id", ids).limit(50000)),
+          checked(db.from("school_memberships").select("auth_user_id,role").eq("active", true).in("school_id", ids).limit(100000)),
         ]);
         const stats = {};
         for (const id of ids) stats[id] = { students: 0, marked: 0, present: 0, invoiced: 0, collected: 0 };
@@ -52,6 +53,13 @@ export async function GET(request) {
         for (const r of inv) stats[r.school_id].invoiced += Number(r.amount_rwf) || 0;
         for (const r of pay) stats[r.school_id].collected += Number(r.amount_rwf) || 0;
         data.schoolStats = stats;
+        const byMonth = {};
+        for (const r of stu) { const k = String(r.created_at).slice(0, 7); byMonth[k] = (byMonth[k] || 0) + 1; }
+        data.platformStats = {
+          users: new Set(mem2.map((m) => m.auth_user_id)).size,
+          teachers: mem2.filter((m) => m.role === "teacher").length,
+          studentsByMonth: byMonth,
+        };
       } catch (e) { data.schoolStats = {}; }
     }
     if (can("billing.read")) {
