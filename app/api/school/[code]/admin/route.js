@@ -95,12 +95,15 @@ export async function GET(request,{params}){
     }
   }
   if(schoolAdminCan(actor,"academics.read")){
+    // The levels the owner chose in School setup decide which levels a class can belong to.
+    const setup=await checked(db.from("school_onboarding").select("education_levels").eq("school_id",school.id).maybeSingle());
+    data.offeredLevels=Array.isArray(setup?.education_levels)?setup.education_levels:[];
     [data.years,data.classes,data.subjects,data.classSubjects]=await Promise.all([
       checked(db.from("school_academic_years")
         .select("id,name,starts_on,ends_on,status").eq("school_id",school.id)
         .order("starts_on",{ascending:false}).limit(250)),
       checked(db.from("school_classes")
-        .select("id,academic_year_id,name,level,section,capacity,status").eq("school_id",school.id)
+        .select("id,academic_year_id,name,level,level_band,section,capacity,status").eq("school_id",school.id)
         .order("name",{ascending:true}).limit(500)),
       checked(db.from("school_subjects")
         .select("id,code,name").eq("school_id",school.id)
@@ -194,12 +197,15 @@ export async function POST(request,{params}){
     await assertSchoolRow(db,"school_academic_years",school.id,yearId);
     const name=schoolAdminText(body.name||"",100);
     const level=schoolAdminText(body.level||"",100);
+    const levelBand=String(body.levelBand||"");
+    if(!["nursery","primary","secondary","tvet","university"].includes(levelBand))
+      throw new ApiError(400,"Choose the education level this class belongs to");
     const section=schoolAdminText(body.section||"",50,{required:false});
     const cap=body.capacity==null||body.capacity===""?null:Number(body.capacity);
     if(cap!==null&&(!Number.isInteger(cap)||cap<1||cap>2000))
       throw new ApiError(400,"Class capacity must be between 1 and 2000");
     result=await checked(db.from("school_classes").insert({
-      school_id:school.id,academic_year_id:yearId,name,level,section,capacity:cap,
+      school_id:school.id,academic_year_id:yearId,name,level,level_band:levelBand,section,capacity:cap,
       created_by:actor.id
     }).select("id,name").single());
     await schoolAdminAudit(db,school.id,actor.id,"academic.class_created",{id:result.id,yearId});
