@@ -5,16 +5,17 @@ export const dynamic="force-dynamic";
 const noStore={"Cache-Control":"no-store"};
 const AREAS=["language_communication","numeracy_early_math","social_emotional","physical_health","creative_arts_culture","environment_science"];
 const DESCRIPTORS=["developing","secure","extending"];
-const NURSERY=/nurser|pre-?primary|kindergarten|\bN[123]\b/i;
-const isNursery=c=>NURSERY.test(String(c.level||""))||NURSERY.test(String(c.name||""));
-
+// Early-years observation reports apply only when the school offers the nursery level
+// (School setup), and only to classes whose education level is nursery.
 async function nurseryScope(ctx){
  const {db,school,role,actorId}=ctx;
+ const setup=await checked(db.from("school_onboarding").select("education_levels").eq("school_id",school.id).maybeSingle());
+ if(!(setup?.education_levels||[]).includes("nursery"))throw new ApiError(403,"This school does not offer the nursery level. The owner can add it in School setup.");
  const year=await checked(db.from("school_academic_years").select("id,name").eq("school_id",school.id).eq("status","current").maybeSingle());
  if(!year)return {year:null,classes:[]};
  const all=await checked(db.from("school_classes").select("id,name,level,section,academic_year_id,status")
-  .eq("school_id",school.id).eq("academic_year_id",year.id).eq("status","active").limit(200));
- let classes=all.filter(isNursery);
+  .eq("school_id",school.id).eq("academic_year_id",year.id).eq("status","active").eq("level_band","nursery").limit(200));
+ let classes=all;
  if(!role.manager){
   const mine=await checked(db.from("school_teacher_assignments").select("class_id")
    .eq("school_id",school.id).eq("teacher_id",actorId).eq("active",true).limit(500));
