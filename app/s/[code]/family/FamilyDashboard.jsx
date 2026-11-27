@@ -121,8 +121,8 @@ export default function FamilyDashboard({code}){
     {Pick}
     <div className="ds-stats" style={{margin:0}}>
      <Stat icon="clock" tone="blue" value={attPct(child)===null?"—":attPct(child)+"%"} label="Attendance"/>
-     <Stat icon="check" tone="purple" value={child.homework.length?child.homework.filter(h=>h.submittedAt).length+"/"+child.homework.length:"—"} label="Homework done"/>
-     <Stat icon="trophy" tone="orange" value={avg(child)===null?"—":avg(child)+"%"} label="Homework average"/>
+     <Stat icon="check" tone="purple" value={child.homework.length?child.homework.filter(h=>h.submittedAt).length+"/"+child.homework.length:"—"} label={child.earlyYears?"Home activities shared":"Homework done"}/>
+     {child.earlyYears?<Stat icon="trophy" tone="orange" value={(child.homework||[]).filter(h=>h.feedback).length} label="Teacher notes"/>:<Stat icon="trophy" tone="orange" value={avg(child)===null?"—":avg(child)+"%"} label="Homework average"/>}
      <Stat icon="wallet" tone="green" value={fees?rwf(invoices.filter(i=>i.student_id===child.id).reduce((x,i)=>x+Number(i.balances?.balance_rwf||0),0)):"—"} label="Fees balance"/>
     </div>
     <div className="ds-grid" style={{margin:0}}>
@@ -135,18 +135,25 @@ export default function FamilyDashboard({code}){
        <div><strong>{e.title}</strong><small>{when(e.starts_at)}{e.location?" · "+e.location:""}</small></div></li>)}</ul>:<p className="ds-empty">No upcoming events.</p>}</Card>
     </div>
     <div className="ds-grid" style={{margin:0}}>
-     <Card title="Homework to Complete" icon="check" size="s6" link={<button className="ds-link" onClick={()=>setTab("homework")}>All →</button>}>
+     <Card title={child.earlyYears?"Home Activities to Do":"Homework to Complete"} icon="check" size="s6" link={<button className="ds-link" onClick={()=>setTab("homework")}>All →</button>}>
       {pendingHw(child).length?<ul className="ds-list">{pendingHw(child).slice(0,4).map(h=><li key={h.id} className="ds-item"><span className="ds-ico purple"><Icon name="check"/></span>
-       <div><strong>{h.title}</strong><small>{h.subject||"Class"}{h.dueAt?" · due "+when(h.dueAt):""}</small></div></li>)}</ul>:<p className="ds-empty">No homework is waiting.</p>}</Card>
+       <div><strong>{h.title}</strong><small>{h.subject||"Class"}{h.dueAt?" · due "+when(h.dueAt):""}{h.dueAt&&new Date(h.dueAt)<new Date()?<b style={{color:"#c0392b"}}> · overdue</b>:null}</small></div></li>)}</ul>:<p className="ds-empty">No homework is waiting.</p>}</Card>
      <Card title="Teacher Feedback" icon="chat" size="s6">
       {(child.homework||[]).filter(h=>h.feedback||h.score!=null).slice(0,3).length?<ul className="ds-list">{child.homework.filter(h=>h.feedback||h.score!=null).slice(0,3).map(h=><li key={h.id} className="ds-item"><span className="ds-ico green"><Icon name="chat"/></span>
        <div><strong>{h.title}{h.score!=null?" · "+Number(h.score)+" / "+Number(h.maxScore):""}</strong><small>{h.feedback||"Graded by the teacher."}</small></div></li>)}</ul>
        :<p className="ds-empty">Feedback appears here after the teacher grades work.</p>}</Card>
     </div>
     <div className="ds-grid" style={{margin:0}}>
+     {child.earlyYears?<Card title={child.name.split(" ")[0]+"'s Learning"} icon="chart" size="s6" link={<a href={"/s/"+code+"/report-card"}>Progress reports →</a>}>
+      <div className="ds-legend">
+       <div>Days at school this term<b>{child.attendance.recorded?(child.attendance.present+child.attendance.late)+" of "+child.attendance.recorded:"—"}</b></div>
+       <div>Home activities shared<b>{(child.homework||[]).filter(h=>h.submittedAt).length+" of "+(child.homework||[]).length}</b></div>
+       <div>Teacher notes on activities<b>{(child.homework||[]).filter(h=>h.feedback).length}</b></div>
+      </div>
+      <p className="ds-empty" style={{marginTop:8}}>Nursery children are described in six learning areas, not marked or ranked. Open Progress reports to read the term report.</p></Card>:
      <Card title={child.name.split(" ")[0]+"'s Progress"} icon="chart" size="s6" link={<a href={"/s/"+code+"/report-card"}>Report cards →</a>}>
       <div className="ds-split"><Ring value={[doneHw(child),avg(child),attPct(child)].filter(x=>x!==null).length?Math.round([doneHw(child),avg(child),attPct(child)].filter(x=>x!==null).reduce((a,b)=>a+b,0)/[doneHw(child),avg(child),attPct(child)].filter(x=>x!==null).length):null} label="Overall"/>
-       <div className="ds-bars"><Bar label="Homework submitted" value={doneHw(child)} color="#1fa64a"/><Bar label="Homework average" value={avg(child)} color="#3b8df0"/><Bar label="Attendance" value={attPct(child)} color="#f59e0b"/></div></div></Card>
+       <div className="ds-bars"><Bar label="Homework submitted" value={doneHw(child)} color="#1fa64a"/><Bar label="Homework average" value={avg(child)} color="#3b8df0"/><Bar label="Attendance" value={attPct(child)} color="#f59e0b"/></div></div></Card>}
      <Card title="Attendance" icon="clock" size="s6">
       {child.attendance.recorded?<div className="ds-split"><Ring value={attPct(child)} label="Present"/>
        <div className="ds-legend"><div><i className="ds-dot" style={{background:"#1fa64a"}}/>Present<b>{child.attendance.present}</b></div>
@@ -160,7 +167,7 @@ export default function FamilyDashboard({code}){
      {notices.length?<ul className="ds-list">{notices.map(n=><li key={n.id} className="ds-item"><span className="ds-ico purple"><Icon name="megaphone"/></span>
       <div><strong>{n.title}</strong><small>{when(n.published_at)}</small></div></li>)}</ul>:<p className="ds-empty">No notices have been published.</p>}</Card>
     <Card title="Fees" icon="wallet" link={<button className="ds-link" onClick={()=>setTab("fees")}>Details →</button>}>
-     {fees?<div className="ds-legend"><div>Balance due<b>{rwf(balance)}</b></div><div>Open invoices<b>{dueInv.length}</b></div></div>:<p className="ds-empty">Fee details are not available.</p>}</Card>
+     {fees?<div className="ds-legend"><div>{kids.length>1?"Balance due, all children":"Balance due"}<b>{rwf(balance)}</b></div><div>Open invoices<b>{dueInv.length}</b></div></div>:<p className="ds-empty">Fee details are not available.</p>}</Card>
     <Card title="Quick Actions" icon="bolt"><div className="ds-actions">
      <a className="ds-action blue" href={"/s/"+code+"/communications"}>Open My Family School Day</a>
      <a className="ds-action orange" href={"/s/"+code+"/communications"}>Message a teacher</a>
