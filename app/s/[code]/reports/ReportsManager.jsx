@@ -23,7 +23,7 @@ const TRACKS=[
  ["higher_education","Higher Education (institutional rules)"]
 ];
 const LEVEL_BANDS={
- general:[["lower_primary","Lower Primary P1–P3 (LEGRA needs separate engine)"],
+ general:[["lower_primary","Lower Primary P1–P3 (Kinyarwanda uses LEGRA)"],
   ["upper_primary","Upper Primary P4–P6"],["ordinary_secondary","Ordinary Level S1–S3"],
   ["advanced_secondary","Advanced Level S4–S6"]],
  professional:[["professional","Professional Education"]],
@@ -352,12 +352,16 @@ export default function ReportsManager({code}){
      {gradeCourse.map(m=><option key={m.subject_id} value={m.subject_id}>{courseTitle(m)} · Max {m.weekly_periods*10}</option>)}</select></Field>
     <Field label="Assessment type"><select className="input" value={form.category} onChange={e=>setForm({...form,category:e.target.value,assessmentCode:""})}>
      <option value="unit">End of unit</option><option value="project">Project assessment</option>
-     <option value="end_term">End of term</option></select></Field>
+     <option value="end_term">End of term</option>
+     <option value="legra">LEGRA (P1-P3 Kinyarwanda)</option></select></Field>
     {form.category==="unit"&&<Field label="Curriculum unit"><select required className="input" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}>
      <option value="">Choose official unit</option>
      {units.filter(u=>u.class_id===form.classId&&u.subject_id===form.subjectId
        &&u.term_number===terms.find(t=>t.id===form.termId)?.term_number).map(u=><option key={u.id} value={u.unit_code}>{u.unit_code} · {u.unit_title}</option>)}</select></Field>}
     {form.category==="project"&&<Field label="Project reference"><input className="input" required maxLength={30} placeholder="PROJECT-1" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}/></Field>}
+    {form.category==="legra"&&<Field label="LEGRA aspect"><select required className="input" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}>
+     <option value="">Choose LEGRA aspect</option><option value="LEGRA_GUTAHURA">Gutahura inyuguti/amagambo</option><option value="LEGRA_ICYANDIKWA">Icyandikwa</option>
+     <option value="LEGRA_GUSOMA">Gusoma udategwa</option><option value="LEGRA_KUMVA">Kumva wandikiwe</option></select></Field>}
     {form.category==="end_term"&&<p className="repm-info">The end-of-term examination is recorded once as TERM for this subject.</p>}
     <Field label="Marks earned on this assessment"><input className="input" type="number" step="0.01" min="0" required
       max={form.rawMaximum||undefined}
