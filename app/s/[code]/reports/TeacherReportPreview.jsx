@@ -40,7 +40,14 @@ export default function TeacherReportPreview({report,students=[],selectedId,onSe
    <div className="trp-section-title"><h3>Subject assessment results</h3><span>NESA guidance · General education</span></div>
    <div className="trp-table-wrap"><table>
     <thead><tr><th>Subject</th><th>Units 25%</th><th>Projects 25%</th><th>Exam 50%</th><th>Term result</th><th>Status</th></tr></thead>
-    <tbody>{report.subjects.map(s=><tr key={s.subject_id}>
+    <tbody>{report.subjects.map(s=>s.excluded_from_overall?<tr key={s.subject_id} className="trp-legra">
+     <td><b>{s.subject_name}</b><small>{s.subject_code} · LEGRA</small></td>
+     <td>{fmt(s.end_unit_avg)} {s.end_unit_avg!=null&&<small>/ {fmt(s.maximum_marks)}</small>}</td>
+     <td>{fmt(s.project_avg)} {s.project_avg!=null&&<small>/ {fmt(s.maximum_marks)}</small>}</td>
+     <td colSpan="2"><ul className="trp-legra-list">{s.legra_entries.map(e=><li key={e.code}><span>{e.aspect}</span><b>{fmt(e.score)}</b><small>/ {fmt(e.maximum_marks)}</small></li>)}</ul>
+      <small>Four LEGRA scores shown separately; not combined into one mark.</small></td>
+     <td><span className={"trp-state "+(s.complete?"ready":"pending")}>{s.complete?"Ready":"Incomplete"}</span></td>
+    </tr>:<tr key={s.subject_id}>
      <td><b>{s.subject_name}</b><small>{s.subject_code}</small></td>
      <td>{fmt(s.end_unit_avg)} {s.end_unit_avg!=null&&<small>/ {fmt(s.maximum_marks)}</small>}</td>
      <td>{fmt(s.project_avg)} {s.project_avg!=null&&<small>/ {fmt(s.maximum_marks)}</small>}</td>
@@ -48,7 +55,7 @@ export default function TeacherReportPreview({report,students=[],selectedId,onSe
      <td><b>{fmt(s.term_total_marks)}</b>{s.complete&&<small>/ {fmt(s.maximum_marks)} · {fmt(s.term_percentage)}%</small>}</td>
      <td><span className={"trp-state "+(s.complete?"ready":"pending")}>{s.complete?"Ready":"Incomplete"}</span></td>
     </tr>)}</tbody>
-    {report.ready&&<tfoot><tr><th colSpan="4">Weighted total across visible subjects</th>
+    {report.ready&&<tfoot><tr><th colSpan="4">Weighted total (LEGRA subjects excluded)</th>
       <th>{fmt(report.earned_marks)} / {fmt(report.maximum_marks)}<small>{fmt(report.overall_percentage)}%</small></th><th>Draft</th></tr></tfoot>}
    </table></div>
    {!report.subjects.length&&<p className="trp-note">No approved, assigned subjects are available for this class and term.</p>}
