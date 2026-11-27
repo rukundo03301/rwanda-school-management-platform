@@ -6,11 +6,13 @@ import useTabParam from "../../../ui/useTabParam.js";
 import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 import HomeworkComposer from "./HomeworkComposer.jsx";
 import MaterialFiles from "./MaterialFiles.jsx";
+import CurriculumLibrary from "./CurriculumLibrary.jsx";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const SECTIONS=[
  {id:"overview",label:"Dashboard"},
  {id:"assignments",label:"Teacher Assignments"},
+ {id:"curriculum",label:"Curriculum Library"},
  {id:"lessons",label:"Lessons & Plans"},
  {id:"homework",label:"Homework"},
  {id:"attendance",label:"Attendance"},
@@ -28,8 +30,8 @@ function Tag({children}){return <span className="cr-tag">{children}</span>}
 export default function ClassroomDashboard({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null);
- const [tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["overview","lessons","homework","attendance","submissions","materials"],"overview")),[selectedClass,setSelectedClass]=useState("");
- useTabParam(["overview","lessons","homework","attendance","submissions","materials"],setTab);
+ const [tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["overview","curriculum","lessons","homework","attendance","submissions","materials"],"overview")),[selectedClass,setSelectedClass]=useState("");
+ useTabParam(["overview","curriculum","lessons","homework","attendance","submissions","materials"],setTab);
  const [modal,setModal]=useState(null),[form,setForm]=useState({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[com,setCom]=useState(null);
  useEffect(()=>{
@@ -119,8 +121,8 @@ export default function ClassroomDashboard({code}){
  const todayNo=({Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7})[new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Africa/Kigali"}).format(new Date())];
  const myPeriods=(com?.timetable||[]).filter(x=>x.weekday===todayNo);
  const toGrade=assignedSubmissions.filter(x=>!x.graded_at);
- const TITLES={overview:"Teacher Dashboard",assignments:"Teacher Class Assignments",lessons:"Lesson Planning",homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",studentAccess:"Verified Student Accounts",materials:"Learning Materials"};
- const ICON={overview:"home",assignments:"users",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user",materials:"folder"};
+ const TITLES={overview:"Teacher Dashboard",assignments:"Teacher Class Assignments",curriculum:"Curriculum Library: what to teach",lessons:"Lesson Planning",homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",studentAccess:"Verified Student Accounts",materials:"Learning Materials"};
+ const ICON={overview:"home",assignments:"users",curriculum:"book",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user",materials:"folder"};
  const NAMES={overview:"Dashboard",attendance:"Attendance",submissions:"Grade Submissions"};
  const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
@@ -230,6 +232,7 @@ export default function ClassroomDashboard({code}){
        <td><button className="button secondary small" onClick={()=>open("revoke",{assignment:a,reason:""})}>Revoke assignment</button></td>
       </tr>)}</tbody></table>{!assignments.length&&<Blank title="No assigned teachers yet" description="Invite teachers in School Administration, define classes and subjects, then assign their teaching responsibilities."/>}</div></section>
     </>}
+    {tab==="curriculum"&&<CurriculumLibrary classes={classes} myAssignments={myAssignments} classLabel={classLabel} subjectLabel={subjectLabel} onAddMaterial={actor.teacher?()=>selectSection("materials"):undefined}/>}
     {["lessons","homework","attendance","submissions","materials"].includes(tab)&&actor.teacher&&<>
      <div className="cr-class-selector">
       <label>My class <select className="input" value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
