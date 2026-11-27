@@ -67,7 +67,7 @@ export async function POST(request,{params}){
       if(!classId||!subjectId)throw new ApiError(400,"Unknown class or subject in assignment");
       const have=await checked(db.from("school_teacher_assignments").select("teacher_id").eq("school_id",school.id).eq("teacher_id",userId).eq("class_id",classId).eq("subject_id",subjectId));
       if(!have.length){
-       await checked(db.from("school_teacher_assignments").insert({school_id:school.id,teacher_id:userId,teacher_role:text(a.kind,30)==="class_teacher"?"class_teacher":"teacher",class_id:classId,subject_id:subjectId,active:true,assigned_by:actor.id}));
+       await checked(db.from("school_teacher_assignments").insert({school_id:school.id,teacher_id:userId,teacher_role:"teacher",class_id:classId,subject_id:subjectId,active:true,assigned_by:actor.id}));
        result.assignments++;
       }
      }
