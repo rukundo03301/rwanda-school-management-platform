@@ -88,7 +88,7 @@ export default function SmartLearningStudio({code}){
     <section className="sl-plan"><h3>Teacher facilitation guide</h3><ol>{active.activities.map((a,i)=><li key={i}>{a}</li>)}</ol>
      <h3>Suggested student worksheet</h3><p>{active.prompt}</p>
      <div className="sl-plan-actions"><button onClick={copy}>Copy lesson and questions</button><button onClick={()=>window.print()}>Print worksheet / Save PDF</button>
-      {isTeacher?<a href={"/s/"+code+"/classroom?tab=homework"}>Open homework composer</a>:<a href={"/s/"+code+"/learning?tab=homework"}>Open my assigned homework</a>}</div>
+      {isTeacher?<a href={"/s/"+code+"/classroom?tab=homework&studio="+encodeURIComponent(active.id)}>Open homework composer</a>:<a href={"/s/"+code+"/learning?tab=homework"}>Open my assigned homework</a>}</div>
      {notice&&<p role="status" className="sl-feedback correct">{notice}</p>}</section>
    </article>}</section>
   <section className="sl-reb"><div><span className="sl-eyebrow">OFFICIAL BOOKS & GUIDES</span><h2>Rwanda Education Board resource directory</h2>

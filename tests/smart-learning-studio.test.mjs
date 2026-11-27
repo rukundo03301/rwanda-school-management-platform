@@ -46,3 +46,17 @@ test("teacher student parent owner menus route to the same tenant-scoped studio"
  assert.match(route,/SmartLearningStudio code=\{code\}/);
  assert.match(text("app/s/[code]/studio/studio.css"),/@media\(max-width:650px\)/);
 });
+
+test("teacher can launch an original Studio activity as an unpublished homework draft for an assigned subject",()=>{
+ const studio=text("app/s/[code]/studio/SmartLearningStudio.jsx");
+ const homework=text("app/s/[code]/classroom/HomeworkComposer.jsx");
+ assert.match(studio,/classroom\?tab=homework&studio=/);
+ assert.match(homework,/getStudioActivity\(studioId\)/);
+ assert.match(homework,/const match=mine\.find/);
+ assert.match(homework,/subjectLabel\(a\.subject_id\)\.toLowerCase\(\)===activity\.subject\.toLowerCase\(\)/);
+ assert.match(homework,/instructions:studioWorksheetText\(studioId\)\.slice\(0,5000\)/);
+ assert.match(homework,/setQs\(\[\{\.\.\.blank\("essay"\),prompt:activity\.prompt,marks:10\}\]\)/);
+ assert.match(homework,/unpublished draft/);
+ assert.match(homework,/if\(!f\.dueLocal\)throw Error/);
+ assert.doesNotMatch(homework,/autoPublishStudioTemplate/);
+});

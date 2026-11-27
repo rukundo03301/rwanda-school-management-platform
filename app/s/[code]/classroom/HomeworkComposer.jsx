@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {MathField,QuestionInput} from "../learning/AssignmentTaker.jsx";
+import {getStudioActivity,studioWorksheetText} from "../../../../lib/smart-learning-catalog.mjs";
 
 const TYPES=[
  {id:"single",label:"Multiple choice (one answer)"},{id:"multi",label:"Multiple choice (several answers)"},
@@ -93,6 +94,7 @@ function Review({code,homeworkId,onBack,call,onChanged}){
 export default function HomeworkComposer({code,classId,subjects,assignments,classLabel,subjectLabel,homework,onChanged}){
  const [view,setView]=useState("list"),[f,setF]=useState(null),[qs,setQs]=useState([]),[start,setStart]=useState({n:5,kind:"single"});
  const [err,setErr]=useState(""),[note,setNote]=useState(""),[busy,setBusy]=useState(false),[review,setReview]=useState(null),[preview,setPreview]=useState(false);
+ const [importedStudio,setImportedStudio]=useState("");
  const call=useCallback(async(body,query="")=>{
   const c=browserSupabase();const {data:{session}}=await c.auth.getSession();
   if(!session)throw Error("Sign in again to continue");
@@ -105,6 +107,28 @@ export default function HomeworkComposer({code,classId,subjects,assignments,clas
  const list=homework.filter(h=>h.class_id===classId);
  const total=qs.reduce((s,q)=>s+(Number(q.marks)||0),0);
  const newForm=()=>{setF({id:null,title:"",objectives:"",instructions:"",subjectId:mine[0]?.subject_id||"",dueLocal:"",releaseLocal:"",latePolicy:"accept_flag",resultsRelease:"manual",timeLimit:""});setQs([]);setErr("");setNote("");setPreview(false);setView("edit");};
+
+ // A teacher can start from an Umurage-original activity, but must still
+ // confirm the assigned class, subject, questions and deadline before publishing.
+ // No student data or official marks are modified by importing a template.
+ const studioId=typeof window==="undefined"?"":new URLSearchParams(window.location.search).get("studio")||"";
+ useEffect(()=>{
+  if(!studioId||studioId===importedStudio||!classId||!mine.length)return;
+  const activity=getStudioActivity(studioId);
+  if(!activity){setImportedStudio(studioId);return;}
+  const match=mine.find(a=>subjectLabel(a.subject_id).toLowerCase()===activity.subject.toLowerCase());
+  if(!match){
+   setNote("The selected activity is not for a subject assigned to you in this class. Choose an assigned subject or another activity.");
+   setImportedStudio(studioId);return;
+  }
+  setF({id:null,title:activity.title.slice(0,180),objectives:activity.objective,
+   instructions:studioWorksheetText(studioId).slice(0,5000),subjectId:match.subject_id,
+   dueLocal:"",releaseLocal:"",latePolicy:"accept_flag",resultsRelease:"manual",timeLimit:""});
+  setQs([{...blank("essay"),prompt:activity.prompt,marks:10}]);
+  setErr("");setNote("Original Smart Learning activity imported as an unpublished draft. Confirm the question, marks and deadline before saving.");
+  setPreview(false);setView("edit");setImportedStudio(studioId);
+ },[studioId,classId,importedStudio,assignments]);
+
  async function edit(h){
   setBusy(true);setErr("");
   try{const d=await call(null,"?homeworkId="+h.id);const x=d.homework;
