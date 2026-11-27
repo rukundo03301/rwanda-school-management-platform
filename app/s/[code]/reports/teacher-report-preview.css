@@ -69,3 +69,4 @@
  .trp-signatures,.trp-feedback,.trp-section-title{break-inside:avoid}
  .trp-paper::after{content:"UMURAGE · TEACHER DRAFT";position:fixed;bottom:45%;left:19%;font-size:45px;font-weight:900;color:rgba(140,160,190,.08);transform:rotate(-30deg);pointer-events:none}
 }
+.trp-legra-list{list-style:none;margin:0 0 4px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}.trp-legra-list li{display:flex;justify-content:space-between;gap:6px;font-size:12px}
