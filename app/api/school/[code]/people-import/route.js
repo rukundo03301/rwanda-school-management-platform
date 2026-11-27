@@ -79,7 +79,7 @@ export async function POST(request,{params}){
       if(!sid)throw new ApiError(400,"Child not found or ambiguous: "+text(c.first,40));
       const have=await checked(db.from("school_guardian_links").select("student_id").eq("school_id",school.id).eq("student_id",sid).eq("auth_user_id",userId));
       if(!have.length){
-       await checked(db.from("school_guardian_links").insert({school_id:school.id,student_id:sid,auth_user_id:userId,relationship:text(p.relationship,30)||"parent",active:true,verified_by:actor.id}));
+       await checked(db.from("school_guardian_links").insert({school_id:school.id,student_id:sid,auth_user_id:userId,relationship:/guardian/i.test(text(p.relationship,30))?"legal_guardian":"parent",active:true,verified_by:actor.id}));
        result.guardianLinks++;
       }
      }
