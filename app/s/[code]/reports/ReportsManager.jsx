@@ -2,6 +2,8 @@
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {NESA_PRIMARY_REFERENCE,primaryReferenceForGrade} from "../../../../lib/rwanda-nesa-primary-reference.mjs";
+import {buildTeacherTermPreview} from "../../../../lib/school-term-preview.mjs";
+import TeacherReportPreview from "./TeacherReportPreview.jsx";
 
 const SECTIONS=[
  {id:"overview",title:"Overview"},
@@ -44,6 +46,7 @@ export default function ReportsManager({code}){
  const [tab,setTab]=useState("overview"),[modal,setModal]=useState(null),[form,setForm]=useState({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false);
  const [termId,setTermId]=useState(""),[classId,setClassId]=useState("");
+ const [previewStudentId,setPreviewStudentId]=useState("");
  const [referenceGrade,setReferenceGrade]=useState("P4");
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
@@ -112,6 +115,11 @@ export default function ReportsManager({code}){
  const selectedTerm=terms.find(t=>t.id===termId);
  const selectedClass=klass(classId);
  const visibleMarks=marks.filter(m=>m.term_id===termId&&m.class_id===classId);
+ const chosenPreviewStudent=classRoster.find(s=>s.studentId===previewStudentId)||classRoster[0]||null;
+ const draftPreview=buildTeacherTermPreview({
+  school,year,term:selectedTerm,student:chosenPreviewStudent,selectedClass,
+  courses:gradeCourse,subjects,curriculum,units,marks
+ });
  const ownerAction=(kind,fields={})=>open(kind,fields);
  const stats=[["Approved syllabuses",courseMappings.filter(c=>c.approved_at).length,"Loaded subject mappings"],
   ["Term periods",terms.length,"For current academic year"],
@@ -208,7 +216,7 @@ export default function ReportsManager({code}){
    </>}
    {tab==="marks"&&(teacher||canRead)&&<>
     <div className="repm-section-top"><div><h2>Assessment gradebook</h2>
-      <p>Only assigned teachers may record marks; report viewers receive only school-approved publications.</p></div>
+      <p>Only assigned teachers may record marks; report viewers receive only school-approved publications. <a href="/templates/Umurage_Rwanda_School_Report_Templates.xlsx" download>Download editable Excel report template</a> (guidance-aligned draft for school review).</p></div>
       {teacher&&<button className="button" disabled={!termId||!classId||!classRoster.length} onClick={()=>ownerAction("mark",{
        termId,classId,studentId:classRoster[0]?.studentId,
        subjectId:gradeCourse[0]?.subject_id,category:"unit",assessmentCode:"",
@@ -224,6 +232,10 @@ export default function ReportsManager({code}){
        <td>{m.assessment_code}</td><td><strong>{m.raw_score} / {m.raw_maximum}</strong><p className="micro">Curriculum equivalent: {m.score} / {m.maximum_marks}</p></td>
        <td>{safeDate(m.entered_at)}</td></tr>)}</tbody></table>
       {!visibleMarks.length&&<Empty label="No marks entered" description="Approved and assigned teachers can record actual curriculum assessments after the school configures a term."/>}</div></article>
+    <article className="repm-panel">
+      <TeacherReportPreview report={draftPreview} students={classRoster}
+       selectedId={chosenPreviewStudent?.studentId||""} onSelect={setPreviewStudentId}/>
+    </article>
     <article className="repm-panel"><h3>Curriculum units available for marking</h3>
       <div className="repm-unit-grid">{units.filter(u=>u.class_id===classId).map(u=><div key={u.id}>
        <small>{subject(u.subject_id)?.name}</small><strong>{u.unit_code} · {u.unit_title}</strong><p>Term {u.term_number}: {u.key_competence}</p></div>)}</div>

@@ -1,0 +1,71 @@
+.trp-container{margin-top:20px;color:#193452}
+.trp-controls{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.trp-controls h3{font-weight:900;font-size:20px;letter-spacing:-.025em;margin:4px 0 2px}
+.trp-controls p{color:#677d9e;font-size:12px;margin:0;max-width:520px}
+.trp-overline{color:#397bd8;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.trp-actions{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.trp-actions label{display:grid;gap:5px;font-size:11px;font-weight:800}
+.trp-actions select{min-width:190px}
+.trp-banner{background:#eef5ff;color:#224879;padding:10px 15px;border-left:4px solid #4084df;border-radius:9px;margin-bottom:15px;font-size:12px;font-weight:750}
+.trp-banner small{display:block;font-size:11px;margin-top:4px;font-weight:400;color:#526b8d}
+.trp-paper{width:100%;max-width:900px;margin:0 auto;background:#fff;color:#163659;box-shadow:0 8px 28px #1b4a8515;border:1px solid #d6e3f3;border-radius:14px;overflow:hidden;padding:30px 32px 24px}
+.trp-head{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.trp-school{display:flex;align-items:center;gap:13px;min-width:0}
+.trp-school img{object-fit:contain;flex:none}
+.trp-school h2{margin:2px 0;font-size:22px;line-height:1.12;font-weight:900;color:var(--trp-accent,#1454a8)}
+.trp-school small,.trp-title span{font-size:10px;letter-spacing:.12em;color:#7d95b5;font-weight:800}
+.trp-school p{margin:2px 0;font-size:11px;color:#647b9a}
+.trp-logo-placeholder{width:58px;height:58px;border-radius:12px;display:grid;place-items:center;background:#e5f0ff;color:#2165b9;font-size:31px;font-weight:900}
+.trp-term{display:grid;gap:4px;text-align:right;flex:none}
+.trp-term span{font-size:10px;color:#a04b25;font-weight:850}
+.trp-term strong{font-size:20px;color:var(--trp-accent,#1454a8)}
+.trp-term small{font-size:11px;color:#697e99}
+.trp-stripe{height:5px;margin:18px -32px 19px;background:linear-gradient(90deg,var(--trp-accent,#1454a8) 20%,#5baaf7 78%,#d8eafa)}
+.trp-title{text-align:center;margin:0 auto 20px}
+.trp-title h1{font-size:22px;color:#1e4678;margin:5px 0 2px;letter-spacing:-.02em}
+.trp-title p{font-size:11px;color:#7991aa;margin:0}
+.trp-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:#f4f8ff;border:1px solid #dae9fc;border-radius:11px;padding:14px 17px;margin-bottom:20px}
+.trp-meta div{display:grid;gap:4px;min-width:0}
+.trp-meta small{font-size:9px;color:#7990af;letter-spacing:.07em;font-weight:850}
+.trp-meta strong{font-size:12px;overflow-wrap:anywhere}
+.trp-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:18px 0 10px}
+.trp-section-title h3{font-size:13px;margin:0;font-weight:900;color:#194b8c}
+.trp-section-title span{font-size:10px;color:#718aa9}
+.trp-table-wrap{overflow-x:auto;border:1px solid #d9e6f7;border-radius:9px}
+.trp-table-wrap table{border-collapse:collapse;width:100%;font-size:11px}
+.trp-table-wrap th{background:#e9f2ff;text-align:left;padding:11px 7px;font-size:10px;color:#235b9d;font-weight:900}
+.trp-table-wrap td{padding:10px 7px;border-top:1px solid #e6eef8;vertical-align:top}
+.trp-table-wrap td b{display:block;line-height:1.4}
+.trp-table-wrap td small,.trp-table-wrap th small{display:block;font-size:9px;font-weight:400;color:#879bb6;line-height:1.4}
+.trp-table-wrap tbody tr:nth-child(even){background:#f9fbfe}
+.trp-table-wrap tfoot{background:#edf5ff;font-weight:800}
+.trp-state{font-size:10px;font-weight:850;padding:4px 7px;border-radius:20px;white-space:nowrap}
+.trp-state.ready{color:#207a53;background:#e7f8ef}
+.trp-state.pending{color:#9d4c1c;background:#fff2df}
+.trp-note{font-size:12px;background:#fff7ec;padding:12px;border-radius:8px}
+.trp-feedback{padding:9px 0;border-bottom:1px solid #edf1f7}
+.trp-feedback strong{font-size:11px}
+.trp-feedback p{font-size:10.5px;color:#586d8b;line-height:1.5;margin:4px 0}
+.trp-summary{display:flex;justify-content:space-between;gap:14px;background:#eff6ff;padding:14px;border-radius:10px;margin-top:18px}
+.trp-summary div{display:grid;gap:5px}
+.trp-summary span{font-size:9px;color:#6d83a1;font-weight:800}
+.trp-summary strong{color:#194d8c;font-size:13px}
+.trp-signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+.trp-signatures span{font-size:10px;font-weight:800}
+.trp-signatures div div{border-bottom:1px solid #7d94b3;margin:18px 0 5px}
+.trp-signatures small{font-size:9px;color:#7088a7}
+.trp-disclaimer{border-top:1px solid #e5edf8;margin-top:24px;padding-top:14px}
+.trp-disclaimer strong{color:#b25429;font-size:10px;letter-spacing:.06em}
+.trp-disclaimer p{font-size:9px;line-height:1.5;color:#7b8eaa;margin:4px 0}
+@media(max-width:650px){.trp-paper{padding:17px 12px;border-radius:10px}.trp-stripe{margin-left:-12px;margin-right:-12px}.trp-school h2{font-size:16px}.trp-term strong{font-size:15px}.trp-meta{padding:10px}.trp-table-wrap table{min-width:575px}}
+@page{size:A4 portrait;margin:11mm}
+@media print{
+ body *{visibility:hidden!important}
+ .trp-paper,.trp-paper *{visibility:visible!important}
+ .trp-paper{position:absolute!important;top:0!important;left:0!important;margin:0!important;max-width:none!important;width:100%!important;border:none!important;border-radius:0!important;box-shadow:none!important;padding:5mm!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .trp-paper .trp-stripe{margin-left:-5mm!important;margin-right:-5mm!important}
+ .trp-table-wrap{overflow:visible!important}
+ .trp-table-wrap table{min-width:0!important}
+ .trp-signatures,.trp-feedback,.trp-section-title{break-inside:avoid}
+ .trp-paper::after{content:"UMURAGE · TEACHER DRAFT";position:fixed;bottom:45%;left:19%;font-size:45px;font-weight:900;color:rgba(140,160,190,.08);transform:rotate(-30deg);pointer-events:none}
+}
