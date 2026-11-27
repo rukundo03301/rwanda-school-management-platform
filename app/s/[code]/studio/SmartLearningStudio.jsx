@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
-import {getStudioActivity,REB_RESOURCE_PORTALS,SMART_LEARNING_ACTIVITIES,studioSubjectList,studioWorksheetText} from "../../../../lib/smart-learning-catalog.mjs";
+import {getStudioActivity,REB_RESOURCE_PORTALS,SMART_LEARNING_ACTIVITIES,studioSubjectList,studioWorksheetText,studioSourcesFor} from "../../../../lib/smart-learning-catalog.mjs";
 import "./studio.css";
 
 const SHAPES=[["Circle",0,0],["Triangle",3,3],["Square",4,4],["Rectangle",4,4],["Pentagon",5,5],["Hexagon",6,6]];
@@ -79,12 +79,15 @@ export default function SmartLearningStudio({code}){
   <div className="sl-notice"><strong>Teacher-reviewed content.</strong> The activities are Umurage-original examples, not REB textbook pages or certified assessments. Teachers must confirm curriculum and grade suitability. Practice results are not recorded as formal marks.</div>
   <section className="sl-filters"><label>Find an activity<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Shapes, Kinyarwanda, English…" /></label>
    <label>Subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="all">All subjects</option>{studioSubjectList().map(s=><option key={s}>{s}</option>)}</select></label>
-   <label>School level<select value={level} onChange={e=>setLevel(e.target.value)}><option value="all">All levels</option>{["Nursery","Primary","Secondary"].map(s=><option key={s}>{s}</option>)}</select></label></section>
+   <label>School level<select value={level} onChange={e=>setLevel(e.target.value)}><option value="all">All levels</option>{["Nursery","Primary","Secondary","College / University"].map(s=><option key={s}>{s}</option>)}</select></label></section>
   <section className="sl-content"><div className="sl-collection" aria-label="Subject activity catalogue">
    {filtered.map(a=><button className={"sl-activity "+(active?.id===a.id?"active":"")} key={a.id} onClick={()=>{setSelected(a.id);setNotice("")}}><span>{a.subject} · {a.levels.join(" / ")}</span><strong>{a.title}</strong><small>{a.objective}</small></button>)}
    {!filtered.length&&<p className="sl-empty">No matching activities. Change the search or filters.</p>}</div>
    {active&&<article className="sl-stage" key={active.id}><header className="sl-stage-head"><span className="sl-topic">{active.subject}</span><h2>{active.title}</h2><p>{active.objective}</p><div className="sl-tags">{active.levels.map(s=><span key={s}>{s}</span>)}<span>Guided practice</span></div></header>
     <Workbench activity={active}/>
+    <section className="sl-subject-links"><h3>Official learning resources related to {active.subject}</h3>
+     <div>{studioSourcesFor(active.subject).map(r=><a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer">{r.label} ↗</a>)}</div>
+     <p>Choose the exact year, class and syllabus unit before using any official content. College / university courses require the institution's own approved curriculum.</p></section>
     <section className="sl-plan"><h3>Teacher facilitation guide</h3><ol>{active.activities.map((a,i)=><li key={i}>{a}</li>)}</ol>
      <h3>Suggested student worksheet</h3><p>{active.prompt}</p>
      <div className="sl-plan-actions"><button onClick={copy}>Copy lesson and questions</button><button onClick={()=>window.print()}>Print worksheet / Save PDF</button>

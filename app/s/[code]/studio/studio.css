@@ -41,6 +41,11 @@
 .sl-palette{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.sl-palette button{width:34px;height:34px;border-radius:50%;border:2px solid #d7e5f5;cursor:pointer}.sl-palette button.selected{outline:3px solid #245db1;outline-offset:2px}
 .sl-pixel-canvas{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:min(100%,340px);border:2px solid #a6c8ee;border-radius:5px;overflow:hidden}
 .sl-pixel-canvas button{aspect-ratio:1;border:1px solid #e1ebf7;cursor:crosshair;padding:0;min-width:0}
+.sl-subject-links{margin:14px clamp(14px,2vw,25px);padding:12px;background:#f4f8ff;border:1px solid #d6e5f7;border-radius:12px}
+.sl-subject-links h3{font-size:12px;margin:0 0 9px;color:#234c86}
+.sl-subject-links div{display:flex;gap:8px;flex-wrap:wrap}
+.sl-subject-links a{display:inline-flex;padding:7px 10px;text-decoration:none;font-size:11px;font-weight:750;border:1px solid #b9d6fa;background:#fff;color:#205da6;border-radius:9px}
+.sl-subject-links p{font-size:10px;line-height:1.4;color:#7089a6;margin:9px 0 0}
 .sl-plan{padding:15px clamp(14px,2vw,25px) 21px;border-top:1px solid #e5effa}
 .sl-plan h3{margin:13px 0 7px;font-size:14px;font-weight:850}.sl-plan p,.sl-plan li{font-size:12px;color:#456688;line-height:1.55}.sl-plan ol{padding-left:20px;margin-top:8px}
 .sl-plan-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.sl-plan-actions a{background:#3178e5;color:#fff;border-color:#3178e5}

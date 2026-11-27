@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {SMART_LEARNING_ACTIVITIES,REB_RESOURCE_PORTALS,getStudioActivity,studioSubjectList,studioWorksheetText} from "../lib/smart-learning-catalog.mjs";
+import {SMART_LEARNING_ACTIVITIES,REB_RESOURCE_PORTALS,REB_SUBJECT_RESOURCES,studioSourcesFor,getStudioActivity,studioSubjectList,studioWorksheetText} from "../lib/smart-learning-catalog.mjs";
 import {portalNav,FRAMED_PAGES} from "../lib/portal-nav.mjs";
 const text=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
-test("learning catalogue has 15 original editable teaching templates, across core subjects and school levels",()=>{
- assert.ok(SMART_LEARNING_ACTIVITIES.length>=15);
+test("learning catalogue has original editable teaching templates, across core subjects and school levels",()=>{
+ assert.ok(SMART_LEARNING_ACTIVITIES.length>=18);
  assert.equal(new Set(SMART_LEARNING_ACTIVITIES.map(x=>x.id)).size,SMART_LEARNING_ACTIVITIES.length);
  for(const subject of ["Mathematics","Kinyarwanda","English","Science","Social Studies","Religious Education","Creative Arts","Early Numeracy","Health and Physical Education"])
   assert.ok(studioSubjectList().includes(subject),subject);
- for(const level of ["Nursery","Primary","Secondary"])
+ for(const level of ["Nursery","Primary","Secondary","College / University"])
   assert.ok(SMART_LEARNING_ACTIVITIES.some(a=>a.levels.includes(level)),level);
  for(const a of SMART_LEARNING_ACTIVITIES){
   assert.ok(a.objective.length>20&&a.prompt.length>15);
@@ -59,4 +59,16 @@ test("teacher can launch an original Studio activity as an unpublished homework 
  assert.match(homework,/unpublished draft/);
  assert.match(homework,/if\(!f\.dueLocal\)throw Error/);
  assert.doesNotMatch(homework,/autoPublishStudioTemplate/);
+});
+
+test("each subject resolves to a real official REB resource portal without copying textbooks",()=>{
+ for(const subject of studioSubjectList()){
+  const sources=studioSourcesFor(subject);
+  assert.ok(sources.length>0,subject);
+  for(const source of sources)assert.match(source.url,/^https:\/\/uat-coremis\.reb\.rw\//);
+ }
+ assert.ok(REB_SUBJECT_RESOURCES.Kinyarwanda.some(x=>x.url.includes("categoryid=196")));
+ const studio=text("app/s/[code]/studio/SmartLearningStudio.jsx");
+ assert.match(studio,/studioSourcesFor\(active\.subject\)/);
+ assert.match(studio,/College \/ university courses require the institution/);
 });
