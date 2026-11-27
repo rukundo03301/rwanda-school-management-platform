@@ -33,7 +33,7 @@ export async function GET(request,{params}){
         .in("student_id",ids).eq("status","active")):[];
       const classIds=[...new Set(enrollments.map(x=>x.class_id))];
       const classes=classIds.length?await checked(db.from("school_classes")
-        .select("id,name,section").eq("school_id",school.id).in("id",classIds)):[];
+        .select("id,name,section,level").eq("school_id",school.id).in("id",classIds)):[];
       const classMap=new Map(classes.map(c=>[c.id,c]));
       const linkMap=new Map(links.map(l=>[l.student_id,l]));
       const [hwAll,subAll,attAll,subjAll]=classIds.length?await Promise.all([
@@ -52,6 +52,7 @@ export async function GET(request,{params}){
           relationship:linkMap.get(stu.id)?.relationship,
           classId:enrollment?.class_id||null,
           className:cls?cls.name+(cls.section?" — "+cls.section:""):null,
+          earlyYears:!!cls&&/nurser|pre-?primary|kindergarten|early years/i.test((cls.level||"")+" "+cls.name),
           homework:enrollment?hwAll.filter(h=>h.class_id===enrollment.class_id).slice(0,20).map(h=>{const sub0=subAll.find(x=>x.homework_id===h.id&&x.student_id===stu.id);const sub=sub0&&!sub0.released_at?{...sub0,score:null,max_score:null,feedback:null,graded_at:null}:sub0;return {id:h.id,title:h.title,subject:subjMap.get(h.subject_id)||null,dueAt:h.due_at,submittedAt:sub?.submitted_at||null,isLate:Boolean(sub?.is_late),score:sub?.score??null,maxScore:sub?.max_score??null,feedback:sub?.feedback||null};}):[],
           attendance:(()=>{const rows=enrollment?attAll.filter(x=>x.student_id===stu.id&&x.class_id===enrollment.class_id):[];const count=k=>rows.filter(x=>x.status===k).length;return {recorded:rows.length,present:count("present"),absent:count("absent"),late:count("late"),excused:count("excused"),recent:rows.slice(0,10).map(x=>({on:x.attendance_on,status:x.status}))};})()
         };
