@@ -65,7 +65,7 @@ export default function FamilyDashboard({code}){
  const kids=data.children||[];
  const child=kids[Math.min(sel,Math.max(kids.length-1,0))];
  const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login?role=parent");};
- const pendingHw=c=>(c.homework||[]).filter(h=>!h.submittedAt);
+ const pendingHw=c=>(c.homework||[]).filter(h=>!h.submittedAt&&h.status!=="closed");
  const totalPending=kids.reduce((n,c)=>n+pendingHw(c).length,0);
  const attPct=c=>c?.attendance?.recorded?Math.round(100*(c.attendance.present+c.attendance.late)/c.attendance.recorded):null;
  const graded=c=>(c?.homework||[]).filter(h=>h.score!=null&&Number(h.maxScore)>0);
@@ -181,9 +181,9 @@ export default function FamilyDashboard({code}){
     <p>Attendance: {attPct(k)===null?"Not recorded":attPct(k)+"%"} · Homework waiting: {pendingHw(k).length}</p></article>)}</div></section>}
 
   {tab==="homework"&&<section className="ds-panel"><h3>Homework</h3>{Pick}
-   {(child.homework||[]).length?<table className="ds-table"><thead><tr><th>Task</th><th>Subject</th><th>Due</th><th>Status</th><th>Grade</th></tr></thead>
+   {(child.homework||[]).length?<table className="ds-table"><thead><tr><th>Task</th><th>Subject</th><th>Due</th><th>Status</th><th>{child.earlyYears?"Teacher note":"Grade"}</th></tr></thead>
     <tbody>{child.homework.map(h=><tr key={h.id}><td>{h.title}</td><td>{h.subject||"—"}</td><td>{h.dueAt?when(h.dueAt):"—"}</td>
-     <td>{h.submittedAt?(h.isLate?"Submitted late":"Submitted"):"Not submitted"}</td><td>{h.score!=null?Number(h.score)+"/"+Number(h.maxScore):"—"}</td></tr>)}</tbody></table>
+     <td>{h.submittedAt?(h.isLate?"Submitted late":"Submitted"):(h.status==="closed"?"Not submitted (closed)":"Not submitted")}</td><td>{child.earlyYears?(h.feedback||"—"):(h.score!=null?Number(h.score)+"/"+Number(h.maxScore):"—")}</td></tr>)}</tbody></table>
     :<p className="ds-empty">No homework has been published for this class yet.</p>}</section>}
 
   {tab==="attendance"&&<section className="ds-panel"><h3>Attendance</h3>{Pick}
