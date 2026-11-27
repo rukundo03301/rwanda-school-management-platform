@@ -15,7 +15,7 @@ export async function GET(request,{params}){
    const [year,classes,subjects,mappings]=await Promise.all([
      checked(db.from("school_academic_years").select("id,name,starts_on,ends_on")
        .eq("school_id",school.id).eq("status","current").maybeSingle()),
-     checked(db.from("school_classes").select("id,academic_year_id,name,section,level,status")
+     checked(db.from("school_classes").select("id,academic_year_id,name,section,level,level_band,status")
        .eq("school_id",school.id).eq("status","active").limit(500)),
      checked(db.from("school_subjects").select("id,code,name")
        .eq("school_id",school.id).limit(500)),
