@@ -85,14 +85,19 @@ export default function PublishedReportCard({code}){
     <div className="rep-table-wrap"><table className="rep-grade-table">
      <thead><tr><th>Subject</th><th>End-of-unit<br/>/ Max</th><th>Projects<br/>/ Max</th>
       <th>End-of-term<br/>/ Max</th><th>Term total<br/>/ Max</th><th>Percent</th></tr></thead>
-     <tbody>{rows.map(row=><tr key={row.subject_id}><td>
+     <tbody>{rows.map(row=>row.excluded_from_overall?<tr key={row.subject_id}><td>
+       <strong>{row.subject_name}</strong><span>{row.subject_code} · LEGRA · {row.weekly_periods} periods/week</span>
+      </td><td>{number(row.end_unit_avg)} / {number(row.maximum_marks)}</td>
+      <td>{number(row.project_avg)} / {number(row.maximum_marks)}</td>
+      <td colSpan={3}>{(row.legra_entries||[]).map(e=><div key={e.code}>{e.aspect}: <strong>{number(e.score)} / {number(e.maximum_marks)}</strong></div>)}
+       <small>Four LEGRA scores are shown separately and are not combined into one mark.</small></td></tr>:<tr key={row.subject_id}><td>
        <strong>{row.subject_name}</strong><span>{row.subject_code} · {row.weekly_periods} periods/week</span>
       </td><td>{number(row.end_unit_avg)} / {number(row.maximum_marks)}</td>
       <td>{number(row.project_avg)} / {number(row.maximum_marks)}</td>
       <td>{number(row.end_term_marks)} / {number(row.maximum_marks)}</td>
       <td><strong>{number(row.term_total_marks)} / {number(row.maximum_marks)}</strong></td>
       <td><strong>{number(row.term_percentage)}%</strong></td></tr>)}</tbody>
-     <tfoot><tr><th colSpan={4}>Weighted total across curriculum subjects</th>
+     <tfoot><tr><th colSpan={4}>Weighted total (LEGRA subjects excluded)</th>
       <th>{number(printed.earned_marks)} / {number(printed.maximum_marks)}</th>
       <th>{number(printed.overall_percentage)}%</th></tr></tfoot>
     </table></div>
