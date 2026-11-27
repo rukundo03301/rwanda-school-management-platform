@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {SCHOOL_ADMIN_ACTIONS} from "../../../../lib/school-admin-permissions.mjs";
+const LEVEL_NAME={nursery:"Nursery",primary:"Primary",secondary:"Secondary",tvet:"TVET",university:"University"};
 
 const SECTIONS=[
  {id:"overview",name:"Overview",icon:"◫"},
@@ -224,8 +225,8 @@ export default function SchoolAdmin({code}){
        </tbody></table>{!data.years.length&&<Empty name="No academic years" hint="Start with the school's real academic calendar."/>}</div></section>
        <div className="school-admin-section-head"><div><h2>Classes & sections</h2><p className="muted">Create class structures before enrolling students.</p></div>
          {allowed("academics.manage")&&<button className="button" disabled={!data.years.length} onClick={()=>open("class",{yearId:currentYear?.id||data.years[0]?.id||""})}>+ Add class</button>}</div>
-       <section className="panel"><div className="table-wrap"><table><thead><tr><th>Class</th><th>Level</th><th>Section</th><th>Academic year</th><th>Subjects</th></tr></thead><tbody>
-         {data.classes.map(c=><tr key={c.id}><td><strong>{c.name}</strong></td><td>{c.level}</td><td>{c.section||"—"}</td>
+       <section className="panel"><div className="table-wrap"><table><thead><tr><th>Class</th><th>Education level</th><th>Grade or stage</th><th>Section</th><th>Academic year</th><th>Subjects</th></tr></thead><tbody>
+         {data.classes.map(c=><tr key={c.id}><td><strong>{c.name}</strong></td><td>{LEVEL_NAME[c.level_band]||"Not set"}</td><td>{c.level}</td><td>{c.section||"—"}</td>
            <td>{data.years.find(y=>y.id===c.academic_year_id)?.name||"—"}</td><td>{data.classSubjects.filter(x=>x.class_id===c.id).length}</td></tr>)}
        </tbody></table>{!data.classes.length&&<Empty name="No classes" hint="Add an academic year, then create class names and sections."/>}</div></section>
        <div className="school-admin-section-head"><div><h2>Subjects</h2><p className="muted">Define subjects once for this school, then assign them to classes.</p></div>
@@ -288,12 +289,17 @@ export default function SchoolAdmin({code}){
        <button className="button" type="submit" disabled={busy}>Create academic year</button>
      </form>}
      {modal==="class"&&<form onSubmit={e=>{e.preventDefault();act({action:"academic.class",yearId:form.yearId,
-       name:form.name,level:form.level,section:form.section||"",capacity:form.capacity||null});}}>
+       name:form.name,level:form.level,levelBand:form.levelBand,section:form.section||"",capacity:form.capacity||null});}}>
        <Field label="Academic year"><select className="input" value={form.yearId} onChange={e=>setForm({...form,yearId:e.target.value})}>
          {data.years.map(y=><option key={y.id} value={y.id}>{y.name}</option>)}
        </select></Field>
        <Field label="Class name"><input className="input" required maxLength={100} placeholder="e.g. Primary 4" value={form.name||""} onChange={e=>setForm({...form,name:e.target.value})}/></Field>
-       <Field label="Education level"><input className="input" required maxLength={100} placeholder="e.g. Primary" value={form.level||""} onChange={e=>setForm({...form,level:e.target.value})}/></Field>
+       <Field label="Education level"><select className="input" required value={form.levelBand||""} onChange={e=>setForm({...form,levelBand:e.target.value})}>
+         <option value="" disabled>Choose a level your school offers</option>
+         {(data.offeredLevels||[]).map(l=><option key={l} value={l}>{LEVEL_NAME[l]||l}</option>)}
+       </select></Field>
+       {!(data.offeredLevels||[]).length&&<div className="notice info">Choose the levels your school offers in School setup first.</div>}
+       <Field label="Grade or stage"><input className="input" required maxLength={100} placeholder="e.g. Primary 4, Nursery 1, Senior 2, Year 1" value={form.level||""} onChange={e=>setForm({...form,level:e.target.value})}/></Field>
        <Field label="Section (optional)"><input className="input" maxLength={50} value={form.section||""} onChange={e=>setForm({...form,section:e.target.value})}/></Field>
        <Field label="Capacity (optional)"><input className="input" type="number" min="1" max="2000" value={form.capacity||""} onChange={e=>setForm({...form,capacity:e.target.value})}/></Field>
        <button type="submit" className="button" disabled={busy}>Create class</button>
