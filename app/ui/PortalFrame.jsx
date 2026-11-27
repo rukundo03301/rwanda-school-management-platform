@@ -10,7 +10,7 @@ import {FRAMED_PAGES,PAGE_TITLE,ROLE_LABEL,primaryRole,portalNav,currentSegment}
 // membership, and is remembered for ten minutes so moving between pages does not wait on the server.
 const TTL=10*60*1000;
 function cached(code,uid){
- try{const v=JSON.parse(sessionStorage.getItem("pf:"+code+":"+uid)||"null");return v&&Date.now()-v.t<TTL?v:null;}catch{return null;}
+ try{const v=JSON.parse(sessionStorage.getItem("pf2:"+code+":"+uid)||"null");return v&&Date.now()-v.t<TTL?v:null;}catch{return null;}
 }
 export default function PortalFrame({code,children}){
  const path=usePathname(),seg=currentSegment(path);
@@ -30,8 +30,8 @@ export default function PortalFrame({code,children}){
     const r=await fetch("/api/school/"+code+"/access",{cache:"no-store",headers:{Authorization:"Bearer "+s.access_token}});
     if(!r.ok||!alive)return;
     const j=await r.json();
-    const v={t:Date.now(),roles:j.roles||[],name:j.school?.name||"School"};
-    try{sessionStorage.setItem("pf:"+code+":"+s.user.id,JSON.stringify(v));}catch{}
+    const v={t:Date.now(),roles:j.roles||[],levels:j.levels||[],name:j.school?.name||"School"};
+    try{sessionStorage.setItem("pf2:"+code+":"+s.user.id,JSON.stringify(v));}catch{}
     if(alive)setInfo(v);
    }catch{}
   });
@@ -39,7 +39,7 @@ export default function PortalFrame({code,children}){
  },[framed,code]);
  if(!framed)return children;
  const role=primaryRole(info?.roles);
- const nav=signedOut?[{label:"Sign in",icon:"user",href:"/s/"+code+"/login"}]:role?portalNav(role,code,seg):[{label:"Loading…",icon:"home",href:"/s/"+code+"/portal"}];
+ const nav=signedOut?[{label:"Sign in",icon:"user",href:"/s/"+code+"/login"}]:role?portalNav(role,code,seg,info?.levels):[{label:"Loading…",icon:"home",href:"/s/"+code+"/portal"}];
  const signOut=async()=>{const c=browserSupabase();try{await c?.auth.signOut();}catch{}try{sessionStorage.clear();}catch{}window.location.assign("/s/"+code+"/login");};
  return <DashboardShell school={{name:info?.name||"School portal",place:role?ROLE_LABEL[role]+" workspace":""}} title={PAGE_TITLE[seg]||"School"}
   nav={nav} user={{name:(user?.email||"Signed out").split("@")[0],role:role?ROLE_LABEL[role]:""}} onSignOut={signOut} portalHref={"/s/"+code+"/portal"}>
