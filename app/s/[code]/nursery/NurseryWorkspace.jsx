@@ -102,9 +102,10 @@ export default function NurseryWorkspace({code}){
   {data.role.manager&&<Card title="Reports waiting for you" icon="check" size="s12">
    {queue.length?<ul className="ds-list">{queue.map(r=><li key={r.id} className="ds-item"><div>
     <strong>{nameOf(r.student_id)} · Term {r.term_number}</strong><small>{STATUS_LABEL[r.status]}</small>
-    {Object.entries(r.area_summaries||{}).filter(([,v])=>v).map(([k,v])=><small key={k}>{AREA_LABEL[k]}: {v}</small>)}
-    {r.teacher_comment&&<small>Teacher: {r.teacher_comment}</small>}</div>
-    {r.status==="draft"&&<span><input placeholder="Headteacher comment" maxLength={1500} value={headComment[r.id]||""} onChange={e=>setHeadComment({...headComment,[r.id]:e.target.value})}/>
+    {data.areas.filter(a=>r.area_summaries?.[a]).map(a=><small key={a} style={{display:"block",marginTop:4}}><b>{AREA_LABEL[a]}:</b> {r.area_summaries[a]}</small>)}
+    {r.teacher_comment&&<small style={{display:"block",marginTop:6}}><b>Teacher comment:</b> {r.teacher_comment}</small>}
+    {r.headteacher_comment&&<small style={{display:"block",marginTop:4}}><b>Headteacher comment:</b> {r.headteacher_comment}</small>}</div>
+    {r.status==="draft"&&<span><input style={{minWidth:220}} placeholder="Headteacher comment" maxLength={1500} value={headComment[r.id]||""} onChange={e=>setHeadComment({...headComment,[r.id]:e.target.value})}/>
      <button className="button" disabled={busy} onClick={()=>act({action:"report.approve",reportId:r.id,headteacherComment:headComment[r.id]||""},()=>setNote("Report approved."))}>Approve</button></span>}
     {r.status==="approved"&&data.role.owner&&<button className="button" disabled={busy} onClick={()=>act({action:"report.publish",reportId:r.id},()=>setNote("Report published to the child's parents."))}>Publish to parents</button>}
     {r.status==="approved"&&!data.role.owner&&<small>Only the school owner can publish.</small>}
