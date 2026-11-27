@@ -34,11 +34,17 @@ export async function GET(request,{params}){
       .eq("email",user.email.toLowerCase()).maybeSingle();
     ownerInvitePending=invitation?.status==="pending";
   }
+  // The levels the school offers decide which level-specific modules a member sees.
+  let levels=[];
+  if(roles.length){
+    const {data:setup}=await db.from("school_onboarding").select("education_levels").eq("school_id",school.id).maybeSingle();
+    levels=Array.isArray(setup?.education_levels)?setup.education_levels:[];
+  }
   // No tenant data, student data, teacher assignments or finance is returned
   // to anyone without an authorized school-scoped membership.
   return Response.json({
     school:{name:school.name,school_code:school.school_code,status:school.status},
-    roles,ownerInvitePending,authEmail:user.email
+    roles,levels,ownerInvitePending,authEmail:user.email
   },{headers:{"Cache-Control":"no-store"}});
  }catch(e){return jsonError(e)}
 }
