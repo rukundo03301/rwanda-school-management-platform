@@ -7,6 +7,7 @@ import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../u
 import HomeworkComposer from "./HomeworkComposer.jsx";
 import MaterialFiles from "./MaterialFiles.jsx";
 import CurriculumLibrary from "./CurriculumLibrary.jsx";
+import TeachingBar from "./TeachingBar.jsx";
 
 const dateKigali=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const SECTIONS=[
@@ -30,7 +31,7 @@ function Tag({children}){return <span className="cr-tag">{children}</span>}
 export default function ClassroomDashboard({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null);
- const [tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["overview","curriculum","lessons","homework","attendance","submissions","materials"],"overview")),[selectedClass,setSelectedClass]=useState("");
+ const [tab,setTab]=useState(()=>initialTab(typeof window==="undefined"?"":location.search,["overview","curriculum","lessons","homework","attendance","submissions","materials"],"overview")),[selectedClass,setSelectedClass]=useState(""),[selectedSubject,setSelectedSubject]=useState("");
  useTabParam(["overview","curriculum","lessons","homework","attendance","submissions","materials"],setTab);
  const [modal,setModal]=useState(null),[form,setForm]=useState({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[com,setCom]=useState(null);
@@ -97,6 +98,9 @@ export default function ClassroomDashboard({code}){
  const subjectLabel=(id)=>subjects.find(x=>x.id===id)?.name||"School subject";
  const rows=roster.filter(r=>r.classId===selectedClass);
  const myAssignmentsClass=myAssignments.filter(a=>a.class_id===selectedClass);
+ const subjectOk=id=>!selectedSubject||id===selectedSubject;
+ const defaultSubject=selectedSubject||myAssignmentsClass[0]?.subject_id;
+ const bar=<TeachingBar code={code} classes={visibleClasses} myAssignments={myAssignments} selectedClass={selectedClass} selectedSubject={selectedSubject} onClass={id=>{setSelectedClass(id);setSelectedSubject("");}} onSubject={setSelectedSubject} classLabel={classLabel} subjectLabel={subjectLabel} studentCount={new Set(rows.map(r=>r.studentId)).size}/>;
  const allClassSubjects=mappings.filter(m=>m.class_id===form.classId);
  const eligibleSubjects=subjects.filter(s=>allClassSubjects.some(m=>m.subject_id===s.id));
  const currentDay=dateKigali();
@@ -232,30 +236,29 @@ export default function ClassroomDashboard({code}){
        <td><button className="button secondary small" onClick={()=>open("revoke",{assignment:a,reason:""})}>Revoke assignment</button></td>
       </tr>)}</tbody></table>{!assignments.length&&<Blank title="No assigned teachers yet" description="Invite teachers in School Administration, define classes and subjects, then assign their teaching responsibilities."/>}</div></section>
     </>}
-    {tab==="curriculum"&&<CurriculumLibrary classes={classes} myAssignments={myAssignments} classLabel={classLabel} subjectLabel={subjectLabel} onAddMaterial={actor.teacher?()=>selectSection("materials"):undefined}/>}
+    {tab==="curriculum"&&actor.teacher&&bar}
+    {tab==="curriculum"&&<CurriculumLibrary focusClass={actor.teacher?selectedClass:""} focusSubject={actor.teacher?selectedSubject:""} classes={classes} myAssignments={myAssignments} classLabel={classLabel} subjectLabel={subjectLabel} onAddMaterial={actor.teacher?()=>selectSection("materials"):undefined}/>}
     {["lessons","homework","attendance","submissions","materials"].includes(tab)&&actor.teacher&&<>
+     {bar}
      <div className="cr-class-selector">
-      <label>My class <select className="input" value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
-       {visibleClasses.map(c=><option key={c.id} value={c.id}>{classLabel(c.id)}</option>)}
-      </select></label>
-      {tab==="lessons"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("lesson",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id,lessonOn:currentDay})}>+ Lesson Plan</button>}
+      {tab==="lessons"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("lesson",{classId:selectedClass,subjectId:defaultSubject,lessonOn:currentDay})}>+ Lesson Plan</button>}
       
-      {tab==="materials"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("material",{classId:selectedClass,subjectId:myAssignmentsClass[0]?.subject_id,kind:"video"})}>+ Add Material</button>}
+      {tab==="materials"&&<button className="button" disabled={!myAssignmentsClass.length} onClick={()=>open("material",{classId:selectedClass,subjectId:defaultSubject,kind:"video"})}>+ Add Material</button>}
      </div>
      {tab==="materials"&&<section className="cr-panel"><h2>Learning materials for this class</h2>
        <p className="muted">Add a YouTube video or a web link. Students in this class see a material only while it is switched on.</p>
-       <div className="cr-card-grid">{materials.filter(m=>m.class_id===selectedClass).map(m=><article key={m.id} className="cr-lesson">
+       <div className="cr-card-grid">{materials.filter(m=>m.class_id===selectedClass&&subjectOk(m.subject_id)).map(m=><article key={m.id} className="cr-lesson">
         <div className="cr-card-header"><Tag>{subjectLabel(m.subject_id)}</Tag><span className="cr-status">{m.published?"Visible to students":"Hidden"}</span></div>
         <h3>{m.title}</h3>{m.description&&<p>{m.description}</p>}
         <small><a href={m.url} target="_blank" rel="noopener noreferrer">Open link</a> · {m.kind}</small>
         <button className="button secondary small" disabled={busy} onClick={()=>submit({action:"material.toggle",materialId:m.id,published:!m.published})}>{m.published?"Hide from students":"Show to students"}</button>
        </article>)}</div>
-       {!materials.some(m=>m.class_id===selectedClass)&&<Blank title="No materials yet" description="Add the first video or link for this class. It stays hidden until you switch it on."/>}</section>}
+       {!materials.some(m=>m.class_id===selectedClass&&subjectOk(m.subject_id))&&<Blank title="No materials yet" description="Add the first video or link for this class. It stays hidden until you switch it on."/>}</section>}
      {tab==="materials"&&actor.teacher&&<MaterialFiles code={code} classId={selectedClass} assignments={myAssignmentsClass} subjectLabel={subjectLabel}/>}
      {tab==="lessons"&&<section className="cr-panel"><h2>My lesson plans</h2><div className="cr-card-grid">
-       {lessons.filter(l=>l.class_id===selectedClass).map(l=><article key={l.id} className="cr-lesson">
-        <Tag>{subjectLabel(l.subject_id)}</Tag><h3>{l.title}</h3><p>{l.objectives||"No objectives added"}</p><small>Lesson date: {l.lesson_date}</small></article>)}</div>
-       {!lessons.some(l=>l.class_id===selectedClass)&&<Blank title="No lesson plans" description="Add an actual lesson plan for your class. Plans are private to verified school staff."/>}</section>}
+       {lessons.filter(l=>l.class_id===selectedClass&&subjectOk(l.subject_id)).map(l=><article key={l.id} className="cr-lesson">
+        <Tag>{subjectLabel(l.subject_id)}</Tag><h3>{l.title}</h3><p style={{whiteSpace:"pre-line"}}>{l.objectives||"No objectives added"}</p><small>Lesson date: {l.lesson_date}</small></article>)}</div>
+       {!lessons.some(l=>l.class_id===selectedClass&&subjectOk(l.subject_id))&&<Blank title="No lesson plans" description="Add an actual lesson plan for your class. Plans are private to verified school staff."/>}</section>}
      {tab==="homework"&&<HomeworkComposer code={code} classId={selectedClass} subjects={subjects} assignments={myAssignments} classLabel={classLabel} subjectLabel={subjectLabel} homework={homework} onChanged={refresh}/>}
      {tab==="attendance"&&<section className="cr-panel"><div className="cr-section-head">
        <div><h2>Take class attendance</h2><p>Only students enrolled in your assigned class are listed. Attendance uses the Rwanda calendar date.</p></div>
@@ -332,12 +335,17 @@ export default function ClassroomDashboard({code}){
     <button className="button danger" type="submit" disabled={busy}>Revoke class assignment</button>
    </form>}
    {modal==="lesson"&&<form onSubmit={e=>{e.preventDefault();submit({action:"lesson.create",classId:form.classId,
-     subjectId:form.subjectId,title:form.title,objectives:form.objectives||"",lessonOn:form.lessonOn});}}>
+     subjectId:form.subjectId,title:form.title,objectives:[["Objectives",form.objectives],["Start",form.starter],["Main activities",form.activities],["Check understanding",form.check],["Resources",form.resources],["Follow-up",form.followUp]].filter(x=>x[1]&&String(x[1]).trim()).map(x=>x[0]+": "+String(x[1]).trim()).join("\n\n").slice(0,4000),lessonOn:form.lessonOn});}}>
     <p className="muted">Private plan for your verified class. No publication to students in this initial lesson editor.</p>
     <Label name="Assigned subject"><select className="input" value={form.subjectId||""} onChange={e=>setForm({...form,subjectId:e.target.value})}>
      {myAssignmentsClass.map(a=><option key={a.subject_id} value={a.subject_id}>{subjectLabel(a.subject_id)}</option>)}</select></Label>
     <Label name="Lesson title"><input className="input" required minLength={3} maxLength={180} value={form.title||""} onChange={e=>setForm({...form,title:e.target.value})}/></Label>
-    <Label name="Teaching objectives"><textarea className="input" maxLength={4000} value={form.objectives||""} onChange={e=>setForm({...form,objectives:e.target.value})}/></Label>
+    <Label name="1. What should students be able to do by the end? (objectives)"><textarea className="input" maxLength={1000} value={form.objectives||""} onChange={e=>setForm({...form,objectives:e.target.value})}/></Label>
+    <Label name="2. How will you start the lesson? (5 to 10 minutes)"><textarea className="input" maxLength={600} value={form.starter||""} onChange={e=>setForm({...form,starter:e.target.value})}/></Label>
+    <Label name="3. Main activities (what you and the students do)"><textarea className="input" maxLength={1200} value={form.activities||""} onChange={e=>setForm({...form,activities:e.target.value})}/></Label>
+    <Label name="4. How will you check they understood?"><textarea className="input" maxLength={500} value={form.check||""} onChange={e=>setForm({...form,check:e.target.value})}/></Label>
+    <Label name="5. Materials and resources needed"><textarea className="input" maxLength={500} value={form.resources||""} onChange={e=>setForm({...form,resources:e.target.value})}/></Label>
+    <Label name="6. Homework or follow-up (optional)"><textarea className="input" maxLength={400} value={form.followUp||""} onChange={e=>setForm({...form,followUp:e.target.value})}/></Label>
     <Label name="Lesson date"><input className="input" type="date" required value={form.lessonOn} onChange={e=>setForm({...form,lessonOn:e.target.value})}/></Label>
     <button className="button" disabled={busy} type="submit">Save lesson plan</button>
    </form>}
