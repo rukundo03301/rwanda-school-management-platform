@@ -44,8 +44,8 @@ test("nil marks, zero achieved marks, unrelated students and class are distinct"
  r=buildTeacherTermPreview(obj);
  assert.equal(r.ready,true);assert.equal(r.subjects[0].term_total_marks,0);
 });
-test("unsupported nursery and lower-primary profiles cannot use general-education grading",()=>{
- for(const band of ["nursery","lower_primary","tvet","international"]){
+test("unsupported nursery, TVET and international profiles cannot use general-education grading",()=>{
+ for(const band of ["nursery","tvet","international"]){
   const obj=input();obj.curriculum[0].level_band=band;
   obj.curriculum[0].track=band==="nursery"?"nursery":band==="tvet"?"tvet":"general";
   const r=buildTeacherTermPreview(obj);
@@ -62,4 +62,43 @@ test("teacher preview is wired to gradebook and prints as a private draft with n
  assert.match(component,/window\.print\(\)/);
  assert.match(stylesheet,/@page\{size:A4 portrait/);
  assert.doesNotMatch(component,/national rank|Grade A|national certificate obtained/i);
+});
+
+const lowerPrimary=()=>{
+ const obj=input();obj.curriculum[0].level_band="lower_primary";
+ obj.selectedClass={id:ids.class,name:"P3",section:"A"};
+ obj.subjects.push({id:"kin",code:"KIN",name:"Kinyarwanda"});
+ obj.courses.push({class_id:ids.class,subject_id:"kin",curriculum_profile_id:ids.profile,weekly_periods:4,approved_at:"2026-10-01"});
+ obj.units.push(...["U1","U2"].map(unit_code=>({class_id:ids.class,subject_id:"kin",term_number:1,unit_code})));
+ const base={term_id:ids.term,student_id:ids.student,class_id:ids.class,subject_id:"kin",maximum_marks:40};
+ obj.marks.push(...[30,34].map((score,i)=>({...base,category:"unit",assessment_code:"U"+(i+1),score})),
+  ...[34,30].map((score,i)=>({...base,category:"project",assessment_code:"PROJECT-"+(i+1),score})),
+  ...[["LEGRA_GUTAHURA",30],["LEGRA_ICYANDIKWA",28],["LEGRA_GUSOMA",35],["LEGRA_KUMVA",33]].map(([assessment_code,score])=>({...base,category:"legra",assessment_code,score})));
+ return obj;
+};
+test("P1-P3 general subjects use 25/25/50 and Kinyarwanda shows four LEGRA scores outside the overall percentage",()=>{
+ const obj=lowerPrimary();
+ const r=buildTeacherTermPreview(obj);
+ const math=r.subjects.find(s=>s.subject_code==="MTH"),kin=r.subjects.find(s=>s.subject_code==="KIN");
+ assert.equal(math.term_total_marks,33.25);
+ assert.equal(kin.assessment_model,"lower_primary_kinyarwanda_legra");
+ assert.equal(kin.term_total_marks,null);assert.equal(kin.complete,true);
+ assert.equal(kin.legra_entries.length,4);assert.equal(kin.excluded_from_overall,true);
+ assert.equal(r.ready,true);assert.equal(r.maximum_marks,40);assert.equal(r.overall_percentage,83.13);
+});
+test("LEGRA needs all four entries and rejects a single end-of-term mark",()=>{
+ const obj=lowerPrimary();
+ obj.marks=obj.marks.filter(m=>m.assessment_code!=="LEGRA_KUMVA");
+ let r=buildTeacherTermPreview(obj);
+ assert.equal(r.ready,false);assert.match(r.subjects.find(s=>s.subject_code==="KIN").issues.join(" "),/four LEGRA/);
+ const o2=lowerPrimary();o2.marks.push({term_id:ids.term,student_id:ids.student,class_id:ids.class,subject_id:"kin",category:"end_term",assessment_code:"TERM",score:30,maximum_marks:40});
+ r=buildTeacherTermPreview(o2);
+ assert.equal(r.subjects.find(s=>s.subject_code==="KIN").complete,false);
+});
+test("NESA worked example: units 30,34,36,40 projects 34,30 exam 39 gives 36.25 of 40",()=>{
+ const obj=input();
+ obj.marks=[...[30,34,36,40].map((score,i)=>({term_id:ids.term,student_id:ids.student,class_id:ids.class,subject_id:ids.subject,category:"unit",assessment_code:"U"+(i+1),score,maximum_marks:40})),
+  ...[34,30].map((score,i)=>({term_id:ids.term,student_id:ids.student,class_id:ids.class,subject_id:ids.subject,category:"project",assessment_code:"P"+(i+1),score,maximum_marks:40})),
+  {term_id:ids.term,student_id:ids.student,class_id:ids.class,subject_id:ids.subject,category:"end_term",assessment_code:"TERM",score:39,maximum_marks:40}];
+ assert.equal(buildTeacherTermPreview(obj).subjects[0].term_total_marks,36.25);
 });
