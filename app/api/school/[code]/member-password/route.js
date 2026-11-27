@@ -10,7 +10,9 @@ const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
 // A person who signs in with their own real email address is never reset here:
 // that account may also belong to other schools, so they use the emailed
 // "Forgot password" link instead.
-const SCHOOL_ISSUED=/@(school-example\.test|students\.school-example\.test)$/i;
+// Addresses on reserved top-level domains (RFC 2606) can never receive email,
+// so the person cannot use Forgot password and the school must issue the login.
+const SCHOOL_ISSUED=/@[^@\s]+\.(test|example|invalid|localhost)$/i;
 const ROLES=["school_admin","teacher","staff","parent"];
 const ALPHABET="abcdefghjkmnpqrstuvwxyz23456789";
 function temporaryPassword(){
