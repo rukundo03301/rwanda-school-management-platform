@@ -201,7 +201,7 @@ export default function FamilyDashboard({code}){
    {events.length?<ul className="ds-list">{events.map(e=><li key={e.id} className="ds-item"><span className="ds-ico orange"><Icon name="calendar"/></span>
     <div><strong>{e.title}</strong><small>{when(e.starts_at)}{e.location?" · "+e.location:""}</small></div></li>)}</ul>:<p className="ds-empty">No upcoming events.</p>}</section>}
 
-  {tab==="fees"&&<section className="ds-panel"><h3>Fees and Payments</h3>
+  {tab==="fees"&&<section className="ds-panel"><h3>Fees and Payments</h3>{Pick}
    {fees?(invoices.length?<table className="ds-table"><thead><tr><th>Child</th><th>Item</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Due</th></tr></thead>
     <tbody>{invoices.map(i=><tr key={i.id}><td>{kids.find(k=>k.id===i.student_id)?.name}</td><td>{i.description||i.category}{i.term_label?" · "+i.term_label:""}</td><td>{rwf(i.amount_rwf)}</td><td>{rwf(i.balances?.paid_rwf)}</td><td>{rwf(i.balances?.balance_rwf)}</td><td>{when(i.due_on)}{i.balances?.overdue?" (overdue)":""}</td></tr>)}</tbody></table>
     :<p className="ds-empty">The school has not issued any invoice for your children.</p>):<p className="ds-empty">Fee details are not available.</p>}
