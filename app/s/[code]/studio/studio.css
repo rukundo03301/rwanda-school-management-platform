@@ -60,4 +60,10 @@
 @media print{body *{visibility:hidden!important}.sl-print-only,.sl-print-only *{visibility:visible!important}
 .sl-print-only{display:block!important;position:absolute;left:0;top:0;width:100%;background:#fff;padding:12mm;color:#111;font-family:Arial,sans-serif}.sl-print-only h1{font-size:18pt}.sl-print-only h2{font-size:15pt}
 .sl-print-only h3{font-size:12pt;margin-top:18mm}.sl-print-only p{font-size:11pt;line-height:1.65}.sl-writing-space{border-bottom:1px dashed #888;height:90mm;margin-top:14mm}
-}
+}.sl-tags button{font:inherit;font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid #1b4fd8;color:#1b4fd8;background:#fff;cursor:pointer}
+.sl-tags button:hover{background:#1b4fd8;color:#fff}
+.sl-levelbar{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.sl-levelbar button{all:unset;cursor:pointer;padding:8px 16px;border-radius:99px;background:#fff;box-shadow:0 2px 8px rgba(10,44,128,.08);font-weight:700;color:#142447}
+.sl-levelbar button small{color:#5d6b8a;font-weight:600;margin-left:4px}
+.sl-levelbar button.on{background:#1b4fd8;color:#fff}.sl-levelbar button.on small{color:#dbe5ff}
+.sl-levelbar button:focus-visible{outline:2px solid #1b4fd8}

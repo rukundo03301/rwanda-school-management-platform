@@ -73,17 +73,19 @@ export default function SmartLearningStudio({code}){
  if(auth.loading)return <main className="sl-root"><p role="status">Checking verified school membership…</p></main>;
  if(auth.error)return <main className="sl-root"><h1>Smart Learning Studio</h1><p role="alert">{auth.error}</p><a href={"/s/"+code+"/login"}>School sign-in</a></main>;
  return <main className="sl-root">
-  <header className="sl-header"><div><span className="sl-eyebrow">UMURAGE · SMART LEARNING STARTS HERE</span><h1>Smart Learning Studio</h1>
-   <p>Explore, teach and practise using interactive activities and official links to Rwanda Education Board resources.</p></div>
+  <header className="sl-header"><div><span className="sl-eyebrow">UMURAGE · SMART LEARNING STARTS HERE</span><h1>Practice Games</h1>
+   <p>Short interactive games pupils play to practise a skill (shapes, fractions, Kinyarwanda, English words). Teachers can use one in class or send it as homework. Choose a level below to see only the games for that level.</p></div>
    <div className="sl-header-right"><span>{auth.school}</span><strong>{SMART_LEARNING_ACTIVITIES.length} original activities</strong></div></header>
   <div className="sl-notice"><strong>Teacher-reviewed content.</strong> The activities are Umurage-original examples, not REB textbook pages or certified assessments. Teachers must confirm curriculum and grade suitability. Practice results are not recorded as formal marks.</div>
+  <div className="sl-levelbar" role="tablist" aria-label="School level">{["all","Nursery","Primary","Secondary","College / University"].map(l=>
+   <button key={l} role="tab" aria-selected={level===l} className={level===l?"on":""} onClick={()=>setLevel(l)}>{l==="all"?"All levels":l} <small>{l==="all"?SMART_LEARNING_ACTIVITIES.length:SMART_LEARNING_ACTIVITIES.filter(a=>a.levels.includes(l)).length}</small></button>)}</div>
   <section className="sl-filters"><label>Find an activity<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Shapes, Kinyarwanda, English…" /></label>
    <label>Subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="all">All subjects</option>{studioSubjectList().map(s=><option key={s}>{s}</option>)}</select></label>
    <label>School level<select value={level} onChange={e=>setLevel(e.target.value)}><option value="all">All levels</option>{["Nursery","Primary","Secondary","College / University"].map(s=><option key={s}>{s}</option>)}</select></label></section>
   <section className="sl-content"><div className="sl-collection" aria-label="Subject activity catalogue">
    {filtered.map(a=><button className={"sl-activity "+(active?.id===a.id?"active":"")} key={a.id} onClick={()=>{setSelected(a.id);setNotice("")}}><span>{a.subject} · {a.levels.join(" / ")}</span><strong>{a.title}</strong><small>{a.objective}</small></button>)}
    {!filtered.length&&<p className="sl-empty">No matching activities. Change the search or filters.</p>}</div>
-   {active&&<article className="sl-stage" key={active.id}><header className="sl-stage-head"><span className="sl-topic">{active.subject}</span><h2>{active.title}</h2><p>{active.objective}</p><div className="sl-tags">{active.levels.map(s=><span key={s}>{s}</span>)}<span>Guided practice</span></div></header>
+   {active&&<article className="sl-stage" key={active.id}><header className="sl-stage-head"><span className="sl-topic">{active.subject}</span><h2>{active.title}</h2><p>{active.objective}</p><div className="sl-tags">{active.levels.map(s=><button type="button" key={s} title={"Show all "+s+" games"} onClick={()=>setLevel(s)}>{s}</button>)}<span>Guided practice</span></div></header>
     <Workbench activity={active}/>
     <section className="sl-subject-links"><h3>Official learning resources related to {active.subject}</h3>
      <div>{studioSourcesFor(active.subject).map(r=><a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer">{r.label} ↗</a>)}</div>
