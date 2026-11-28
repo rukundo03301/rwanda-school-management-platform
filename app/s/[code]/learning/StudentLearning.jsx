@@ -6,7 +6,7 @@ import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
 import {youtubeEmbed} from "../../../../lib/youtube-embed.mjs";
-import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
+import {DashboardShell,Stat,Ring,Bar,Card,Icon,Item,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 function MiniStat({label,value}){return <div className="lr-stat"><small>{label}</small><strong>{value}</strong></div>}
 export default function StudentLearning({code}){
@@ -118,7 +118,7 @@ export default function StudentLearning({code}){
   {label:"Help & Support",icon:"help",active:tab==="help",onClick:()=>setTab("help")},
  ];
  const tones=["blue","purple","orange","green","pink","red"];
- return <DashboardShell school={{...school,place:"Student workspace"}} title="Student Dashboard"
+ return <DashboardShell code={code} school={{...school,place:"Student workspace"}} title="Student Dashboard"
   user={{name:student.name,role:(activeClass?activeClass.name+(activeClass.section?" "+activeClass.section:"")+" Student":"Student")}}
   nav={nav} notifications={dueCount} onBell={()=>setTab("homework")}
   onSearch={q=>{setSearch(q);setTab("homework");}} searchPlaceholder="Search homework and subjects…"
@@ -133,71 +133,71 @@ export default function StudentLearning({code}){
   {tab==="dashboard"&&<div className="ds-grid">
    <div className="ds-span8" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
     <div className="ds-stats" style={{margin:0}}>
-     <Stat icon="clock" tone="blue" value={attendance.length?attended+"/"+attendance.length:"—"} label="Attendance (days)"/>
-     <Stat icon="check" tone="purple" value={homework.length?submissions.length+"/"+homework.length:"—"} label="Homework done"/>
-     <Stat icon="trophy" tone="orange" value={avg===null?"—":avg+"%"} label="Homework average"/>
-     <Stat icon="cap" tone="green" value={subjects.length} label="Subjects"/>
+     <Stat icon="clock" tone="blue" value={attendance.length?attended+"/"+attendance.length:"—"} label="Attendance (days)" onClick={()=>setTab("attendance")}/>
+     <Stat icon="check" tone="purple" value={homework.length?submissions.length+"/"+homework.length:"—"} label="Homework done" onClick={()=>setTab("homework")}/>
+     <Stat icon="trophy" tone="orange" value={avg===null?"—":avg+"%"} label="Homework average" onClick={()=>setTab("homework")}/>
+     <Stat icon="cap" tone="green" value={subjects.length} label="Subjects" onClick={()=>setTab("subjects")}/>
     </div>
     <div className="ds-grid" style={{margin:0}}>
      <Card title="Today's Classes" icon="calendar" size="s6" link={<button className="ds-link" onClick={()=>setTab("timetable")}>Full timetable →</button>}>
-      {todayPeriods.length?<ul className="ds-list">{todayPeriods.map((x,i)=><li key={x.id} className="ds-item">
+      {todayPeriods.length?<ul className="ds-list">{todayPeriods.map((x,i)=><Item key={x.id} onClick={()=>setTab("timetable")}>
        <span className={"ds-ico "+tones[i%tones.length]}><Icon name="clock"/></span>
-       <div><strong>{subjectName(x.subject_id)}</strong><small>{hhmm(x.starts_at)} to {hhmm(x.ends_at)}{x.room?" · Room "+x.room:""}</small></div></li>)}</ul>
+       <div><strong>{subjectName(x.subject_id)}</strong><small>{hhmm(x.starts_at)} to {hhmm(x.ends_at)}{x.room?" · Room "+x.room:""}</small></div></Item>)}</ul>
        :<p className="ds-empty">{periods.length?"No lessons are scheduled for today.":"Your school has not published a timetable for your class yet."}</p>}
      </Card>
      <Card title="Upcoming Events" icon="megaphone" size="s6" link={<button className="ds-link" onClick={()=>setTab("events")}>All events →</button>}>
-      {events.length?<ul className="ds-list">{events.map(e=><li key={e.id} className="ds-item">
+      {events.length?<ul className="ds-list">{events.map(e=><Item key={e.id} onClick={()=>setTab("events")}>
        <span className="ds-ico orange"><Icon name="calendar"/></span>
-       <div><strong>{e.title}</strong><small>{fmt(e.starts_at)}{e.location?" · "+e.location:""}</small></div></li>)}</ul>
+       <div><strong>{e.title}</strong><small>{fmt(e.starts_at)}{e.location?" · "+e.location:""}</small></div></Item>)}</ul>
        :<p className="ds-empty">No upcoming events for your class.</p>}
      </Card>
     </div>
     <div className="ds-grid" style={{margin:0}}>
-     <Card title="Teacher Feedback" icon="chat" size="s6">
-      {feedbackItems.length?<ul className="ds-list">{feedbackItems.map(x=><li key={x.homework_id} className="ds-item">
+     <Card title="Teacher Feedback" icon="chat" size="s6" link={<button className="ds-link" onClick={()=>setTab("homework")}>Homework →</button>}>
+      {feedbackItems.length?<ul className="ds-list">{feedbackItems.map(x=><Item key={x.homework_id} onClick={()=>setTab("homework")}>
        <span className="ds-ico green"><Icon name="chat"/></span>
        <div><strong>{hwById.get(x.homework_id)?.title||"Homework"}{x.score!=null?" · "+Number(x.score)+" / "+Number(x.max_score):""}</strong>
-        <small>{x.feedback||"Graded by your teacher."}</small></div></li>)}</ul>
+        <small>{x.feedback||"Graded by your teacher."}</small></div></Item>)}</ul>
        :<p className="ds-empty">Feedback from your teachers will appear here after they grade your work.</p>}
      </Card>
      <Card title="My Progress" icon="chart" size="s6" link={<a href={"/s/"+code+"/report-card"}>Go to report →</a>}>
-      <div className="ds-split"><Ring value={overall} label="Overall"/>
-       <div className="ds-bars"><Bar label="Homework submitted" value={doneHw} color="#1fa64a"/>
-        <Bar label="Homework average" value={avg} color="#3b8df0"/><Bar label="Attendance" value={attPct} color="#f59e0b"/></div></div>
+      <div className="ds-split"><Ring value={overall} label="Overall" href={"/s/"+code+"/report-card"}/>
+       <div className="ds-bars"><Bar label="Homework submitted" value={doneHw} color="#1fa64a" href={"/s/"+code+"/learning?tab=homework"}/>
+        <Bar label="Homework average" value={avg} color="#3b8df0" href={"/s/"+code+"/learning?tab=homework"}/><Bar label="Attendance" value={attPct} color="#f59e0b" href={"/s/"+code+"/learning?tab=attendance"}/></div></div>
      </Card>
     </div>
     <div className="ds-grid" style={{margin:0}}>
      <Card title="My Subjects" icon="book" size="s4" link={<button className="ds-link" onClick={()=>setTab("subjects")}>View All →</button>}>
-      {subjects.length?<ul className="ds-list">{subjects.slice(0,5).map((x,i)=><li key={x.id} className="ds-item">
-       <span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{x.name}</strong><small>{x.code}</small></div></li>)}</ul>
+      {subjects.length?<ul className="ds-list">{subjects.slice(0,5).map((x,i)=><Item key={x.id} onClick={()=>setTab("subjects")}>
+       <span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{x.name}</strong><small>{x.code}</small></div></Item>)}</ul>
        :<p className="ds-empty">Your school has not assigned subjects to your class yet.</p>}
      </Card>
-     <Card title="My Attendance" icon="clock" size="s4">
-      <div className="ds-split"><Ring value={attPct} label="Present"/>
+     <Card title="My Attendance" icon="clock" size="s4" link={<button className="ds-link" onClick={()=>setTab("attendance")}>Open →</button>}>
+      <div className="ds-split"><Ring value={attPct} label="Present" onClick={()=>setTab("attendance")}/>
        <div className="ds-legend"><div><i className="ds-dot" style={{background:"#1fa64a"}}/>Present<b>{presentN}</b></div>
         <div><i className="ds-dot" style={{background:"#f59e0b"}}/>Late<b>{lateN}</b></div>
         <div><i className="ds-dot" style={{background:"#e5322d"}}/>Absent<b>{absentN}</b></div></div></div>
       {!attendance.length&&<p className="ds-empty">No attendance recorded yet.</p>}
      </Card>
-     <Card title="School Notices" icon="megaphone" size="s4">
-      {notices.length?<ul className="ds-list">{notices.map(n=><li key={n.id} className="ds-item">
-       <span className="ds-ico blue"><Icon name="megaphone"/></span><div><strong>{n.title}</strong><small>{fmt(n.published_at)}</small></div></li>)}</ul>
+     <Card title="School Notices" icon="megaphone" size="s4" link={<a href={"/s/"+code+"/communications?tab=announcements"}>All →</a>}>
+      {notices.length?<ul className="ds-list">{notices.map(n=><Item key={n.id} href={"/s/"+code+"/communications?tab=announcements&notice="+n.id}>
+       <span className="ds-ico blue"><Icon name="megaphone"/></span><div><strong>{n.title}</strong><small>{fmt(n.published_at)}</small></div></Item>)}</ul>
        :<p className="ds-empty">No notices right now.</p>}
      </Card>
     </div>
    </div>
    <Card title="Homework Progress" icon="check" size="s4">
     <h4 className="ds-sec">To do ({pending.length})</h4>
-    {pending.length?<ul className="ds-list">{pending.slice(0,6).map(h=><li key={h.id} className="ds-item">
-     <span className="ds-ico purple"><Icon name="check"/></span><div><strong>{h.title}</strong><small>{subjectName(h.subject_id)} · Due {fmt(h.due_at)}</small></div></li>)}</ul>
+    {pending.length?<ul className="ds-list">{pending.slice(0,6).map(h=><Item key={h.id} onClick={()=>setTab("homework")}>
+     <span className="ds-ico purple"><Icon name="check"/></span><div><strong>{h.title}</strong><small>{subjectName(h.subject_id)} · Due {fmt(h.due_at)}</small></div></Item>)}</ul>
      :<p className="ds-empty">Nothing to do.</p>}
     <h4 className="ds-sec">On review ({onReview.length})</h4>
-    {onReview.length?<ul className="ds-list">{onReview.slice(0,4).map(x=><li key={x.homework_id} className="ds-item">
-     <span className="ds-ico orange"><Icon name="clock"/></span><div><strong>{hwById.get(x.homework_id)?.title||"Homework"}</strong><small>Waiting for your teacher</small></div></li>)}</ul>
+    {onReview.length?<ul className="ds-list">{onReview.slice(0,4).map(x=><Item key={x.homework_id} onClick={()=>setTab("homework")}>
+     <span className="ds-ico orange"><Icon name="clock"/></span><div><strong>{hwById.get(x.homework_id)?.title||"Homework"}</strong><small>Waiting for your teacher</small></div></Item>)}</ul>
      :<p className="ds-empty">Nothing waiting for review.</p>}
     <h4 className="ds-sec">Completed ({completed.length})</h4>
-    {completed.length?<ul className="ds-list">{completed.slice(0,4).map(x=><li key={x.homework_id} className="ds-item">
-     <span className="ds-ico green"><Icon name="check"/></span><div><strong>{hwById.get(x.homework_id)?.title||"Homework"}</strong><small>{x.score!=null?Number(x.score)+" / "+Number(x.max_score):"Graded"}</small></div></li>)}</ul>
+    {completed.length?<ul className="ds-list">{completed.slice(0,4).map(x=><Item key={x.homework_id} onClick={()=>setTab("homework")}>
+     <span className="ds-ico green"><Icon name="check"/></span><div><strong>{hwById.get(x.homework_id)?.title||"Homework"}</strong><small>{x.score!=null?Number(x.score)+" / "+Number(x.max_score):"Graded"}</small></div></Item>)}</ul>
      :<p className="ds-empty">No graded homework yet.</p>}
    </Card>
   </div>}
@@ -223,12 +223,12 @@ export default function StudentLearning({code}){
   </section>}
   {tab==="events"&&<section className="ds-panel"><h3>School events and notices</h3>
    <h4 className="ds-sec">Events</h4>
-   {events.length?<ul className="ds-list">{events.map(e=><li key={e.id} className="ds-item"><span className="ds-ico orange"><Icon name="calendar"/></span>
-    <div><strong>{e.title}</strong><small>{fmtFull(e.starts_at)}{e.location?" · "+e.location:""}</small>{e.details&&<small>{e.details}</small>}</div></li>)}</ul>
+   {events.length?<ul className="ds-list">{events.map(e=><Item key={e.id} onClick={()=>setTab("events")}><span className="ds-ico orange"><Icon name="calendar"/></span>
+    <div><strong>{e.title}</strong><small>{fmtFull(e.starts_at)}{e.location?" · "+e.location:""}</small>{e.details&&<small>{e.details}</small>}</div></Item>)}</ul>
     :<p className="ds-empty">No upcoming events for your class.</p>}
    <h4 className="ds-sec">Notices</h4>
-   {(com?.announcements||[]).length?<ul className="ds-list">{com.announcements.slice(0,10).map(n=><li key={n.id} className="ds-item"><span className="ds-ico blue"><Icon name="megaphone"/></span>
-    <div><strong>{n.title}</strong><small>{n.body}</small></div></li>)}</ul>:<p className="ds-empty">No notices right now.</p>}
+   {(com?.announcements||[]).length?<ul className="ds-list">{com.announcements.slice(0,10).map(n=><Item key={n.id} href={"/s/"+code+"/communications?tab=announcements&notice="+n.id}><span className="ds-ico blue"><Icon name="megaphone"/></span>
+    <div><strong>{n.title}</strong><small>{n.body}</small></div></Item>)}</ul>:<p className="ds-empty">No notices right now.</p>}
   </section>}
   {tab==="profile"&&<section className="ds-panel"><h3>My profile</h3>
    <table className="ds-table"><tbody>
@@ -243,7 +243,7 @@ export default function StudentLearning({code}){
     <a className="ds-action green" href={"/s/"+code+"/portal?role=student"}><Icon name="home"/>School portal</a></div>
   </section>}
   {tab==="subjects"&&<section className="ds-panel"><h3>My class and subjects</h3>
-   {subjects.length?<ul className="ds-list">{subjects.map((s,i)=><li key={s.id} className="ds-item"><span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{s.name}</strong><small>{s.code}</small></div></li>)}</ul>
+   {subjects.length?<ul className="ds-list">{subjects.map((s,i)=><Item key={s.id} onClick={()=>setTab("subjects")}><span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{s.name}</strong><small>{s.code}</small></div></Item>)}</ul>
     :<p className="ds-empty">Your school has not assigned subjects to your current class yet.</p>}</section>}
   {tab==="homework"&&taking&&<AssignmentTaker code={code} homeworkId={taking} onDone={reload} onClose={()=>setTaking(null)}/>}
   {tab==="homework"&&!taking&&<section className="ds-panel"><h3>Published homework{search&&" matching “"+search+"”"}</h3>
