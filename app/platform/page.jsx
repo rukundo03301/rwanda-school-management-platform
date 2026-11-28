@@ -585,7 +585,7 @@ function TenantTable({tenants,feeTerms=[],stats={},onProfile,canManage,canRecord
       return <tr key={t.id}><td><strong>{t.name}</strong>
         {t.is_demo&&<span className="badge" style={{marginLeft:8}}>DEMO · SYNTHETIC</span>}
         <div className="micro"><kbd>{t.school_code}</kbd> {t.owner_email}</div></td>
-        <td>{[t.district,prov[t.province]].filter(Boolean).join(", ")||<span className="micro">Location not set</span>}<div className="micro">{lvl[t.education_level]||"Level not set"}{t.plan_code?" · "+t.plan_code:""}</div></td>
+        <td>{[t.district,prov[t.province]].filter(Boolean).join(", ")||<span className="micro">Location not set</span>}<div className="micro">{(Array.isArray(t.levels)&&t.levels.length?t.levels.map(l=>({tvet:"TVET",university:"University"})[l]||lvl[l]||l).join(", "):lvl[t.education_level])||"Level not set"}{t.plan_code?" · "+t.plan_code:""}</div></td>
         <td><Pill>{t.status}</Pill></td>
         <td>{h?<div><strong>{h.students}</strong> students<div className="micro">{h.marked?Math.round(100*h.present/h.marked)+"% present (30 days)":"No attendance yet"}</div><div className="micro">{h.invoiced?Math.round(100*h.collected/h.invoiced)+"% fees collected":"No invoices yet"}</div></div>:"—"}</td>
         <td>{terms?.next_due_on?<><PayBadge due={terms.next_due_on}/><div className="micro">{terms.next_due_on}</div></>:<span className="pm-badge none">No fee set</span>}</td>
