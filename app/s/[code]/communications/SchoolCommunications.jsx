@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useMemo,useState} from "react";
+import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -125,6 +125,29 @@ export default function SchoolCommunications({code}){
  const newPeriodTeacherAssignments=eligibleAssignments.filter(a=>a.teacher_id===form.teacherId);
  const formSubjectIsValid=newPeriodTeacherAssignments.some(a=>a.subject_id===form.subjectId);
  const canSetAttendance=false; // Attendance belongs to the teacher classroom module.
+ // Links from the bell and dashboards: ?tab=messages&thread=…&notification=… or ?tab=announcements&notice=…
+ const deep=useRef(null),[focusNotice,setFocusNotice]=useState("");
+ if(deep.current===null)deep.current=typeof window==="undefined"?{}:Object.fromEntries(new URLSearchParams(location.search));
+ const markThreadRead=useCallback(async(threadId,list)=>{
+  const ids=(list||[]).filter(n=>n.thread_id===threadId&&!n.read_at).map(n=>n.id);
+  if(!ids.length)return false;
+  await Promise.all(ids.map(id=>api({action:"notification.read",notificationId:id}).catch(()=>null)));return true;
+ },[api]);
+ const openThread=async threadId=>{setTab("messages");setSelectedThread(threadId);setDraftMessage("");
+  if(await markThreadRead(threadId,data?.notifications))await refresh();};
+ useEffect(()=>{
+  const d=deep.current;if(!data||!d||d.done)return;d.done=true;
+  const ids=["overview","timetable","calendar","announcements","messages","access"];
+  if(d.tab&&ids.includes(d.tab))setTab(d.tab);
+  (async()=>{
+   let changed=false;
+   if(d.thread&&data.threads.some(t=>t.id===d.thread)){setTab("messages");setSelectedThread(d.thread);changed=await markThreadRead(d.thread,data.notifications);}
+   if(d.notice&&data.announcements.some(a=>a.id===d.notice)){setTab("announcements");setFocusNotice(d.notice);
+    if(!(data.noticeReads||[]).some(r=>r.announcement_id===d.notice)){await api({action:"announcement.read",announcementId:d.notice}).catch(()=>null);changed=true;}}
+   if(changed){await refresh();if(d.thread)setSelectedThread(d.thread);}
+   if(d.notice)setTimeout(()=>document.getElementById("notice-"+d.notice)?.scrollIntoView({behavior:"smooth",block:"center"}),200);
+  })();
+ },[data]);
  if(!ready||loading)return <main className="school-admin-loading">Loading your school day…</main>;
  if(!session)return <main className="school-admin-loading"><h2>School sign-in required</h2>
   <p>Sign in using the account authorized by your school.</p>
@@ -295,7 +318,7 @@ export default function SchoolCommunications({code}){
       <p>Each announcement is delivered only to the approved school audience.</p></div>
       {actor.managerAnnouncements&&<button className="button" onClick={()=>open("announce",{audience:"all",title:"",text:"",expiresAt:""})}>+ Publish Notice</button>}
      </div>
-     <div className="scom-notice-list">{data.announcements.map(a=><article key={a.id} className="scom-notice">
+     <div className="scom-notice-list">{data.announcements.map(a=><article key={a.id} id={"notice-"+a.id} className="scom-notice" style={a.id===focusNotice?{outline:"3px solid #f5b400",scrollMarginTop:90}:{scrollMarginTop:90}}>
       <div className="scom-notice-top"><span className="scom-tag">{noticeLabel(a)}</span>
        <small>{prettyDate(a.published_at)}</small></div>
       <h3>{a.title}</h3><p>{a.body}</p>
@@ -318,7 +341,7 @@ export default function SchoolCommunications({code}){
      <div className="scom-message-layout">
       <aside className="scom-threads"><h3>Conversations</h3>
        {data.threads.map(t=><button key={t.id} className={selectedThread===t.id?"selected":""}
-        onClick={()=>{setSelectedThread(t.id);setDraftMessage("");}}>
+        onClick={()=>openThread(t.id)}>
         <strong>{contactsByThread(t)?.label||"Verified family conversation"}</strong>
         <small>{t.status==="closed"?"Closed":"Open"} · {prettyDate(t.opened_at)}</small>
        </button>)}
@@ -343,7 +366,8 @@ export default function SchoolCommunications({code}){
       </section>
      </div>
      <section className="scom-panel"><h2>My notifications</h2>
-      {data.notifications.map(n=><div className="scom-alert" key={n.id}>
+      {data.notifications.map(n=><div className="scom-alert" key={n.id} role="button" tabIndex={0} style={{cursor:"pointer"}}
+       onClick={e=>{if(e.target.closest("button"))return;openThread(n.thread_id);}} onKeyDown={e=>{if(e.key==="Enter")openThread(n.thread_id);}}>
        <div><strong>New family message</strong><small>{prettyDate(n.created_at)} ·
         {n.email_status==="not_configured"?" In-app alert only":" Email status: "+n.email_status}</small></div>
        {n.read_at?<span className="scom-read-state">✓ Read</span>:
