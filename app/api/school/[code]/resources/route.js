@@ -36,18 +36,19 @@ export async function GET(request,{params}){
   const setup=await checked(db.from("school_onboarding").select("education_levels").eq("school_id",school.id).maybeSingle());
   const levels=Array.isArray(setup?.education_levels)?setup.education_levels:[];
   const builtIn=library.items.filter(i=>!levels.length||levels.includes(i.level));
-  const [classes,subjects,activities]=await Promise.all([
+  const [classes,subjects,activities,classSubjects]=await Promise.all([
    checked(db.from("school_classes").select("id,name,level_band,status").eq("school_id",school.id).eq("status","active").limit(500)),
    checked(db.from("school_subjects").select("id,code,name").eq("school_id",school.id).limit(500)),
    checked(db.from("school_learning_activities").select("id,class_id,subject_id,title,language,learning_objective,activity_type,teacher_steps,student_steps,materials_needed,estimated_minutes,status,created_by,created_at")
-    .eq("school_id",school.id).neq("status","archived").order("created_at",{ascending:false}).limit(500))
+    .eq("school_id",school.id).neq("status","archived").order("created_at",{ascending:false}).limit(500)),
+   checked(db.from("school_class_subjects").select("class_id,subject_id").eq("school_id",school.id).limit(2000))
   ]);
   const cls=new Map(classes.map(c=>[c.id,c])),sub=new Map(subjects.map(s=>[s.id,s]));
   // Drafts are visible only to the teacher who wrote them and to school leaders.
   const visible=activities.filter(a=>a.status==="published"||manager||a.created_by===user.id);
   const canAdd=manager||teacher;
   const formClasses=canAdd?classes.filter(c=>manager||assignments.some(a=>a.class_id===c.id)).map(c=>({id:c.id,name:c.name,level:c.level_band})):[];
-  const formSubjects=canAdd?subjects.map(s=>({id:s.id,name:s.name,code:s.code,classes:manager?formClasses.map(c=>c.id):assignments.filter(a=>a.subject_id===s.id).map(a=>a.class_id)})).filter(s=>s.classes.length):[];
+  const formSubjects=canAdd?subjects.map(s=>({id:s.id,name:s.name,code:s.code,classes:manager?classSubjects.filter(m=>m.subject_id===s.id&&formClasses.some(c=>c.id===m.class_id)).map(m=>m.class_id):assignments.filter(a=>a.subject_id===s.id).map(a=>a.class_id)})).filter(s=>s.classes.length):[];
   return Response.json({
    school:school.name,levels,roles,canAdd,
    items:builtIn,
@@ -72,6 +73,11 @@ export async function POST(request,{params}){
    const classId=validateUuid(body.classId,"class"),subjectId=validateUuid(body.subjectId,"subject");
    if(!manager&&!assignments.some(a=>a.class_id===classId&&a.subject_id===subjectId))
     throw new ApiError(403,"You can only add activities for a class and subject you teach.");
+   if(manager){
+    const taught=await checked(db.from("school_class_subjects").select("class_id").eq("school_id",school.id)
+     .eq("class_id",classId).eq("subject_id",subjectId).maybeSingle());
+    if(!taught)throw new ApiError(400,"This subject is not taught in this class. Link it under Classes and Teachers first.");
+   }
    const language=LANGS.includes(body.language)?body.language:null;
    if(!language)throw new ApiError(400,"Choose the language of the activity");
    const minutes=Number(body.minutes||20);
