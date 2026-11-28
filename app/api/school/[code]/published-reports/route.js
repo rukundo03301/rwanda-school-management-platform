@@ -32,11 +32,11 @@ export async function GET(request,{params}){
       .eq("school_id",school.id).eq("status","published")
       .in("student_id",studentIds).order("published_at",{ascending:false}).limit(300));
   }
-  // Nursery reports: same verified-link scope, published only, never drafts.
+  // Term reports for every level: same verified-link scope, published only, never drafts.
   let nurseryReports=[];
   if(studentIds.length){
-    const rows=await checked(db.from("school_nursery_reports")
-      .select("id,student_id,class_id,academic_year_id,term_number,area_summaries,teacher_comment,headteacher_comment,published_at")
+    const rows=await checked(db.from("school_term_reports")
+      .select("id,student_id,class_id,academic_year_id,term_number,template,content,teacher_comment,reviewer_comment,headteacher_comment,published_at")
       .eq("school_id",school.id).eq("status","published")
       .in("student_id",studentIds).order("published_at",{ascending:false}).limit(100));
     if(rows.length){
@@ -51,7 +51,8 @@ export async function GET(request,{params}){
         student_name:[k.get(r.student_id)?.first_name,k.get(r.student_id)?.last_name].filter(Boolean).join(" "),
         student_code:k.get(r.student_id)?.student_code||"",
         class_name:c.get(r.class_id)?.name||"",academic_year:y.get(r.academic_year_id)?.name||"",
-        area_summaries:r.area_summaries||{},teacher_comment:r.teacher_comment||"",headteacher_comment:r.headteacher_comment||""}));
+        template:r.template,content:r.content||{},teacher_comment:r.teacher_comment||"",
+        reviewer_comment:r.reviewer_comment||"",headteacher_comment:r.headteacher_comment||""}));
     }
   }
   // Branding comes from the published website only. A private draft logo or
