@@ -86,6 +86,7 @@ export default function FamilyDashboard({code}){
  const nav=[
   {label:"Dashboard",icon:"home",active:tab==="dashboard",onClick:()=>setTab("dashboard")},
   {label:"My Children",icon:"users",active:tab==="children",onClick:()=>setTab("children")},
+  {label:"Courses",icon:"book",href:"/s/"+code+"/courses"},
   {label:"Homework",icon:"check",active:tab==="homework",badge:totalPending,onClick:()=>setTab("homework")},
   {label:"Attendance",icon:"clock",active:tab==="attendance",onClick:()=>setTab("attendance")},
   {label:"Timetable & Events",icon:"calendar",active:tab==="events",onClick:()=>setTab("events")},
