@@ -74,7 +74,10 @@ function Bell({code,count=0,onBell,light}){
    const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||"Notifications could not load");setItems(j.items||[]);setErr("");}
   catch(e){setErr(e.message);}
  };
- useEffect(()=>{load();const t=setInterval(load,60000);return()=>clearInterval(t);},[code]);
+ useEffect(()=>{load();const t=setInterval(load,60000);const f=()=>load();window.addEventListener("focus",f);window.addEventListener("ds-notes-refresh",f);
+  return()=>{clearInterval(t);window.removeEventListener("focus",f);window.removeEventListener("ds-notes-refresh",f);};},[code]);
+ // After an entry is opened, the page it opens marks it handled; refresh the list shortly after.
+ const opened=()=>{setOpen(false);setTimeout(load,2500);setTimeout(load,7000);};
  useEffect(()=>{if(!open)return;const f=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
   document.addEventListener("mousedown",f);return()=>document.removeEventListener("mousedown",f);},[open]);
  const n=code?(items?items.length:0):count;
@@ -86,7 +89,7 @@ function Bell({code,count=0,onBell,light}){
    {err&&<p className="ds-empty">{err} <button type="button" className="ds-link" onClick={load}>Try again</button></p>}
    {!err&&items&&!items.length&&<p className="ds-empty">You are all caught up.</p>}
    {!err&&!items&&<p className="ds-empty">Loading…</p>}
-   {items&&items.length>0&&<ul>{items.map(i=><li key={i.id}><Link role="menuitem" href={i.href} onClick={()=>setOpen(false)}>
+   {items&&items.length>0&&<ul>{items.map(i=><li key={i.id}><Link role="menuitem" href={i.href} onClick={opened}>
     <span className={"ds-ico "+(i.tone||"blue")}><Icon name="bell" size={16}/></span>
     <span><strong>{i.title}</strong><small>{i.detail}</small><em>{when(i.at)}</em></span></Link></li>)}</ul>}
   </div>}
