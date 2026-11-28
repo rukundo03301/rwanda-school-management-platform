@@ -1,7 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
-import {TEMPLATE_LABEL,NURSERY_AREAS,NURSERY_DESCRIPTORS,COMPETENCE,cleanContent} from "../../../../lib/report-templates.mjs";
+import {TEMPLATE_LABEL,NURSERY_AREAS,NURSERY_DESCRIPTORS,COMPETENCE,cleanContent,contentProblems} from "../../../../lib/report-templates.mjs";
 import TermReportView from "../../../ui/TermReportView.jsx";
 const LEVEL={nursery:"Nursery",primary:"Primary",secondary:"Secondary",tvet:"TVET",university:"University"};
 const STATUS={draft:"Draft",submitted:"Waiting for review",reviewed:"Reviewed, waiting for approval",approved:"Approved, ready to publish",published:"Published to family",returned:"Returned to teacher"};
@@ -55,6 +55,7 @@ export default function TermReports({code}){
    if(!classId&&d.classes[0])setClassId(d.classes[0].id);}catch(e){setError(e.message);}
  },[call,classId,term]);
  useEffect(()=>{load();},[load]);
+ useEffect(()=>{if(!note)return;const t=setTimeout(()=>setNote(""),8000);return()=>clearTimeout(t);},[note]);
  useEffect(()=>{if(open)setTimeout(()=>document.getElementById("tr-form")?.scrollIntoView({behavior:"smooth",block:"start"}),50);},[open]);
  const act=async(body,done)=>{setBusy(true);setNote("");try{await call(body);setNote(done);await load();return true;}catch(e){setNote(e.message);return false;}finally{setBusy(false);}};
  if(error)return <main className="rem-resources"><section className="rem-resource-card" role="alert">{error}<p><button type="button" className="button" onClick={()=>{setError("");load();}}>Try again</button></p></section></main>;
@@ -69,7 +70,7 @@ export default function TermReports({code}){
  return <main className="rem-resources">
   <header><h1>Term Reports</h1><p>Teachers draft reports for their classes. The report template follows each class's education level. The people the school owner chooses review, approve and publish them to families.</p></header>
   <div className="rem-resource-toolbar">{tabs.map(([k,l])=><button key={k} type="button" className={"button"+(tab===k?"":" secondary")} onClick={()=>{setTab(k);setNote("");}}>{l}</button>)}</div>
-  {note&&<p className="rem-resource-banner" role="status" style={{position:"sticky",top:72,zIndex:5,boxShadow:"0 4px 14px rgba(20,40,80,.15)"}}>{note}</p>}
+  {note&&<p className="rem-resource-banner" role="status" style={{position:"fixed",right:24,bottom:24,zIndex:50,maxWidth:420,margin:0,display:"flex",gap:12,alignItems:"flex-start",boxShadow:"0 8px 24px rgba(20,40,80,.2)"}}><span style={{flex:1}}>{note}</span><button type="button" className="button small secondary" aria-label="Dismiss message" onClick={()=>setNote("")}>Close</button></p>}
 
   {tab==="write"&&<section>
    <div className="rem-resource-toolbar">
@@ -90,12 +91,13 @@ export default function TermReports({code}){
        <div className="rem-resource-toolbar"><label>Days present<input {...inp} type="number" min={0} value={content.attendance?.present??""} onChange={e=>setContent({...content,attendance:{...content.attendance,present:e.target.value}})}/></label>
         <label>School days<input {...inp} type="number" min={0} value={content.attendance?.total??""} onChange={e=>setContent({...content,attendance:{...content.attendance,total:e.target.value}})}/></label></div>
        <label>Teacher comment<textarea {...inp} maxLength={1500} value={comment} onChange={e=>setComment(e.target.value)}/></label>
+       {(()=>{const p=contentProblems(level,content);return p.length?<div className="rem-resource-banner" role="alert" style={{borderColor:"#dc2626",color:"#991b1b"}}><strong>Please correct before saving:</strong><ul style={{margin:"6px 0 0 18px"}}>{p.map(x=><li key={x}>{x}</li>)}</ul></div>:null;})()}
        <div className="rem-resource-links">
-        <button type="button" className="button secondary" disabled={busy} onClick={()=>act({action:"save",classId,studentId:s.id,term,content,teacherComment:comment},"Draft saved.")}>Save draft</button>
-        <button type="button" className="button" disabled={busy} onClick={async()=>{if(await act({action:"save",classId,studentId:s.id,term,content,teacherComment:comment,submit:true},"Report submitted for review."))setOpen(null);}}>Submit for review</button>
+        <button type="button" className="button secondary" disabled={busy||contentProblems(level,content).length>0} onClick={()=>act({action:"save",classId,studentId:s.id,term,content,teacherComment:comment},"Draft saved.")}>Save draft</button>
+        <button type="button" className="button" disabled={busy||contentProblems(level,content).length>0} onClick={async()=>{if(await act({action:"save",classId,studentId:s.id,term,content,teacherComment:comment,submit:true},"Report submitted for review."))setOpen(null);}}>Submit for review</button>
         <button type="button" className="button secondary" onClick={()=>setOpen(null)}>Close</button>
        </div>
-       <h3>Preview</h3><TermReportView report={{template:level,content:cleanContent(level,content),teacher_comment:comment,term_number:term}} student={s.name}/>
+       <h3>Preview</h3><TermReportView report={{template:level,content:cleanContent(level,content,[]),teacher_comment:comment,term_number:term}} student={s.name}/>
       </>:<><TermReportView report={{...r,term_number:term}} student={s.name}/><button type="button" className="button secondary" onClick={()=>setOpen(null)}>Close</button></>}
      </section>;})()}
    </>}
