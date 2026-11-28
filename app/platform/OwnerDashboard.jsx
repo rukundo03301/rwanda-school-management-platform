@@ -103,7 +103,12 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
  const prov={none:0};Object.keys(PROVINCE_LABEL).forEach(k=>prov[k]=0);const byDistrict={};
  tenants.forEach(x=>{const dk=districtKey(x.district);const pv=x.province&&k0(prov,x.province)?x.province:(dk?DISTRICT_PROVINCE[dk]:null);
   if(dk)(byDistrict[dk]=byDistrict[dk]||[]).push(x);if(pv)prov[pv]+=1;else prov.none+=1;});
- const lvl={none:0};Object.keys(LEVEL_LABEL).forEach(k=>lvl[k]=0);tenants.forEach(x=>{if(x.education_level&&k0(lvl,x.education_level))lvl[x.education_level]+=1;else lvl.none+=1;});
+ // A school is counted once for every level it offers (selected at onboarding); TVET and university count as College / University.
+ const LV_MAP={nursery:"nursery",primary:"primary",secondary:"secondary",tvet:"college",university:"college",college:"college"};
+ const lvl={none:0};Object.keys(LEVEL_LABEL).forEach(k=>lvl[k]=0);tenants.forEach(x=>{
+  const ks=[...new Set((Array.isArray(x.levels)&&x.levels.length?x.levels:x.education_level?[x.education_level]:[]).map(l=>LV_MAP[l]).filter(Boolean))];
+  if(!ks.length)lvl.none+=1;else ks.forEach(k=>{if(k0(lvl,k))lvl[k]+=1;});});
+ const levelText=r=>{const ks=Array.isArray(r.levels)&&r.levels.length?r.levels:r.education_level?[r.education_level]:[];return ks.map(l=>({tvet:"TVET",university:"University"})[l]||LEVEL_LABEL[l]||l).join(", ")||"Not set";};
  const clock=paymentClock(tenants,data.feeTerms).filter(c=>c.state!=="ok"&&c.state!=="not_set");
  const plans=data.plans||[];const noPlan=tenants.filter(x=>!x.plan_code).length;const hl=data.health;
  const recent=tenants.slice(0,3);
@@ -167,7 +172,7 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
     {audit.length?<div className="od-act">{audit.map(a=><div key={a.id} className="od-go" role="button" tabIndex={0} onClick={()=>go("audit")} onKeyDown={e=>{if(e.key==="Enter")go("audit");}}><span>{String(a.event).replace(/[._]/g," ")}</span><small>{ago(a.created_at)}</small></div>)}</div>:<div className="od-empty">No activity to show.</div>}</div>
    <div className="od-card"><h3>Recently Added Schools <button onClick={()=>go("tenants")}>View All</button></h3>
     {recent.length?<table className="od-table"><thead><tr><th>School Name</th><th>Level</th><th>Location</th><th>Plan</th><th>Joined</th></tr></thead>
-     <tbody>{recent.map(r=><tr key={r.id} className="od-go" tabIndex={0} title={"Open "+r.name} onClick={()=>go("tenants",r.name)} onKeyDown={e=>{if(e.key==="Enter")go("tenants",r.name);}}><td>{r.name}</td><td>{LEVEL_LABEL[r.education_level]||"Not set"}</td><td>{r.district?r.district+", ":""}{PROVINCE_LABEL[r.province]||"Not set"}</td><td>{(plans.find(p=>p.code===r.plan_code)||{}).name||"No plan"}</td><td>{day(r.created_at)}</td></tr>)}</tbody></table>
+     <tbody>{recent.map(r=><tr key={r.id} className="od-go" tabIndex={0} title={"Open "+r.name} onClick={()=>go("tenants",r.name)} onKeyDown={e=>{if(e.key==="Enter")go("tenants",r.name);}}><td>{r.name}</td><td>{levelText(r)}</td><td>{r.district?r.district+", ":""}{PROVINCE_LABEL[r.province]||"Not set"}</td><td>{(plans.find(p=>p.code===r.plan_code)||{}).name||"No plan"}</td><td>{day(r.created_at)}</td></tr>)}</tbody></table>
      :<div className="od-empty">Registered schools will appear here.</div>}</div>
   </div>
  </div>;
