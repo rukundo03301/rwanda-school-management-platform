@@ -122,23 +122,50 @@ function Payroll({d,run,busy}){
    {d.can.record&&<div className="mn-row" style={{justifyContent:"flex-start"}}><label className="mn-inline">Month<input className="input" type="month" value={period} onChange={e=>setPeriod(e.target.value)}/></label>
     <button className="button" disabled={busy||!period} onClick={()=>run({action:"payroll.create",period},j=>"Salaries for "+monthName(period)+" prepared: "+j.result.people+" people, "+rwf(j.result.total))}>Prepare salaries</button></div>}
   </section>
-  {open.map(r=><section key={r.id} className="ds-panel mn-run">
+  {open.map(r=>{
+   const prev=d.payroll.filter(x=>x.status==="paid"&&x.period<r.period).sort((a,b)=>a.period<b.period?1:-1)[0];
+   const prevBy=new Map((prev?.lines||[]).map(l=>[l.auth_user_id,l]));
+   const warn=l=>{const w=[],p=prevBy.get(l.auth_user_id),b=Number(l.base_rwf);
+    if(prev&&!p)w.push("New on payroll");
+    if(p&&Number(p.base_rwf)!==b)w.push("Salary changed from "+rwf(p.base_rwf));
+    if(Number(l.bonus_rwf)>b*0.5&&Number(l.bonus_rwf)>0)w.push("Bonus is more than half the salary");
+    if(Number(l.deductions_rwf)>0&&!l.note)w.push("Deduction without a reason");
+    if(Number(l.net_rwf)===0)w.push("Nothing to pay");
+    if(b+Number(l.bonus_rwf)-Number(l.deductions_rwf)!==Number(l.net_rwf))w.push("Does not add up");
+    return w;};
+   const onRun=new Set(r.lines.map(l=>l.auth_user_id));
+   const missingPay=d.staff.filter(s=>!s.pay||!s.pay.active||Number(s.pay.monthly_salary_rwf)===0);
+   const leftOut=d.staff.filter(s=>s.pay&&s.pay.active&&Number(s.pay.monthly_salary_rwf)>0&&!onRun.has(s.id));
+   const done=r.lines.filter(l=>l.checked_at).length,all=r.lines.length,flagged=r.lines.filter(l=>warn(l).length).length;
+   const change=prev&&Number(prev.total_rwf)?Math.round((Number(r.total_rwf)-Number(prev.total_rwf))*100/Number(prev.total_rwf)):null;
+   return <section key={r.id} className="ds-panel mn-run">
    <div className="mn-row"><div><h3>Salaries for {monthName(r.period)}</h3><span className={"mn-status "+STATUS[r.status][1]}>{STATUS[r.status][0]}</span> <b className="mn-big">{rwf(r.total_rwf)}</b></div>
     <div className="mn-row">
-     {r.status==="draft"&&d.can.owner&&<button className="button" disabled={busy} onClick={()=>run({action:"payroll.approve",runId:r.id},"Salaries for "+monthName(r.period)+" approved")}>Approve salaries</button>}
+     {r.status==="draft"&&d.can.owner&&<button className="button" disabled={busy||done<all} title={done<all?"Check every salary first":""} onClick={()=>run({action:"payroll.approve",runId:r.id},"Salaries for "+monthName(r.period)+" approved")}>Approve salaries</button>}
      {r.status==="approved"&&d.can.record&&<button className="button" disabled={busy} onClick={()=>run({action:"payroll.paid",runId:r.id},"Salaries for "+monthName(r.period)+" marked as paid")}>Mark as paid</button>}
      {(r.status==="draft"||(r.status==="approved"&&d.can.owner))&&d.can.record&&<button className="button secondary" disabled={busy} onClick={()=>run({action:"payroll.cancel",runId:r.id},"Payroll cancelled")}>Cancel</button>}
     </div></div>
-   <table className="mn-table"><thead><tr><th>Name</th><th>Job</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>To pay</th><th/></tr></thead><tbody>
-    {r.lines.map(l=>edit?.id===l.id?<tr key={l.id}><td><b>{l.name}</b></td><td>{l.job_title}</td><td>{rwf(l.base_rwf)}</td>
+   {r.status==="draft"&&<div className="mn-checks">
+    <div className={"mn-check "+(done===all?"ok":"todo")}><b>{done} of {all}</b> salaries checked{done<all?". Tick Checked on each line before the owner can approve.":". Ready for the owner to approve."}</div>
+    <div className={"mn-check "+(flagged?"warn":"ok")}><b>{flagged}</b> {flagged===1?"line needs":"lines need"} a closer look (marked below)</div>
+    {change!==null&&<div className={"mn-check "+(Math.abs(change)>10?"warn":"ok")}>Total is <b>{change>0?"+":""}{change}%</b> compared with {monthName(prev.period)} ({rwf(prev.total_rwf)})</div>}
+    {leftOut.length>0&&<div className="mn-check warn">Not on this payroll but has a salary: <b>{leftOut.map(s=>s.name).join(", ")}</b>. Cancel and prepare again to include them.</div>}
+    {missingPay.length>0&&<div className="mn-check warn"><b>{missingPay.length}</b> teachers or staff have no salary set, so they are not paid: {missingPay.slice(0,6).map(s=>s.name).join(", ")}{missingPay.length>6?" and "+(missingPay.length-6)+" more":""}.</div>}
+   </div>}
+   <table className="mn-table"><thead><tr><th>Name</th><th>Job</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>To pay</th><th>Checked</th><th/></tr></thead><tbody>
+    {r.lines.map(l=>{const w=warn(l);return edit?.id===l.id?<tr key={l.id}><td><b>{l.name}</b></td><td>{l.job_title}</td><td>{rwf(l.base_rwf)}</td>
      <td><input className="input mn-num" type="number" min={0} aria-label="Bonus" value={edit.bonus} onChange={e=>setEdit({...edit,bonus:e.target.value})}/></td>
      <td><input className="input mn-num" type="number" min={0} aria-label="Deductions" value={edit.deductions} onChange={e=>setEdit({...edit,deductions:e.target.value})}/></td>
-     <td><input className="input" maxLength={300} placeholder="Note" aria-label="Note" value={edit.note} onChange={e=>setEdit({...edit,note:e.target.value})}/></td>
-     <td><button className="button small" disabled={busy} onClick={async()=>{if(await run({action:"payroll.line",lineId:l.id,bonus:Number(edit.bonus||0),deductions:Number(edit.deductions||0),note:edit.note},"Saved"))setEdit(null);}}>Save</button></td></tr>
-     :<tr key={l.id}><td><b>{l.name}</b>{l.note&&<><br/><small className="muted">{l.note}</small></>}</td><td>{l.job_title}</td><td>{rwf(l.base_rwf)}</td><td>{rwf(l.bonus_rwf)}</td><td>{rwf(l.deductions_rwf)}</td><td><b>{rwf(l.net_rwf)}</b></td>
-      <td>{r.status==="draft"&&d.can.record&&<button className="button secondary small" onClick={()=>setEdit({id:l.id,bonus:l.bonus_rwf,deductions:l.deductions_rwf,note:l.note})}>Change</button>}</td></tr>)}
+     <td colSpan={2}><input className="input" maxLength={300} placeholder="Reason (needed for a deduction)" aria-label="Note" value={edit.note} onChange={e=>setEdit({...edit,note:e.target.value})}/>
+      <small className="muted">To pay: {rwf(Number(l.base_rwf)+Number(edit.bonus||0)-Number(edit.deductions||0))}</small></td>
+     <td><button className="button small" disabled={busy||(Number(edit.deductions||0)>0&&!String(edit.note||"").trim())||Number(l.base_rwf)+Number(edit.bonus||0)-Number(edit.deductions||0)<0} onClick={async()=>{if(await run({action:"payroll.line",lineId:l.id,bonus:Number(edit.bonus||0),deductions:Number(edit.deductions||0),note:edit.note},"Saved. Check this line again."))setEdit(null);}}>Save</button>
+      <button className="button secondary small" onClick={()=>setEdit(null)}>Cancel</button></td></tr>
+     :<tr key={l.id} className={w.length&&r.status==="draft"?"mn-flag":""}><td><b>{l.name}</b>{l.note&&<><br/><small className="muted">{l.note}</small></>}{r.status==="draft"&&w.map(x=><span key={x} className="mn-warn">{x}</span>)}</td><td>{l.job_title}</td><td>{rwf(l.base_rwf)}</td><td>{rwf(l.bonus_rwf)}</td><td>{rwf(l.deductions_rwf)}</td><td><b>{rwf(l.net_rwf)}</b></td>
+      <td>{r.status==="draft"&&d.can.record?<label className="mn-tick"><input type="checkbox" checked={!!l.checked_at} disabled={busy} onChange={e=>run({action:"payroll.check",lineId:l.id,checked:e.target.checked})}/>{l.checked_at?<small>{l.checkedByName}</small>:<small>Not yet</small>}</label>
+       :l.checked_at?<small>✓ {l.checkedByName}</small>:<small className="muted">Not checked</small>}</td>
+      <td>{r.status==="draft"&&d.can.record&&<button className="button secondary small" onClick={()=>setEdit({id:l.id,bonus:l.bonus_rwf,deductions:l.deductions_rwf,note:l.note})}>Change</button>}</td></tr>;})}
    </tbody></table>
-  </section>)}
+  </section>;})}
   {!open.length&&<section className="ds-panel"><p>No salaries prepared yet.</p></section>}
  </>;
 }
@@ -158,7 +185,9 @@ function Salaries({d,run,busy}){
     <td><input className="input mn-num" type="number" min={0} aria-label="Monthly salary" value={edit.monthlySalary} onChange={e=>setEdit({...edit,monthlySalary:e.target.value})}/></td>
     <td><select className="input" aria-label="Pay day" value={edit.payDay} onChange={e=>setEdit({...edit,payDay:Number(e.target.value)})}>{Array.from({length:28},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}</select></td>
     <td><select className="input" aria-label="Paid by" value={edit.method} onChange={e=>setEdit({...edit,method:e.target.value})}>{Object.entries(METHOD).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></td>
-    <td><button className="button small" disabled={busy} onClick={async()=>{if(await run({action:"pay.set",...edit,monthlySalary:Number(edit.monthlySalary)},s.name+": "+rwf(edit.monthlySalary)+" a month, paid on day "+edit.payDay))setEdit(null);}}>Save</button>
+    <td>{(()=>{const old=Number(s.pay?.monthly_salary_rwf||0),nw=Number(edit.monthlySalary||0);return (old&&Math.abs(nw-old)>old*0.3)||(!old&&nw>5000000)?<label className="mn-tick mn-big-change"><input type="checkbox" checked={!!edit.sure} onChange={e=>setEdit({...edit,sure:e.target.checked})}/><small>{old?"Big change from "+rwf(old)+". Yes, this is correct":"Yes, "+rwf(nw)+" a month is correct"}</small></label>:null;})()}
+     <button className="button small" disabled={busy||edit.monthlySalary===""||Number(edit.monthlySalary)<0||(()=>{const old=Number(s.pay?.monthly_salary_rwf||0),nw=Number(edit.monthlySalary||0);return ((old&&Math.abs(nw-old)>old*0.3)||(!old&&nw>5000000))&&!edit.sure;})()} onClick={async()=>{const nw=Number(edit.monthlySalary);const {sure,...rest}=edit;
+     if(await run({action:"pay.set",...rest,monthlySalary:nw},s.name+": "+rwf(edit.monthlySalary)+" a month, paid on day "+edit.payDay))setEdit(null);}}>Save</button>
      <button className="button secondary small" onClick={()=>setEdit(null)}>Cancel</button></td></tr>
     :<tr key={s.id}><td><b>{s.name}</b><br/><small className="muted">{s.email}</small></td><td>{s.roles.map(r=>ROLE[r]||r).join(", ")}</td><td>{s.pay?.job_title||""}</td>
      <td>{s.pay?<b>{rwf(s.pay.monthly_salary_rwf)}</b>:<span className="mn-status pending">Not set</span>}</td><td>{s.pay?"Day "+s.pay.pay_day:""}</td><td>{s.pay?METHOD[s.pay.payment_method]:""}</td>

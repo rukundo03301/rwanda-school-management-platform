@@ -58,3 +58,14 @@
 .mn-catbar i{display:block;height:100%;border-radius:99px}
 .mn-catrow em{font-style:normal;font-weight:700;text-align:right}
 @media (max-width:700px){.mn-catrow{grid-template-columns:14px 1fr 110px}.mn-catbar{display:none}}
+
+.mn-checks{display:grid;gap:8px;margin:12px 0 14px}
+.mn-check{border-radius:10px;padding:9px 12px;font-size:14px;border-left:4px solid}
+.mn-check.ok{background:#ecfdf5;border-color:#16a34a;color:#14532d}
+.mn-check.todo{background:#eff6ff;border-color:#2563eb;color:#1e3a8a}
+.mn-check.warn{background:#fff7ed;border-color:#ea580c;color:#7c2d12}
+.mn-warn{display:inline-block;margin:4px 4px 0 0;background:#ffedd5;color:#9a3412;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px}
+.mn-flag td{background:#fffbf5}
+.mn-tick{display:flex;align-items:center;gap:6px;cursor:pointer}
+.mn-tick input{width:18px;height:18px;accent-color:#16a34a}
+.mn-big-change{background:#fff7ed;border-radius:8px;padding:4px 6px;margin-bottom:6px;color:#9a3412}
