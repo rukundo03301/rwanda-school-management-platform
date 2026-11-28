@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 import {Card,Icon} from "../../../ui/DashboardShell.jsx";
 
@@ -9,6 +10,8 @@ const blank={kind:"leave",title:"",details:"",startOn:"",endOn:"",amountRwf:""};
 
 export default function RequestsBoard({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
+ // ?request= (from the bell) highlights that request.
+ const focus=useSearchParams().get("request")||"";
  const [data,setData]=useState(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[form,setForm]=useState(blank),[note,setNote]=useState("");
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
@@ -48,11 +51,11 @@ export default function RequestsBoard({code}){
     <button className="button" disabled={busy} onClick={()=>act({action:"create",...form})}>{busy?"Sending…":"Send request"}</button>
    </Card>
    <Card title={data.manager?"All Requests":"My Requests"} icon="file" size="s8">
-    {data.requests.length?<ul className="ds-list">{data.requests.map(r=><li key={r.id} className="ds-item">
+    {data.requests.length?<ul className="ds-list">{data.requests.map(r=><li key={r.id} id={"req-"+r.id} className="ds-item" ref={el=>{if(el&&r.id===focus&&!el.dataset.seen){el.dataset.seen="1";setTimeout(()=>el.scrollIntoView({behavior:"smooth",block:"center"}),100);}}} style={r.id===focus?{outline:"3px solid #f5b400",scrollMarginTop:90}:undefined}>
      <span className={"ds-ico "+(r.kind==="leave"?"blue":"orange")}><Icon name={r.kind==="leave"?"calendar":"wallet"}/></span>
      <div><strong>{r.title}</strong>
-      <small>{r.kind==="leave"?when(r.start_on)+" to "+when(r.end_on):rwf(r.amount_rwf)}{data.manager&&r.requester?" · "+r.requester:""} · {r.status}</small>
-      {r.details&&<small>{r.details}</small>}{r.decision_note&&<small>Decision note: {r.decision_note}</small>}</div>
+      <small style={{display:"block"}}>{r.kind==="leave"?when(r.start_on)+" to "+when(r.end_on):rwf(r.amount_rwf)}{data.manager&&r.requester?" · "+r.requester:""} · {r.status}</small>
+      {r.details&&<small style={{display:"block"}}>{r.details}</small>}{r.decision_note&&<small style={{display:"block"}}>Decision note: {r.decision_note}</small>}</div>
      {r.status==="pending"&&r.mine&&<button className="button secondary" disabled={busy} onClick={()=>act({action:"cancel",id:r.id})}>Cancel</button>}
      {r.status==="pending"&&data.manager&&!r.mine&&<span>
       <input placeholder="Note (optional)" value={note} onChange={e=>setNote(e.target.value)} maxLength={500}/>
