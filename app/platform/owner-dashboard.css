@@ -36,3 +36,9 @@
 .pm-menulist{position:absolute;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1px solid #d6e6fb;border-radius:12px;box-shadow:0 14px 34px #0f2a6b26;padding:6px;display:grid;min-width:220px}
 .pm-menulist button,.pm-menulist a{text-align:left;border:0;background:none;padding:9px 10px;border-radius:8px;cursor:pointer;color:#12306a;font-size:14px;text-decoration:none}.pm-menulist button:hover,.pm-menulist a:hover{background:#eef4ff}.pm-menulist button.danger{color:#b91c1c}.pm-menulist button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:900px){.pm-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Every dashboard number and row opens its page. */
+.od-go{cursor:pointer;transition:box-shadow .12s,transform .12s;font:inherit;color:inherit}
+.od-go:hover,.od-go:focus-visible{box-shadow:0 8px 22px rgba(10,44,128,.14);transform:translateY(-1px);outline:none}
+button.od-stat{width:100%;text-align:left}
+tr.od-go:hover td,tr.od-go:focus-visible td{background:#f1f6ff}
