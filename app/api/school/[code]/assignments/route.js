@@ -1,4 +1,5 @@
 import {classroomContext,classroomDeadline,requiredSchoolId,teacherAssignmentAllowed} from "../../../../../lib/school-classroom.mjs";
+import {createHash,timingSafeEqual} from "node:crypto";
 import {schoolVerifiedContext} from "../../../../../lib/school-admin.mjs";
 import {ApiError,checked,jsonError} from "../../../../../lib/platform-server.js";
 import {normalizeQuestions,autoMark,cleanAnswers,publicQuestion,answered} from "../../../../../lib/homework-questions.mjs";
@@ -32,6 +33,18 @@ async function replaceQuestions(db,school,id,list){
  const ins=await db.from("school_homework_questions").insert(list.map(q=>({...q,school_id:school.id,homework_id:id})));
  if(ins.error)throw new ApiError(400,"Questions could not be saved");
 }
+// Quiz access code: compared in constant time, 8 wrong tries in 15 minutes locks the student out for that quiz.
+async function checkAccessCode(db,school,user,hw,given,unlocked){
+ if(!hw.access_code||unlocked)return;
+ const since=new Date(Date.now()-15*60000).toISOString();
+ const fails=await checked(db.from("school_classroom_audit").select("id").eq("school_id",school.id).eq("actor_id",user.id).eq("event","homework.code_failed").eq("resource_id",hw.id).gte("created_at",since).limit(20));
+ if(fails.length>=8)throw new ApiError(429,"Too many wrong codes. Wait 15 minutes and ask your teacher for the code.");
+ const a=createHash("sha256").update(String(given||"").trim()).digest(),b=createHash("sha256").update(hw.access_code).digest();
+ if(!given||!timingSafeEqual(a,b)){
+  await checked(db.from("school_classroom_audit").insert({school_id:school.id,actor_id:user.id,event:"homework.code_failed",resource_id:hw.id}));
+  throw new ApiError(423,given?"That access code is not correct":"This quiz is locked. Enter the access code your teacher gave you.");
+ }
+}
 const audit=(db,school,actor,event,id)=>checked(db.from("school_classroom_audit").insert({school_id:school.id,actor_id:actor,event,resource_id:id}));
 
 export async function GET(request,{params}){
@@ -45,11 +58,17 @@ export async function GET(request,{params}){
    const st=await studentContext(db,school,user);
    if(!st)throw new ApiError(403,"Student access is not approved");
    const id=requiredSchoolId(homeworkId,"homework");
-   const hw=await checked(db.from("school_homework").select("id,title,instructions,objectives,due_at,release_at,late_policy,time_limit_minutes,status,class_id,subject_id").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
+   const hw=await checked(db.from("school_homework").select("id,title,instructions,objectives,due_at,release_at,late_policy,time_limit_minutes,status,class_id,subject_id,access_code").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
    if(!hw||(hw.release_at&&new Date(hw.release_at)>new Date()))throw new ApiError(404,"Homework not found");
-   const qs=await questionsOf(db,school,id);
    const sub=await checked(db.from("school_homework_submissions").select("answers,submitted_at,is_late,score,max_score,feedback,graded_at,released_at").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
    const draft=sub?null:await checked(db.from("school_homework_drafts").select("answers,updated_at,started_at").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
+   if(hw.access_code&&!sub&&!draft&&!url.searchParams.get("accessCode")){
+    const {access_code,...open}=hw;
+    return Response.json({homework:open,locked:true,questions:[],draft:{},startedAt:null,serverNow:new Date().toISOString(),submission:null},{headers:noStore});
+   }
+   await checkAccessCode(db,school,user,hw,url.searchParams.get("accessCode"),!!(sub||draft));
+   delete hw.access_code;
+   const qs=await questionsOf(db,school,id);
    const released=!!sub?.released_at;
    return Response.json({homework:hw,questions:qs.map(publicQuestion),
     draft:draft?.answers||{},startedAt:draft?.started_at||null,serverNow:new Date().toISOString(),
@@ -83,10 +102,14 @@ export async function POST(request,{params}){
    const st=await studentContext(db,school,user);
    if(!st)throw new ApiError(403,"Student access is not approved");
    const id=requiredSchoolId(body.homeworkId,"homework");
-   const hw=await checked(db.from("school_homework").select("id,due_at,release_at,late_policy,time_limit_minutes,status,class_id").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
+   const hw=await checked(db.from("school_homework").select("id,due_at,release_at,late_policy,time_limit_minutes,status,class_id,access_code").eq("school_id",school.id).eq("id",id).eq("class_id",st.classId).eq("status","published").maybeSingle());
    if(!hw||(hw.release_at&&new Date(hw.release_at)>new Date()))throw new ApiError(404,"Homework not found");
    const existing=await checked(db.from("school_homework_submissions").select("id").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
    if(existing)throw new ApiError(409,"You have already submitted this homework");
+   if(hw.access_code){
+    const hasDraft=await checked(db.from("school_homework_drafts").select("homework_id").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
+    await checkAccessCode(db,school,user,hw,body.accessCode,!!hasDraft);
+   }
    const late=Date.now()>new Date(hw.due_at).getTime();
    if(late&&hw.late_policy==="reject")throw new ApiError(403,"The deadline has passed and this homework no longer accepts answers");
    const qs=await questionsOf(db,school,id);
@@ -96,8 +119,10 @@ export async function POST(request,{params}){
    const startedAt=dr?.started_at||null;
    const overtime=Boolean(lim&&startedAt&&Date.now()>new Date(startedAt).getTime()+lim+30000);
    if(action==="start"){
-    if(lim&&!startedAt){
-     const s=await db.from("school_homework_drafts").upsert({school_id:school.id,homework_id:id,student_id:st.studentId,answers:{},started_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+    const needDraft=lim?!startedAt:!!hw.access_code;
+    if(needDraft){
+     const exists=lim?null:await checked(db.from("school_homework_drafts").select("homework_id").eq("school_id",school.id).eq("homework_id",id).eq("student_id",st.studentId).maybeSingle());
+     const s=exists?{}:await db.from("school_homework_drafts").upsert({school_id:school.id,homework_id:id,student_id:st.studentId,answers:{},started_at:lim?new Date().toISOString():null,updated_at:new Date().toISOString()});
      if(s.error)throw new ApiError(400,"The quiz could not be started");
     }
     return Response.json({ok:true,result:{started:true}},{headers:noStore});
