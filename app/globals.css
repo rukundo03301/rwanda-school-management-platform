@@ -1222,6 +1222,7 @@ body:has(.school-role-landing),body:has(.adm-family){
 .training-secret label{display:grid;gap:6px;width:min(100%,460px);font-weight:700;font-size:12px}
 .training-secret input{width:100%}
 .rem-resource-toolbar{display:flex;max-width:1200px;margin:0 auto 15px;gap:15px;flex-wrap:wrap}
+.rem-resource-toolbar{align-items:flex-end}.rem-resource-card form,.rem-resources form.rem-resource-card{display:grid;gap:10px}.rem-resources form.rem-resource-card label{display:grid;gap:4px;font-weight:600;color:#20314a}.rem-resources form.rem-resource-card textarea{min-height:70px}
 .rem-resource-toolbar label{display:grid;gap:6px;color:#254a7e;font-size:12px;font-weight:800}
 .rem-resource-toolbar select{min-height:44px;min-width:190px;border:1px solid #cbdcf4;border-radius:10px;padding:9px 12px;background:#fff;color:#20314a}
 .rem-resource-banner{max-width:1200px;margin:0 auto 22px;border:1px solid #ffdfad;padding:13px;border-radius:12px;background:#fff9ec;font-size:12px}
