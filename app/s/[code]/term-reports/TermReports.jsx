@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 import {TEMPLATE_LABEL,NURSERY_AREAS,NURSERY_DESCRIPTORS,COMPETENCE,cleanContent,contentProblems} from "../../../../lib/report-templates.mjs";
 import TermReportView from "../../../ui/TermReportView.jsx";
@@ -41,7 +42,9 @@ function ReportForm({level,content,setContent}){
 export default function TermReports({code}){
  const [data,setData]=useState(null),[error,setError]=useState(""),[note,setNote]=useState(""),[busy,setBusy]=useState(false);
  // Links from notifications: ?tab=queue&report=… or ?tab=write&class=…&term=…&student=…
- const deep=useRef(typeof window==="undefined"?{}:Object.fromEntries(new URLSearchParams(location.search)));
+ // Read from the router (not location) so links opened inside the app are seen on the first render.
+ const qs=useSearchParams().toString(),deep=useRef(null),seen=useRef(null);
+ if(seen.current!==qs){seen.current=qs;deep.current=Object.fromEntries(new URLSearchParams(qs));}
  const [tab,setTab]=useState(""),[classId,setClassId]=useState(deep.current.class||""),[term,setTerm]=useState(()=>[1,2,3].includes(Number(deep.current.term))?Number(deep.current.term):1),[open,setOpen]=useState(null);
  const [content,setContent]=useState(null),[comment,setComment]=useState(""),[filter,setFilter]=useState("submitted"),[stepText,setStepText]=useState({});
  const call=useCallback(async(body,query="")=>{
@@ -59,6 +62,9 @@ export default function TermReports({code}){
    if(!classId&&d.classes[0])setClassId(d.classes[0].id);}catch(e){setError(e.message);}
  },[call,classId,term]);
  useEffect(()=>{load();},[load]);
+ useEffect(()=>{const d=deep.current;if(!data)return;const ok={write:data.me.teacher,queue:data.me.perms.length>0,roles:data.me.owner};
+  if(d.tab&&ok[d.tab])setTab(d.tab);if(d.class&&d.class!==classId)setClassId(d.class);if([1,2,3].includes(Number(d.term)))setTerm(Number(d.term));
+  if(d.report){const q=(data.queue||[]).find(x=>x.id===d.report);if(q)setFilter(q.status);}},[qs]);
  useEffect(()=>{if(!note)return;const t=setTimeout(()=>setNote(""),8000);return()=>clearTimeout(t);},[note]);
  useEffect(()=>{if(open)setTimeout(()=>document.getElementById("tr-form")?.scrollIntoView({behavior:"smooth",block:"start"}),50);},[open]);
  const act=async(body,done)=>{setBusy(true);setNote("");try{await call(body);setNote(done);await load();return true;}catch(e){setNote(e.message);return false;}finally{setBusy(false);}};
