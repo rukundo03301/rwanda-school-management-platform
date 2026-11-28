@@ -67,7 +67,8 @@ export default function TermReports({code}){
   if(d.report){const q=(data.queue||[]).find(x=>x.id===d.report);if(q)setFilter(q.status);}},[qs]);
  useEffect(()=>{if(!note)return;const t=setTimeout(()=>setNote(""),8000);return()=>clearTimeout(t);},[note]);
  useEffect(()=>{if(open)setTimeout(()=>document.getElementById("tr-form")?.scrollIntoView({behavior:"smooth",block:"start"}),50);},[open]);
- const act=async(body,done)=>{setBusy(true);setNote("");try{await call(body);setNote(done);await load();return true;}catch(e){setNote(e.message);return false;}finally{setBusy(false);}};
+ // After a step succeeds its comment box is cleared, so the text is never reused for the next step.
+ const act=async(body,done)=>{setBusy(true);setNote("");try{await call(body);setNote(done);if(body.reportId)setStepText(t=>({...t,[body.reportId]:""}));await load();return true;}catch(e){setNote(e.message);return false;}finally{setBusy(false);}};
  if(error)return <main className="rem-resources"><section className="rem-resource-card" role="alert">{error}<p><button type="button" className="button" onClick={()=>{setError("");load();}}>Try again</button></p></section></main>;
  if(!data)return <main className="rem-resources"><p>Opening term reports…</p></main>;
  const cv=data.classView,level=cv?.level;
