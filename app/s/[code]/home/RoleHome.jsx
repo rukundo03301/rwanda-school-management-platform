@@ -71,6 +71,7 @@ export default function RoleHome({code}){
   ...(manager?[{label:"Board of Directors",icon:"building",active:cur==="board",onClick:goto("board")}]:[]),
   ...(manager?[{label:"Students & Admissions",icon:"users",href:"/s/"+code+"/admissions"},
    {label:"Classes & Teachers",icon:"book",href:"/s/"+code+"/classroom"},
+   {label:"Courses",icon:"book",href:"/s/"+code+"/courses"},
    {label:"Reports & Curriculum",icon:"chart",href:"/s/"+code+"/reports"},
    {label:"Term Reports",icon:"file",href:"/s/"+code+"/term-reports"},
    ...((d.access.levels||[]).includes("nursery")?[{label:"Early Years Observations",icon:"users",href:"/s/"+code+"/nursery"}]:[])]:[]),
