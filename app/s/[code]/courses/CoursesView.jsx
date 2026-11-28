@@ -40,8 +40,9 @@ export default function CoursesView({code}){
   :<CourseList code={code} call={call} go={go}/>;
 }
 
-function CourseList({call,go}){
- const [data,setData]=useState(null),[err,setErr]=useState(""),[q,setQ]=useState(""),[lens,setLens]=useState("all"),[sort,setSort]=useState("name");
+const BAND={nursery:"Nursery",primary:"Primary",secondary:"Secondary",tvet:"TVET",university:"University"};
+function CourseList({code,call,go}){
+ const [data,setData]=useState(null),[err,setErr]=useState(""),[q,setQ]=useState(""),[lens,setLens]=useState("all"),[sort,setSort]=useState("name"),[band,setBand]=useState("all");
  useEffect(()=>{call("").then(setData).catch(e=>setErr(e.message));},[call]);
  const lenses=useMemo(()=>{
   if(!data)return [];
@@ -52,18 +53,22 @@ function CourseList({call,go}){
  },[data]);
  if(err)return <section className="ds-panel"><p role="alert">{err}</p></section>;
  if(!data)return <section className="ds-panel"><p>Loading courses…</p></section>;
- let list=data.courses.filter(c=>lens==="all"||c.lens.includes(lens));
+ const bands=Object.keys(BAND).filter(b=>data.courses.some(c=>c.levelBand===b));
+ let list=data.courses.filter(c=>(lens==="all"||c.lens.includes(lens))&&(band==="all"||c.levelBand===band));
  if(q.trim()){const t=q.trim().toLowerCase();list=list.filter(c=>(c.subject+" "+c.className+" "+(c.subjectCode||"")).toLowerCase().includes(t));}
  if(sort==="due")list=[...list].sort((a,b)=>(a.nextDue?new Date(a.nextDue):Infinity)-(b.nextDue?new Date(b.nextDue):Infinity));
  if(sort==="progress")list=[...list].sort((a,b)=>(a.progress[0]?.percent??101)-(b.progress[0]?.percent??101));
  return <div className="cr-wrap">
-  <header className="cr-head"><div><h2>My Courses</h2><small>{data.year?"Academic year "+data.year+" · ":""}{data.courses.length} course{data.courses.length===1?"":"s"}</small></div></header>
+  <header className="cr-head"><div><h2>{data.canManage?"Courses":"My Courses"}</h2><small>{data.year?"Academic year "+data.year+" · ":""}{data.courses.length} course{data.courses.length===1?"":"s"}. A course is one subject taught to one class.</small></div>
+   {data.canManage&&<div className="cr-headbtns"><a className="button" href={"/s/"+code+"/settings?section=courses"}>Set up courses</a><a className="button secondary" href={"/s/"+code+"/settings?section=teachers"}>Assign teachers</a></div>}</header>
+  {bands.length>1&&<div className="cr-bands" role="tablist" aria-label="Level">{[["all","All levels"],...bands.map(b=>[b,BAND[b]])].map(([k,l])=>
+   <button key={k} role="tab" aria-selected={band===k} className={band===k?"on":""} onClick={()=>setBand(k)}>{l} <small>{k==="all"?data.courses.length:data.courses.filter(c=>c.levelBand===k).length}</small></button>)}</div>}
   <div className="cr-tools">
    <input className="input" aria-label="Search courses" placeholder="Search courses" value={q} onChange={e=>setQ(e.target.value)}/>
    <select className="input" aria-label="Show" value={lens} onChange={e=>setLens(e.target.value)}>{lenses.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
    <select className="input" aria-label="Sort" value={sort} onChange={e=>setSort(e.target.value)}><option value="name">Sort by course name</option><option value="due">Sort by next due date</option><option value="progress">Sort by least complete</option></select>
   </div>
-  {!list.length&&<section className="ds-panel"><p>{data.courses.length?"No course matches your search.":"No courses yet. Courses appear when the school links subjects to your class or assigns you to teach them."}</p></section>}
+  {!list.length&&<section className="ds-panel"><p>{data.courses.length?"No course matches your search.":data.canManage?"No courses yet. Open Set up courses to choose the subjects each class studies.":"No courses yet. Courses appear when the school links subjects to your class or assigns you to teach them."}</p></section>}
   <div className="cr-grid">{list.map(c=>{
    const kids=c.progress.length?c.progress:[null];
    return kids.map(p=><button key={c.classId+c.subjectId+(p?.studentId||"")} className="cr-card" onClick={()=>go({class:c.classId,subject:c.subjectId,student:p?.name?p.studentId:""})}>

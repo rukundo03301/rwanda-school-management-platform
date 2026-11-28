@@ -78,3 +78,11 @@ button.cr-chip.done{cursor:pointer}button.cr-chip:disabled{cursor:default}
 .cr-scroll{overflow-x:auto}
 .cr-scroll .cr-table td,.cr-scroll .cr-table th{white-space:nowrap}
 @media (max-width:860px){.cr-body{grid-template-columns:1fr}.cr-index{position:static;max-height:none}.cr-headprog{text-align:left}}
+.cr-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.cr-headbtns{display:flex;gap:8px;flex-wrap:wrap}
+.cr-bands{display:flex;gap:6px;flex-wrap:wrap}
+.cr-bands button{all:unset;cursor:pointer;padding:8px 16px;border-radius:99px;background:#fff;box-shadow:0 2px 8px rgba(10,44,128,.08);font-weight:700;color:var(--ds-ink,#142447)}
+.cr-bands button small{color:var(--ds-muted,#5d6b8a);font-weight:600;margin-left:4px}
+.cr-bands button.on{background:var(--ds-blue,#1b4fd8);color:#fff}
+.cr-bands button.on small{color:#dbe5ff}
+.cr-bands button:focus-visible{outline:2px solid var(--ds-blue,#1b4fd8)}
