@@ -189,7 +189,7 @@ export default function StudentLearning({code}){
    <Card title="Homework Progress" icon="check" size="s4">
     <h4 className="ds-sec">To do ({pending.length})</h4>
     {pending.length?<ul className="ds-list">{pending.slice(0,6).map(h=><Item key={h.id} onClick={()=>setTab("homework")}>
-     <span className="ds-ico purple"><Icon name="check"/></span><div><strong>{h.title}</strong><small>{subjectName(h.subject_id)} · Due {fmt(h.due_at)}</small></div></Item>)}</ul>
+     <span className="ds-ico purple"><Icon name="check"/></span><div><strong>{h.title}</strong><small>{subjectName(h.subject_id)} · Due {fmt(h.due_at)}{h.due_at&&new Date(h.due_at)<new Date()?<b style={{color:"#c0392b"}}> · overdue</b>:null}</small></div></Item>)}</ul>
      :<p className="ds-empty">Nothing to do.</p>}
     <h4 className="ds-sec">On review ({onReview.length})</h4>
     {onReview.length?<ul className="ds-list">{onReview.slice(0,4).map(x=><Item key={x.homework_id} onClick={()=>setTab("homework")}>
