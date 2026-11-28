@@ -47,7 +47,7 @@ export default function Operations({code}){
 
  async function act(body,message){
   setBusy(true);setError("");setNotice("");
-  try{await call(client,body);setNotice(message);setForm({});await refresh(client);}
+  try{const j=await call(client,body);setNotice(typeof message==="function"?message(j.result||{}):message);setForm({});await refresh(client);}
   catch(e){setError(e.message);}
   finally{setBusy(false);}
  }
@@ -125,14 +125,19 @@ export default function Operations({code}){
   {tab==="assets"&&office&&<section className="adm-panel"><h2>School assets</h2>
    <p className="muted">Furniture, computers, kitchen and sports equipment, with where each is kept and its condition.</p>
    {a.manager&&<div style={GRID}>
-    <label>Asset code<input value={val("assetCode")} onChange={set("assetCode")} maxLength={30} placeholder="RPS-AST-001"/></label>
-    <label>Name<input value={val("name")} onChange={set("name")} maxLength={120} placeholder="Pupil desks"/></label>
     <label>Category<select value={val("category")||"furniture"} onChange={set("category")}>{data.options.asset.map(p=><option key={p} value={p}>{nice(p)}</option>)}</select></label>
-    <label>Location<input value={val("location")} onChange={set("location")} maxLength={120}/></label>
+    <label>Name<input value={val("name")} onChange={set("name")} maxLength={120} placeholder="Pupil desk"/></label>
+    <label>How many<input type="number" min="1" max="200" value={val("quantity")||"1"} onChange={set("quantity")}/></label>
+    <label>Location<input value={val("location")} onChange={set("location")} maxLength={120} placeholder="Primary 4 classroom"/></label>
     <label>Date acquired<input type="date" value={val("acquiredOn")} onChange={set("acquiredOn")}/></label>
-    <label>Value (RWF)<input type="number" min="0" value={val("valueRwf")} onChange={set("valueRwf")}/></label>
-    <button type="button" className="button small" disabled={busy} onClick={()=>act({action:"asset.add",assetCode:val("assetCode"),name:val("name"),category:val("category")||"furniture",location:val("location"),acquiredOn:val("acquiredOn"),valueRwf:val("valueRwf"),condition:"good"},"Asset added.")}>Add asset</button>
+    <label>Value of one (RWF)<input type="number" min="0" value={val("valueRwf")} onChange={set("valueRwf")}/></label>
+    <div style={{fontSize:13}}><span className="micro">Code (made automatically)</span><br/><strong>{(()=>{const c=data.nextAssetCode?.[val("category")||"furniture"]||"";const n=Math.max(1,Math.min(200,Number(val("quantity")||1)));if(!c||n===1)return c;const [p,num]=c.split("-");return c+" to "+p+"-"+String(Number(num)+n-1).padStart(4,"0");})()}</strong></div>
+    <button type="button" className="button small" disabled={busy||String(val("name")).trim().length<2} onClick={()=>act({action:"asset.add",name:val("name"),category:val("category")||"furniture",quantity:Number(val("quantity")||1),location:val("location"),acquiredOn:val("acquiredOn"),valueRwf:val("valueRwf"),condition:"good"},r=>r.count>1?r.count+" assets added, codes "+r.first+" to "+r.last+".":"Asset "+r.first+" added.")}>Add to register</button>
    </div>}
+   {data.assets.length>0&&(()=>{const g={};for(const x of data.assets){const k=x.category+"|"+x.name;(g[k]||(g[k]={name:x.name,category:x.category,n:0,repair:0,value:0})).n++;if(x.condition==="needs_repair"||x.condition==="out_of_service")g[k].repair++;g[k].value+=Number(x.value_rwf||0);}
+    const rows=Object.values(g).sort((a,b)=>b.n-a.n);
+    return <><h3>Count by item</h3><div style={{overflowX:"auto"}}><table style={TABLE}><thead><tr><th style={CELL}>Item</th><th style={CELL}>Category</th><th style={CELL}>How many</th><th style={CELL}>Need repair</th><th style={CELL}>Total value</th></tr></thead>
+     <tbody>{rows.map(r=><tr key={r.category+r.name}><td style={CELL}><strong>{r.name}</strong></td><td style={CELL}>{nice(r.category)}</td><td style={CELL}>{r.n}</td><td style={CELL}>{r.repair||"None"}</td><td style={CELL}>{r.value?r.value.toLocaleString()+" RWF":"Not recorded"}</td></tr>)}</tbody></table></div><h3>Every item</h3></>;})()}
    {data.assets.length?<div style={{overflowX:"auto"}}><table style={TABLE}><thead><tr><th style={CELL}>Code</th><th style={CELL}>Asset</th><th style={CELL}>Location</th><th style={CELL}>Value</th><th style={CELL}>Condition</th></tr></thead>
     <tbody>{data.assets.map(x=><tr key={x.id}><td style={CELL}>{x.asset_code}</td><td style={CELL}><strong>{x.name}</strong><br/><span className="micro">{nice(x.category)}</span></td><td style={CELL}>{x.location||"Not stated"}</td>
      <td style={CELL}>{x.value_rwf!=null?Number(x.value_rwf).toLocaleString()+" RWF":"Not recorded"}</td>
