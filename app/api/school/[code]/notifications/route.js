@@ -101,7 +101,7 @@ export async function GET(request,{params}){
      .eq("school_id",school.id).in("homework_id",hw.map(h=>h.id)).in("student_id",learners).limit(600))).map(s=>s.homework_id+"#"+s.student_id)):new Set();
     const home=ctx.parent?"family":"learning";
     for(const sid of learners)for(const h of hw.filter(h=>h.class_id===classOf.get(sid)&&!done.has(h.id+"#"+sid)).slice(0,5))
-     add("hw:"+h.id+":"+sid,"Homework due "+new Date(h.due_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"Africa/Kigali"}),
+     add("hw:"+h.id+":"+sid,new Date(h.due_at)<new Date()?"Homework overdue":"Homework due "+new Date(h.due_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"Africa/Kigali"}),
       (ctx.parent?(names.get(sid)||"Child")+" · ":"")+h.title,base+home+"?tab=homework&homework="+h.id,h.published_at||h.due_at,"purple");
    }
   }
