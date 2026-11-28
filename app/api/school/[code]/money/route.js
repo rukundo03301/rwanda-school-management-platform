@@ -43,7 +43,7 @@ export async function GET(request,{params}){
    staffList(db,school)
   ]);
   const runIds=runs.map(r=>r.id);
-  const lines=runIds.length?await checked(db.from("school_payroll_lines").select("id,run_id,auth_user_id,name,job_title,base_rwf,bonus_rwf,deductions_rwf,net_rwf,note").eq("school_id",school.id).in("run_id",runIds).limit(10000)):[];
+  const lines=runIds.length?await checked(db.from("school_payroll_lines").select("id,run_id,auth_user_id,name,job_title,base_rwf,bonus_rwf,deductions_rwf,net_rwf,note,checked_by,checked_at").eq("school_id",school.id).in("run_id",runIds).limit(10000)):[];
   // Profit and loss on a cash basis: fees actually received, minus approved expenses and paid salaries.
   const months=[];
   for(let d=new Date(from.slice(0,7)+"-01T00:00:00Z");d<=new Date(to+"T00:00:00Z");d.setUTCMonth(d.getUTCMonth()+1))months.push(d.toISOString().slice(0,7));
@@ -65,7 +65,7 @@ export async function GET(request,{params}){
    pnl,totals,
    expenses:expenses.map(e=>({...e,recordedByName:names.get(e.recorded_by)||""})),
    staff:people.map(s=>({...s,pay:payBy.get(s.id)||null})).sort((a,b)=>a.name.localeCompare(b.name)),
-   payroll:runs.map(r=>({...r,lines:lines.filter(l=>l.run_id===r.id).sort((a,b)=>a.name.localeCompare(b.name))})),
+   payroll:runs.map(r=>({...r,lines:lines.filter(l=>l.run_id===r.id).map(l=>({...l,checkedByName:l.checked_by?(names.get(l.checked_by)||"School owner"):""})).sort((a,b)=>a.name.localeCompare(b.name))})),
    pendingExpenses:expenses.filter(e=>e.status==="pending").length,
    monthlyPayroll:pay.filter(x=>x.active).reduce((a,x)=>a+Number(x.monthly_salary_rwf),0)
   },{headers:noStore});
@@ -139,12 +139,27 @@ export async function POST(request,{params}){
    const run=await loadRun(line.run_id);if(run.status!=="draft")throw new ApiError(409,"An approved payroll cannot be changed");
    const bonus=rwf(body.bonus||0,"the bonus",{min:0,max:1e10}),ded=rwf(body.deductions||0,"the deductions",{min:0,max:1e10});
    const net=Number(line.base_rwf)+bonus-ded;if(net<0)throw new ApiError(400,"Deductions cannot be more than the salary and bonus");
-   const up=await db.from("school_payroll_lines").update({bonus_rwf:bonus,deductions_rwf:ded,net_rwf:net,note:text(body.note||"",300,0,"note")}).eq("school_id",school.id).eq("id",line.id);
+   const up=await db.from("school_payroll_lines").update({bonus_rwf:bonus,deductions_rwf:ded,net_rwf:net,note:text(body.note||"",300,0,"note"),checked_by:null,checked_at:null}).eq("school_id",school.id).eq("id",line.id);
    if(up.error)throw new ApiError(400,"Could not save");
    result={net,total:await retotal(run.id)};
+  }else if(action==="payroll.check"){
+   recorder();
+   const line=await checked(db.from("school_payroll_lines").select("id,run_id,base_rwf,bonus_rwf,deductions_rwf,net_rwf").eq("school_id",school.id).eq("id",validateUuid(body.lineId,"payroll line")).maybeSingle());
+   if(!line)throw new ApiError(404,"Payroll line not found");
+   const run=await loadRun(line.run_id);if(run.status!=="draft")throw new ApiError(409,"An approved payroll cannot be changed");
+   if(Number(line.base_rwf)+Number(line.bonus_rwf)-Number(line.deductions_rwf)!==Number(line.net_rwf))throw new ApiError(409,"This line does not add up. Open it with Change and save it again.");
+   const ok=body.checked!==false;
+   const up=await db.from("school_payroll_lines").update(ok?{checked_by:user.id,checked_at:new Date().toISOString()}:{checked_by:null,checked_at:null}).eq("school_id",school.id).eq("id",line.id);
+   if(up.error)throw new ApiError(400,"Could not save the check");
+   result={id:line.id,checked:ok};
   }else if(action==="payroll.approve"){
    ownerOnly();
    const run=await loadRun(body.runId);if(run.status!=="draft")throw new ApiError(409,"Only a prepared payroll can be approved");
+   const all=await checked(db.from("school_payroll_lines").select("checked_at,base_rwf,bonus_rwf,deductions_rwf,net_rwf").eq("school_id",school.id).eq("run_id",run.id));
+   if(!all.length)throw new ApiError(409,"This payroll has nobody on it");
+   const unchecked=all.filter(l=>!l.checked_at).length;
+   if(unchecked)throw new ApiError(409,unchecked+(unchecked===1?" salary has":" salaries have")+" not been checked yet. Tick Checked on every line first.");
+   if(all.some(l=>Number(l.base_rwf)+Number(l.bonus_rwf)-Number(l.deductions_rwf)!==Number(l.net_rwf)))throw new ApiError(409,"A salary line does not add up. Change and save it again.");
    const total=await retotal(run.id);
    const up=await db.from("school_payroll_runs").update({status:"approved",approved_by:user.id,approved_at:new Date().toISOString()}).eq("school_id",school.id).eq("id",run.id).eq("status","draft");
    if(up.error)throw new ApiError(400,"Could not approve");
