@@ -44,6 +44,19 @@ export async function POST(request,{params}){
     }
     if(invited)throw new ApiError(403,"Claim your school owner invitation first");
 
+    if(action==="saveLevels"){
+      // Owner changes only the levels the school offers (nursery to university) from School Settings.
+      const levels=body.educationLevels;
+      const allowed=["nursery","primary","secondary","tvet","university"];
+      if(!Array.isArray(levels)||!levels.length||levels.length>5||levels.some(l=>!allowed.includes(l)))
+        throw new ApiError(400,"Choose at least one education level");
+      const uniq=allowed.filter(l=>levels.includes(l));
+      const upd=await checked(db.from("school_onboarding").update({education_levels:uniq,school_type:uniq.length===1?uniq[0]:"mixed",
+        updated_by:user.id,updated_at:new Date().toISOString()}).eq("school_id",school.id).select("school_id"));
+      if(!upd.length)throw new ApiError(409,"Finish the first school setup step before changing levels");
+      await audit(db,{id:user.id},"school.levels_updated",school.id,{levels:uniq});
+      return Response.json({ok:true,result:{levels:uniq}});
+    }
     if(action==="saveProfile"){
       const levels=body.educationLevels;
       const allowed=["nursery","primary","secondary","tvet","university"];
