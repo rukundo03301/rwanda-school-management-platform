@@ -80,14 +80,15 @@
 .ds-pill.bad{background:#ffe0de;color:#c0332a}.ds-pill.info{background:#dfe9ff;color:#1b4fd8}
 .ds-table{width:100%;border-collapse:collapse;font-size:14px}
 .ds-table th{background:#f0f4fc;text-align:left;padding:8px 10px;font-size:12px;color:var(--ds-muted)}
-.ds-table td{padding:9px 10px;border-bottom:1px solid var(--ds-line)}
+.ds-table td{padding:9px 10px;border-bottom:1px solid var(--ds-line);overflow-wrap:anywhere}
+.ds-table td:last-child{white-space:nowrap}
 .ds-actions{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .ds-action{display:flex;align-items:center;gap:10px;justify-content:center;padding:16px;border-radius:14px;font-weight:600;text-decoration:none;color:var(--ds-ink);border:0;cursor:pointer;font:inherit;font-weight:600}
 .ds-action.blue{background:#e3ecff}.ds-action.green{background:#e0f5e7}.ds-action.purple{background:#ece6ff}.ds-action.orange{background:#fff0dc}
 .ds-empty{color:var(--ds-muted);font-size:14px;padding:8px 2px;margin:0}
 .ds-panel{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 18px rgba(10,44,128,.07);margin-bottom:14px}
 .ds-foot{color:var(--ds-muted);font-size:12px;text-align:center;margin-top:20px}
-.ds-span8{grid-column:span 8}.ds-span4{grid-column:span 4}
+.ds-span8{grid-column:span 8;min-width:0}.ds-span4{grid-column:span 4;min-width:0}
 @media(max-width:1100px){.ds-card,.ds-card.s3,.ds-card.s5,.ds-card.s6,.ds-card.s8{grid-column:span 6}.ds-span8,.ds-span4{grid-column:span 12}}
 @media(max-width:860px){
   .ds-app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}
@@ -134,3 +135,20 @@
 .pf-body .scom-side button,.pf-body .fee-sidebar button,.pf-body .repm-side button,.pf-body .adm-side button,.pf-body .school-admin-sidebar button{width:auto!important;flex:0 0 auto;display:inline-flex!important;align-items:center;gap:6px;margin:0!important;padding:8px 14px!important;border:0!important;border-radius:999px!important;background:#eef3fb!important;color:#243b63!important;font-weight:600;font-size:13px;cursor:pointer;opacity:1!important}
 .pf-body .scom-side button.active,.pf-body .scom-side button.selected,.pf-body .fee-sidebar button.active,.pf-body .fee-sidebar button.selected,.pf-body .repm-side button.active,.pf-body .repm-side button.selected,.pf-body .adm-side button.active,.pf-body .adm-side button.selected,.pf-body .school-admin-sidebar button.active,.pf-body .school-admin-sidebar button.selected{background:#2f6fe4!important;color:#fff!important}
 .pf-body .scom-side,.pf-body .fee-sidebar,.pf-body .repm-side,.pf-body .adm-side,.pf-body .school-admin-sidebar{flex-direction:row!important;align-items:center!important;align-content:flex-start}
+
+/* Anything that opens a page looks and behaves like a link. */
+.ds-go{cursor:pointer;text-decoration:none;color:inherit;font:inherit;text-align:left;border:0;width:100%;transition:transform .12s,box-shadow .12s}
+.ds-go:hover,.ds-go:focus-visible{transform:translateY(-1px);box-shadow:0 8px 22px rgba(10,44,128,.14);outline:none}
+.ds-go:focus-visible{box-shadow:0 0 0 3px #9db8ff}
+li>.ds-item.ds-go{display:flex}
+.ds-bellwrap{position:relative}
+.ds-notes{position:absolute;right:0;top:calc(100% + 8px);width:360px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto;background:#fff;color:var(--ds-ink);border-radius:14px;box-shadow:0 16px 40px rgba(10,44,128,.25);z-index:30;padding:8px}
+.ds-notes header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px}
+.ds-notes header button{background:transparent;border:0;color:var(--ds-blue);font-weight:600;cursor:pointer;font:inherit}
+.ds-notes ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ds-notes a{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;text-decoration:none;color:inherit}
+.ds-notes a:hover,.ds-notes a:focus-visible{background:var(--ds-bg);outline:none}
+.ds-notes .ds-ico{width:32px;height:32px}
+.ds-notes strong{display:block;font-size:14px}.ds-notes small{display:block;color:var(--ds-muted);font-size:12px;overflow-wrap:anywhere}
+.ds-notes em{display:block;font-style:normal;color:var(--ds-muted);font-size:11px;margin-top:2px}
+.ds-ringlink{width:auto;background:transparent;border-radius:50%;padding:0;display:inline-grid}
