@@ -94,6 +94,7 @@ export default function StudentLearning({code}){
  const wdMap={Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7};
  const today=wdMap[new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:"Africa/Kigali"}).format(new Date())];
  const classIds=activeClass?[activeClass.id]:[];
+ const courseHref=sid=>activeClass?"/s/"+code+"/courses?class="+activeClass.id+"&subject="+sid:"/s/"+code+"/courses";
  const periods=(com?.timetable||[]).filter(x=>!classIds.length||classIds.includes(x.class_id));
  const todayPeriods=periods.filter(x=>x.weekday===today);
  const events=(com?.events||[]).filter(e=>new Date(e.ends_at)>=new Date()).slice(0,4);
@@ -167,8 +168,8 @@ export default function StudentLearning({code}){
      </Card>
     </div>
     <div className="ds-grid" style={{margin:0}}>
-     <Card title="My Subjects" icon="book" size="s4" link={<button className="ds-link" onClick={()=>setTab("subjects")}>View All →</button>}>
-      {subjects.length?<ul className="ds-list">{subjects.slice(0,5).map((x,i)=><Item key={x.id} onClick={()=>setTab("subjects")}>
+     <Card title="My Courses" icon="book" size="s4" link={<a className="ds-link" href={"/s/"+code+"/courses"}>All courses →</a>}>
+      {subjects.length?<ul className="ds-list">{subjects.slice(0,5).map((x,i)=><Item key={x.id} href={courseHref(x.id)}>
        <span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{x.name}</strong><small>{x.code}</small></div></Item>)}</ul>
        :<p className="ds-empty">Your school has not assigned subjects to your class yet.</p>}
      </Card>
@@ -243,7 +244,7 @@ export default function StudentLearning({code}){
     <a className="ds-action green" href={"/s/"+code+"/portal?role=student"}><Icon name="home"/>School portal</a></div>
   </section>}
   {tab==="subjects"&&<section className="ds-panel"><h3>My class and subjects</h3>
-   {subjects.length?<ul className="ds-list">{subjects.map((s,i)=><Item key={s.id} onClick={()=>setTab("subjects")}><span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{s.name}</strong><small>{s.code}</small></div></Item>)}</ul>
+   {subjects.length?<ul className="ds-list">{subjects.map((s,i)=><Item key={s.id} href={courseHref(s.id)}><span className={"ds-ico "+tones[i%tones.length]}><Icon name="book"/></span><div><strong>{s.name}</strong><small>{s.code}</small></div></Item>)}</ul>
     :<p className="ds-empty">Your school has not assigned subjects to your current class yet.</p>}</section>}
   {tab==="homework"&&taking&&<AssignmentTaker code={code} homeworkId={taking} onDone={reload} onClose={()=>setTaking(null)}/>}
   {tab==="homework"&&!taking&&<section className="ds-panel"><h3>Published homework{search&&" matching “"+search+"”"}</h3>

@@ -45,25 +45,32 @@ export function QuestionInput({q,value,onChange,disabled}){
 const fmt=d=>new Date(d).toLocaleString("en-RW",{timeZone:"Africa/Kigali"});
 export default function AssignmentTaker({code,homeworkId,onDone,onClose}){
  const [data,setData]=useState(null),[answers,setAnswers]=useState({}),[err,setErr]=useState(""),[msg,setMsg]=useState(""),[busy,setBusy]=useState(false);
- const [endsAt,setEndsAt]=useState(null),[left,setLeft]=useState(null);
+ const [endsAt,setEndsAt]=useState(null),[left,setLeft]=useState(null),[codeIn,setCodeIn]=useState("");
+ const accessCode=useRef("");
  const call=useCallback(async(body)=>{
   const c=browserSupabase();const {data:{session}}=await c.auth.getSession();
   if(!session)throw Error("Sign in again to continue");
-  const r=await fetch("/api/school/"+code+"/assignments"+(body?"":"?as=student&homeworkId="+homeworkId),{method:body?"POST":"GET",cache:"no-store",
-   headers:{Authorization:"Bearer "+session.access_token,...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{})});
+  const ac=accessCode.current;
+  const r=await fetch("/api/school/"+code+"/assignments"+(body?"":"?as=student&homeworkId="+encodeURIComponent(homeworkId)+(ac?"&accessCode="+encodeURIComponent(ac):"")),{method:body?"POST":"GET",cache:"no-store",
+   headers:{Authorization:"Bearer "+session.access_token,...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(ac?{...body,accessCode:ac}:body)}:{})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw Error(j.error||"Request failed");return j;
  },[code,homeworkId]);
- useEffect(()=>{call().then(j=>{setData(j);setAnswers(j.submission?j.submission.answers:j.draft||{});
+ useEffect(()=>{call().then(j=>{setData(j);if(j.locked)return;setAnswers(j.submission?j.submission.answers:j.draft||{});
   const lim=j.homework.time_limit_minutes;if(lim&&j.startedAt&&!j.submission){const skew=Date.now()-new Date(j.serverNow).getTime();setEndsAt(new Date(j.startedAt).getTime()+lim*60000+skew);}}).catch(e=>setErr(e.message));},[call]);
  useEffect(()=>{if(!endsAt)return;const t=setInterval(()=>setLeft(Math.max(0,Math.round((endsAt-Date.now())/1000))),1000);return ()=>clearInterval(t);},[endsAt]);
  useEffect(()=>{if(left===0&&data&&!data.submission&&!autoSent.current){autoSent.current=true;setBusy(true);call({action:"submit",homeworkId,answers}).then(async()=>{await onDone?.();onClose();}).catch(e=>{setErr(e.message);setBusy(false);});}});
  const autoSent=useRef(false);
+ async function unlock(e){e.preventDefault();const c=codeIn.trim();if(c.length<4){setErr("Enter the full access code");return;}
+  setBusy(true);setErr("");accessCode.current=c;
+  try{await call({action:"start",homeworkId});const j=await call();setData(j);setAnswers(j.draft||{});
+   const lim=j.homework.time_limit_minutes;if(lim&&j.startedAt){const skew=Date.now()-new Date(j.serverNow).getTime();setEndsAt(new Date(j.startedAt).getTime()+lim*60000+skew);}
+  }catch(x){accessCode.current="";setErr(x.message);}finally{setBusy(false);}}
  async function startQuiz(){setBusy(true);setErr("");try{await call({action:"start",homeworkId});const j=await call();setData(j);const skew=Date.now()-new Date(j.serverNow).getTime();setEndsAt(new Date(j.startedAt).getTime()+j.homework.time_limit_minutes*60000+skew);}catch(e){setErr(e.message);}finally{setBusy(false);}}
  const dirty=useRef(false);
  const set=(id,v)=>{dirty.current=true;setAnswers(a=>({...a,[id]:v}));};
  useEffect(()=>{
-  if(!data||data.submission)return;
+  if(!data||data.submission||data.locked)return;
   const t=setInterval(()=>{if(dirty.current){dirty.current=false;call({action:"draft.save",homeworkId,answers}).then(()=>setMsg("Draft saved")).catch(()=>setMsg("Could not save draft. Check your connection."));}},8000);
   return ()=>clearInterval(t);
  },[data,answers,call,homeworkId]);
@@ -92,15 +99,20 @@ export default function AssignmentTaker({code,homeworkId,onDone,onClose}){
    {sub.released&&sub.feedback&&<p style={{marginBottom:0}}><strong>Teacher feedback:</strong> {sub.feedback}</p>}</div>}
   {late&&!sub&&h.late_policy==="reject"&&<div className="notice error">The deadline has passed. This homework no longer accepts answers.</div>}
   {timed&&!sub&&<div className="notice info" role="timer"><strong>Timed quiz: {h.time_limit_minutes} minutes.</strong>{endsAt?" Time left: "+clock+". Your answers are sent automatically when time ends.":" The timer starts when you press Start and cannot be paused."}</div>}
-  {notStarted&&<button className="button" disabled={busy} onClick={startQuiz}>Start quiz</button>}
-  {!notStarted&&<ol style={{paddingLeft:20,display:"grid",gap:18}}>
+  {data.locked&&<form onSubmit={unlock} className="notice info" style={{display:"grid",gap:8,maxWidth:420}} aria-label="Quiz access code">
+   <strong>🔒 This quiz needs an access code</strong>
+   <small>Your teacher gives you the code in class.{timed?" The "+h.time_limit_minutes+" minute timer starts as soon as the code is accepted.":""}</small>
+   <input className="input" autoComplete="off" aria-label="Access code" placeholder="Access code" maxLength={40} value={codeIn} onChange={e=>setCodeIn(e.target.value)}/>
+   <button className="button" disabled={busy}>{busy?"Checking…":"Unlock quiz"}</button></form>}
+  {notStarted&&!data.locked&&<button className="button" disabled={busy} onClick={startQuiz}>Start quiz</button>}
+  {!notStarted&&!data.locked&&<ol style={{paddingLeft:20,display:"grid",gap:18}}>
    {questions.map(q=><li key={q.id}><div style={{display:"flex",justifyContent:"space-between",gap:8}}>
     <strong style={{whiteSpace:"pre-wrap"}}>{q.prompt}</strong><small className="muted">{q.marks} mark{q.marks===1?"":"s"}</small></div>
     <div style={{marginTop:8}}><QuestionInput q={q} value={answers[q.id]} onChange={v=>set(q.id,v)} disabled={!!sub||(late&&h.late_policy==="reject")}/></div>
     {sub?.released&&sub.marks[q.id]!==undefined&&<small className="muted">You scored {sub.marks[q.id]} / {q.marks}</small>}</li>)}
   </ol>}
   {err&&<div className="notice error" role="alert">{err}</div>}{msg&&!err&&<small className="muted" role="status">{msg}</small>}
-  {!sub&&!notStarted&&!(late&&h.late_policy==="reject")&&<div style={{display:"flex",gap:8,marginTop:12}}>
+  {!sub&&!notStarted&&!data.locked&&!(late&&h.late_policy==="reject")&&<div style={{display:"flex",gap:8,marginTop:12}}>
    <button className="button secondary" disabled={busy} onClick={save}>Save draft</button>
    <button className="button" disabled={busy} onClick={submit}>{late?"Submit late":"Submit homework"}</button></div>}
  </section>;
