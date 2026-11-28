@@ -70,3 +70,4 @@
 .st-ad{grid-template-columns:1fr 2fr auto;margin:6px 0;background:#fdf4ff;border:1px solid #f5d0fe}
 .st-show{display:flex!important;align-items:center;gap:6px}
 @media (max-width:700px){.st-media{grid-template-columns:1fr}.st-ad{grid-template-columns:1fr}}
+.st-form input[type=color]{height:42px;padding:3px 6px;cursor:pointer}
