@@ -296,7 +296,7 @@ async function action(body,endpoint="/api/platform"){
       <TopBar data={data} onGo={(id)=>{setTab(id);setNotice("");setError("");}} onPick={(h)=>{setTab(h.tab);if(h.tab==="tenants")setQuery(h.query);}} onSignOut={()=>client.auth.signOut()}/>
       {error&&<div style={{marginTop:20}} className="notice error" role="alert">{error}<button className="button flat" onClick={()=>setError("")}>Dismiss</button></div>}
       {notice&&<div style={{marginTop:20}} className="notice ok" role="status">{notice}</div>}
-      {tab==="overview"&&<OwnerDashboard data={data} canBilling={allowed("billing.read")} canCreate={allowed("tenants.create")} go={(id)=>{setTab(id);setNotice("");setError("");}} onAddSchool={()=>open("newTenant")}/>}
+      {tab==="overview"&&<OwnerDashboard data={data} canBilling={allowed("billing.read")} canCreate={allowed("tenants.create")} go={(id,q)=>{setTab(id);if(id==="tenants")setQuery(q||"");setNotice("");setError("");}} onAddSchool={()=>open("newTenant")}/>}
       {tab==="reports"&&<ReportsPanel data={data} canSave={allowed("tenants.read")} canDelete={allowed("tenants.lifecycle")} busy={busy} onAct={action}/>}
       {tab==="comms"&&<CommunicationsPanel data={data} canManage={allowed("tickets.manage")} busy={busy} onSend={action}/>}
       {tab==="health"&&<HealthPanel data={data} onRefresh={refresh}/>}
