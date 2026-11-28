@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {TEMPLATE_LABEL,NURSERY_AREAS,NURSERY_DESCRIPTORS,COMPETENCE,cleanContent,contentProblems} from "../../../../lib/report-templates.mjs";
 import TermReportView from "../../../ui/TermReportView.jsx";
@@ -40,7 +40,9 @@ function ReportForm({level,content,setContent}){
 
 export default function TermReports({code}){
  const [data,setData]=useState(null),[error,setError]=useState(""),[note,setNote]=useState(""),[busy,setBusy]=useState(false);
- const [tab,setTab]=useState(""),[classId,setClassId]=useState(""),[term,setTerm]=useState(1),[open,setOpen]=useState(null);
+ // Links from notifications: ?tab=queue&report=… or ?tab=write&class=…&term=…&student=…
+ const deep=useRef(typeof window==="undefined"?{}:Object.fromEntries(new URLSearchParams(location.search)));
+ const [tab,setTab]=useState(""),[classId,setClassId]=useState(deep.current.class||""),[term,setTerm]=useState(()=>[1,2,3].includes(Number(deep.current.term))?Number(deep.current.term):1),[open,setOpen]=useState(null);
  const [content,setContent]=useState(null),[comment,setComment]=useState(""),[filter,setFilter]=useState("submitted"),[stepText,setStepText]=useState({});
  const call=useCallback(async(body,query="")=>{
   const c=browserSupabase();const {data:{session}}=await c.auth.getSession();
@@ -51,7 +53,9 @@ export default function TermReports({code}){
  },[code]);
  const load=useCallback(async()=>{
   try{const d=await call(null,classId?"?classId="+classId+"&term="+term:"?term="+term);setData(d);setError("");
-   setTab(t=>t||(d.me.teacher?"write":d.me.perms.length?"queue":"roles"));
+   const want=deep.current.tab,ok={write:d.me.teacher,queue:d.me.perms.length>0,roles:d.me.owner};
+   setTab(t=>t||(want&&ok[want]?want:d.me.teacher?"write":d.me.perms.length?"queue":"roles"));
+   if(want==="queue"&&deep.current.report){const q=(d.queue||[]).find(x=>x.id===deep.current.report);if(q)setFilter(q.status);}
    if(!classId&&d.classes[0])setClassId(d.classes[0].id);}catch(e){setError(e.message);}
  },[call,classId,term]);
  useEffect(()=>{load();},[load]);
@@ -61,6 +65,8 @@ export default function TermReports({code}){
  if(error)return <main className="rem-resources"><section className="rem-resource-card" role="alert">{error}<p><button type="button" className="button" onClick={()=>{setError("");load();}}>Try again</button></p></section></main>;
  if(!data)return <main className="rem-resources"><p>Opening term reports…</p></main>;
  const cv=data.classView,level=cv?.level;
+ if(deep.current.student&&cv&&cv.id===classId&&!deep.current.opened){const s=cv.students.find(x=>x.id===deep.current.student);deep.current.opened=true;
+  if(s)setTimeout(()=>openStudent(s),0);}
  const openStudent=s=>{setOpen(s.id);setNote("");const r=s.report;setComment(r?.teacher_comment||"");
   const base=blankContent(level,cv.subjects);setContent(r?{...base,...r.content}:base);};
  const editable=r=>!r||r.status==="draft"||r.status==="returned";
@@ -107,7 +113,7 @@ export default function TermReports({code}){
    <div className="rem-resource-toolbar"><label>Show<select value={filter} onChange={e=>setFilter(e.target.value)}>
     {["submitted","reviewed","approved","returned","published","all"].map(s=><option key={s} value={s}>{s==="all"?"All":STATUS[s]} ({(data.queue||[]).filter(q=>s==="all"||q.status===s).length})</option>)}</select></label></div>
    {!queue.length&&<p className="ds-empty">No reports in this list.</p>}
-   {queue.map(q=><details key={q.id} className="rem-resource-card" style={{marginBottom:10}}>
+   {queue.map(q=><details key={q.id} id={"rep-"+q.id} open={q.id===deep.current.report||undefined} ref={el=>{if(el&&q.id===deep.current.report&&!deep.current.scrolled){deep.current.scrolled=true;setTimeout(()=>el.scrollIntoView({behavior:"smooth",block:"start"}),100);}}} className="rem-resource-card" style={{marginBottom:10,scrollMarginTop:80,...(q.id===deep.current.report?{outline:"3px solid #f5b400"}:{})}}>
     <summary><strong>{q.student}</strong> · {q.className} · Term {q.term_number} · {LEVEL[q.template]} · {STATUS[q.status]}</summary>
     <TermReportView report={q} student={q.student} className={q.className}/>
     {q.return_reason&&q.status==="returned"&&<p>Returned: {q.return_reason}</p>}
