@@ -41,7 +41,7 @@ export default function PortalFrame({code,children}){
  const role=primaryRole(info?.roles);
  const nav=signedOut?[{label:"Sign in",icon:"user",href:"/s/"+code+"/login"}]:role?portalNav(role,code,seg,info?.levels):[{label:"Loading…",icon:"home",href:"/s/"+code+"/portal"}];
  const signOut=async()=>{const c=browserSupabase();try{await c?.auth.signOut();}catch{}try{sessionStorage.clear();}catch{}window.location.assign("/s/"+code+"/login");};
- return <DashboardShell school={{name:info?.name||"School portal",place:role?ROLE_LABEL[role]+" workspace":""}} title={PAGE_TITLE[seg]||"School"}
+ return <DashboardShell code={code} school={{name:info?.name||"School portal",place:role?ROLE_LABEL[role]+" workspace":""}} title={PAGE_TITLE[seg]||"School"}
   nav={nav} user={{name:(user?.email||"Signed out").split("@")[0],role:role?ROLE_LABEL[role]:""}} onSignOut={signOut} portalHref={"/s/"+code+"/portal"}>
   <div className="pf-body">{children}</div></DashboardShell>;
 }
