@@ -56,3 +56,6 @@
 .st-links a:hover{border-color:var(--ds-blue,#1b4fd8);background:#f6f8fd}
 .st-links small{color:var(--ds-muted,#5d6b8a)}
 @media (max-width:900px){.st-body{grid-template-columns:1fr}.st-nav{position:static}}
+.st-col{display:grid;gap:6px;justify-items:start}
+.st-confirm{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;background:#fff4f4;border:1px solid #f5c2c2;border-radius:8px;padding:6px 8px}
+.button.danger{background:#b91c1c;border-color:#b91c1c;color:#fff}

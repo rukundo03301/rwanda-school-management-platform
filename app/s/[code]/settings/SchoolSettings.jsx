@@ -170,7 +170,8 @@ function Courses({d,run,busy}){
 
 function Teachers({d,code,run,busy,call,load,setNote}){
  const lv=offered(d);
- const [level,setLevel]=useState(lv[0]),[a,setA]=useState({teacherId:"",classId:"",subjectId:""}),[add,setAdd]=useState(null),[issued,setIssued]=useState(null),[q,setQ]=useState("");
+ const [level,setLevel]=useState(lv[0]),[a,setA]=useState({teacherId:"",classId:"",subjectId:""}),[add,setAdd]=useState(null),[issued,setIssued]=useState(null),[q,setQ]=useState(""),[confirmId,setConfirmId]=useState(null);
+ const canManage=d.actor.isOwner||d.actor.permissions?.includes("people.manage");
  const classes=yearClasses(d).filter(c=>c.level_band===level);
  const cls=classes.find(c=>c.id===a.classId);
  const subs=cls?d.subjects.filter(s=>d.classSubjects.some(m=>m.class_id===cls.id&&m.subject_id===s.id)):[];
@@ -235,10 +236,15 @@ function Teachers({d,code,run,busy,call,load,setNote}){
     {shown.map(t=>{const mine=d.assignments.filter(x=>x.teacher_id===t.id&&C.has(x.class_id));return <tr key={t.id}>
      <td><b>{t.name||"No name"}</b><br/><small className="muted">{t.email}</small></td>
      <td>{mine.length?<div className="st-chips">{mine.map(x=><span key={x.class_id+x.subject_id} className="st-chip">{cname(C.get(x.class_id))} · {S.get(x.subject_id)?.name}
-      <button aria-label={"Remove "+S.get(x.subject_id)?.name+" in "+cname(C.get(x.class_id))} disabled={busy} onClick={()=>run("classroom",{action:"teacher.revoke",teacherId:t.id,classId:x.class_id,subjectId:x.subject_id,reason:"Changed by the school in School Settings"},"Removed")}>×</button></span>)}</div>
+      <button aria-label={"Remove "+S.get(x.subject_id)?.name+" in "+cname(C.get(x.class_id))} disabled={busy} onClick={()=>run("classroom",{action:"teacher.revoke",teacherId:t.id,classId:x.class_id,subjectId:x.subject_id,reason:"Changed by the school in School Settings"},(t.name||t.email)+" no longer teaches "+S.get(x.subject_id)?.name+" in "+cname(C.get(x.class_id)))}>×</button></span>)}</div>
       :<span className="muted">Nothing assigned yet</span>}</td>
-     <td>{t.schoolIssued?(d.actor.isOwner?<button className="button secondary small" disabled={busy} onClick={()=>giveLogin(t)}>Give new password</button>:<span className="muted">School login</span>)
-      :<small className="muted">Own email: uses Forgot password</small>}</td></tr>;})}
+     <td><div className="st-col">{t.schoolIssued?(d.actor.isOwner?<button className="button secondary small" disabled={busy} onClick={()=>giveLogin(t)}>Give new password</button>:<span className="muted">School login</span>)
+      :<small className="muted">Own email: uses Forgot password</small>}
+      {canManage&&(confirmId===t.id
+       ?<span className="st-confirm">Remove {t.name||"this teacher"} from the school?<button className="button small danger" disabled={busy} onClick={async()=>{for(const x of mine)await run("classroom",{action:"teacher.revoke",teacherId:t.id,classId:x.class_id,subjectId:x.subject_id,reason:"Teacher removed from the school in School Settings"});
+         await run("admin",{action:"member.revoke",userId:t.id,role:"teacher",reason:"Teacher removed from the school in School Settings"},(t.name||t.email)+" was removed from the school and can no longer sign in here.");setConfirmId(null);}}>Yes, remove</button>
+        <button className="button secondary small" onClick={()=>setConfirmId(null)}>No</button></span>
+       :<button className="button secondary small" disabled={busy} onClick={()=>setConfirmId(t.id)}>Remove from school</button>)}</div></td></tr>;})}
     {!shown.length&&<tr><td colSpan={3}>{d.teachers.length?"No teacher matches your search.":"No teachers yet. Add the first teacher."}</td></tr>}
    </tbody></table>
   </section>
@@ -249,7 +255,14 @@ function Fees({d,code,run,busy}){
  const lv=offered(d),[level,setLevel]=useState("all"),[f,setF]=useState(null);
  const classes=yearClasses(d);
  const C=new Map(d.classes.map(c=>[c.id,c]));
- const active=d.fees.filter(x=>x.status!=="disabled");
+ const active=d.fees.filter(x=>x.status==="active").sort((a,b)=>(a.class_id?cname(C.get(a.class_id)):"").localeCompare(b.class_id?cname(C.get(b.class_id)):"")||a.label.localeCompare(b.label));
+ const [edit,setEdit]=useState(null);
+ // Changing a fee: the new amount is saved as a new fee and the old one is stopped. Bills already sent stay as they were.
+ async function change(e){e.preventDefault();
+  const ok=await run("fees",{action:"fee.create",yearId:d.currentYear.id,classId:edit.class_id||null,category:edit.category,label:edit.label,term:edit.term_label||"",amount:String(edit.amount),dueOn:edit.due_on});
+  if(!ok)return;
+  if(await run("fees",{action:"fee.disable",feeId:edit.id,reason:"Replaced by a new amount in School Settings"},edit.label+" changed to "+rwf(edit.amount)+". Bills already sent keep the old amount."))setEdit(null);
+ }
  const shown=active.filter(x=>level==="all"||(!x.class_id)||C.get(x.class_id)?.level_band===level);
  const perClass=classes.filter(c=>level==="all"||c.level_band===level).map(c=>({c,total:active.filter(x=>!x.class_id||x.class_id===c.id).reduce((a,x)=>a+Number(x.amount_rwf),0)}));
  return <>
@@ -260,10 +273,16 @@ function Fees({d,code,run,busy}){
    <table className="st-table"><thead><tr><th>Fee</th><th>For</th><th>Term</th><th>Amount</th><th>Due</th><th/></tr></thead><tbody>
     {shown.map(x=><tr key={x.id}><td><b>{x.label}</b><br/><small className="muted">{CATEGORY[x.category]||x.category}</small></td><td>{x.class_id?cname(C.get(x.class_id)):"All classes"}</td><td>{x.term_label||"Whole year"}</td>
      <td><b>{rwf(x.amount_rwf)}</b></td><td>{day(x.due_on)}</td>
-     <td><button className="button secondary small" disabled={busy} onClick={()=>run("fees",{action:"fee.disable",feeId:x.id,reason:"Stopped by the school in School Settings"},x.label+" stopped. Bills already sent are not changed.")}>Stop this fee</button></td></tr>)}
+     <td><div className="st-row" style={{justifyContent:"flex-start"}}><button className="button secondary small" disabled={busy} onClick={()=>setEdit({...x,amount:x.amount_rwf})}>Change</button>
+      <button className="button secondary small" disabled={busy} onClick={()=>run("fees",{action:"fee.disable",feeId:x.id,reason:"Stopped by the school in School Settings"},x.label+" stopped. Bills already sent are not changed.")}>Stop</button></div></td></tr>)}
     {!shown.length&&<tr><td colSpan={6}>No fees set {level==="all"?"":"for "+LEVEL_SHORT[level]+" "}yet.</td></tr>}
    </tbody></table>
-   {d.currentYear&&(!f?<button className="button" onClick={()=>setF({classId:"",category:"tuition",label:"",term:"Term 1",amount:"",dueOn:""})}><Icon name="wallet" size={16}/> Add a fee</button>
+   {edit&&<form className="st-form" onSubmit={change} aria-label="Change fee"><strong style={{gridColumn:"1/-1"}}>Change {edit.label} for {edit.class_id?cname(C.get(edit.class_id)):"all classes"}</strong>
+    <label>Fee name<input className="input" required minLength={3} maxLength={120} value={edit.label} onChange={e=>setEdit({...edit,label:e.target.value})}/></label>
+    <label>Amount (RWF)<input className="input" required type="number" min={1} step={1} value={edit.amount} onChange={e=>setEdit({...edit,amount:e.target.value})}/></label>
+    <label>Due date<input className="input" required type="date" value={edit.due_on} onChange={e=>setEdit({...edit,due_on:e.target.value})}/></label>
+    <div className="st-actions"><button className="button" disabled={busy}>Save new amount</button><button type="button" className="button secondary" onClick={()=>setEdit(null)}>Cancel</button></div></form>}
+   {d.currentYear&&!edit&&(!f?<button className="button" onClick={()=>setF({classId:"",category:"tuition",label:"",term:"Term 1",amount:"",dueOn:""})}><Icon name="wallet" size={16}/> Add a fee</button>
     :<form className="st-form" onSubmit={async e=>{e.preventDefault();if(await run("fees",{action:"fee.create",yearId:d.currentYear.id,classId:f.classId||null,category:f.category,label:f.label,term:f.term,amount:String(f.amount),dueOn:f.dueOn},f.label+" saved"))setF(null);}}>
      <label>Fee name<input className="input" required minLength={3} maxLength={120} placeholder="Term 1 tuition" value={f.label} onChange={e=>setF({...f,label:e.target.value})}/></label>
      <label>Type<select className="input" value={f.category} onChange={e=>setF({...f,category:e.target.value})}>{Object.entries(CATEGORY).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
