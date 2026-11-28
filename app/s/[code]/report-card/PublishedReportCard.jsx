@@ -4,7 +4,8 @@ import {browserSupabase} from "../../../../lib/client.js";
 
 const number=(v)=>typeof v==="number"?Number(v).toLocaleString("en-RW",{maximumFractionDigits:2}):"—";
 const FIELD=(label,value)=><div className="rep-field"><small>{label}</small><strong>{value||"Not provided"}</strong></div>;
-const NURSERY_AREAS=[["language_communication","Language and communication"],["numeracy_early_math","Numeracy and early math"],["social_emotional","Social and emotional development"],["physical_health","Physical development and health"],["creative_arts_culture","Creative arts and culture"],["environment_science","Environment and science"]];
+import {TEMPLATE_LABEL} from "../../../../lib/report-templates.mjs";
+import TermReportView from "../../../ui/TermReportView.jsx";
 export default function PublishedReportCard({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null),[error,setError]=useState("");
@@ -70,32 +71,31 @@ export default function PublishedReportCard({code}){
       <span className="rep-logo-placeholder" aria-hidden="true">✦</span>}
      <div><small>OFFICIAL SCHOOL IDENTITY</small><h1>{school.name}</h1><p>School ID: {school.code}</p></div>
     </div>
-    <div className="rep-term-label"><span>NURSERY PROGRESS REPORT</span><strong>Term {nursery.term}</strong>
+    <div className="rep-term-label"><span>{(TEMPLATE_LABEL[nursery.template]||"Term report").toUpperCase()}</span><strong>Term {nursery.term}</strong>
      <small>{nursery.academic_year}</small></div>
    </div>
-   <h2 className="rep-page-heading">Early Years Learning and Development Report</h2>
+   <h2 className="rep-page-heading">{TEMPLATE_LABEL[nursery.template]||"Term Report"}</h2>
    <div className="rep-student-fields">
-    {FIELD("Child",nursery.student_name)}
+    {FIELD(nursery.template==="nursery"?"Child":"Student",nursery.student_name)}
     {FIELD("Student ID",nursery.student_code)}
     {FIELD("Class",nursery.class_name)}
     {FIELD("Academic year",nursery.academic_year)}
     {FIELD("Reporting term","Term "+nursery.term)}
    </div>
    <section className="rep-section">
-    <div className="rep-section-heading"><h3>How your child is learning and growing</h3>
-     <p>Six early years learning areas. Nursery children are described, not marked, ranked or given percentages.</p></div>
-    {NURSERY_AREAS.map(([key,label])=><div key={key} className="rep-competency">
-     <strong>{label}</strong><p>{nursery.area_summaries[key]||"No summary recorded for this area this term."}</p>
-    </div>)}
+    {nursery.template==="nursery"&&<div className="rep-section-heading"><h3>How your child is learning and growing</h3>
+     <p>Six early years learning areas. Nursery children are described, not marked, ranked or given percentages.</p></div>}
+    <TermReportView bare report={{template:nursery.template,content:nursery.content}}/>
    </section>
    <div className="rep-two">
-    <section className="rep-section"><h3>Class teacher</h3><p>{nursery.teacher_comment||"No teacher comment."}</p></section>
+    <section className="rep-section"><h3>Class teacher</h3><p>{nursery.teacher_comment||"No teacher comment."}</p>
+     {nursery.reviewer_comment&&<><h3>Reviewer</h3><p>{nursery.reviewer_comment}</p></>}</section>
     <section className="rep-section"><h3>Headteacher</h3><p>{nursery.headteacher_comment||"No headteacher comment."}</p>
      <div className="rep-sign"><span>Approved and published by the school</span><span>{new Date(nursery.published_at).toLocaleDateString("en-RW",{timeZone:"Africa/Kigali",year:"numeric",month:"long",day:"numeric"})}</span></div></section>
    </div>
    <footer className="rep-disclaimer">
-    <strong>School-issued early years record</strong>
-    <p>Prepared by {school.name} from teacher observations during the term and approved by school leadership. This is not a government document.</p>
+    <strong>School-issued {nursery.template==="nursery"?"early years record":"term report"}</strong>
+    <p>Prepared by {school.name}'s teachers and approved by school leadership. This is not a government document.</p>
     <p>Report reference: {nursery.id.toUpperCase()} · School ID {school.code}</p>
    </footer>
   </article>}
