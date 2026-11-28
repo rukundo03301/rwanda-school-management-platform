@@ -3,6 +3,7 @@ import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab,ownerNav} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
+import {SendNotice,ProfitCard} from "./OwnerExtras.jsx";
 import {Item,DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 const rwf=v=>v===null||v===undefined||v===""?"—":Number(v).toLocaleString("en-US")+" RWF";
@@ -76,6 +77,7 @@ export default function RoleHome({code}){
  const nav=manager?ownerNav("/s/"+code+"/","home",l=>(d.access.levels||[]).includes(l)).map(n=>{const m=/\/home\?tab=(\w+)$/.exec(n.href);return m?{...n,href:undefined,active:cur===m[1],onClick:goto(m[1])}:n;}):[
   ...(manager?[{label:"Dashboard",icon:"home",active:cur==="overview",onClick:goto("overview")}]:[{label:bursar?"Dashboard":"Dashboard",icon:"home",active:cur===sections[0],onClick:goto(sections[0])}]),
   ...(manager||bursar?[{label:"Fees & Finance",icon:"wallet",active:cur==="finance",onClick:goto("finance")}]:[]),
+  ...(bursar?[{label:"Money & Profit",icon:"chart",href:"/s/"+code+"/money"}]:[]),
   {label:"Inventory & Assets",icon:"box",active:cur==="inventory",onClick:goto("inventory")},
   ...(manager?[{label:"Board of Directors",icon:"building",active:cur==="board",onClick:goto("board")}]:[]),
   ...(manager?[{label:"Students & Admissions",icon:"users",href:"/s/"+code+"/admissions"},
@@ -157,12 +159,16 @@ export default function RoleHome({code}){
     <div className="ds-grid" style={{margin:0}}>{Maint}{Low}</div>
    </div>
    <div className="ds-span4" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
-    {PlatformNotices}{Notices}{Events}
+    {owner&&<ProfitCard client={client} code={code}/>}
+    <SendNotice client={client} code={code} classes={(ov?.classes||[]).map(c=>({id:c.id,name:c.name}))}/>
     <Card title="Quick Actions" icon="bolt"><div className="ds-actions">
      <a className="ds-action blue" href={"/s/"+code+"/admissions"}>Admissions</a>
-     <a className="ds-action green" href={"/s/"+code+"/communications"}>Post a notice</a>
+     <a className="ds-action purple" href={"/s/"+code+"/settings?section=teachers"}>Add a teacher</a>
+     <a className="ds-action orange" href={"/s/"+code+"/money?tab=expenses"}>Record an expense</a>
+     <a className="ds-action green" href={"/s/"+code+"/money?tab=payroll"}>Pay salaries</a>
      <a className="ds-action orange" href={"/s/"+code+"/fees"}>Record fees</a>
-     <a className="ds-action blue" href={"/s/"+code+"/reports"}>Report cards</a></div></Card>
+     <a className="ds-action blue" href={"/s/"+code+"/term-reports"}>Report cards</a></div></Card>
+    {PlatformNotices}{Notices}{Events}
    </div>
   </div>}
 
