@@ -132,7 +132,7 @@ export default function ClassroomDashboard({code}){
   ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:actor.teacher?"Early Years Observations":"Early Years Reports",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
   {label:"Assessment Gradebook",icon:"chart",href:"/s/"+code+"/reports"},
-  ...(code==="RW-SCH-000004"?[{label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"}]:[]),
+  {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
   ...(actor.manager?[{label:"Administration",icon:"gear",href:"/s/"+code+"/admin"}]:[])];
  const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login?role="+(actor.teacher?"teacher":"school_owner"));};
  return <DashboardShell school={{name:school.name,logoUrl:school.logo,place:actor.teacher?"Teacher workspace":"Academic workspace"}}
