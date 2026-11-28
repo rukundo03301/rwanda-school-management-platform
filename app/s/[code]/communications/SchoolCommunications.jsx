@@ -131,7 +131,8 @@ export default function SchoolCommunications({code}){
  const markThreadRead=useCallback(async(threadId,list)=>{
   const ids=(list||[]).filter(n=>n.thread_id===threadId&&!n.read_at).map(n=>n.id);
   if(!ids.length)return false;
-  await Promise.all(ids.map(id=>api({action:"notification.read",notificationId:id}).catch(()=>null)));return true;
+  await Promise.all(ids.map(id=>api({action:"notification.read",notificationId:id}).catch(()=>null)));
+  try{window.dispatchEvent(new Event("ds-notes-refresh"));}catch{}return true;
  },[api]);
  const openThread=async threadId=>{setTab("messages");setSelectedThread(threadId);setDraftMessage("");
   if(await markThreadRead(threadId,data?.notifications))await refresh();};
@@ -143,7 +144,7 @@ export default function SchoolCommunications({code}){
    let changed=false;
    if(d.thread&&data.threads.some(t=>t.id===d.thread)){setTab("messages");setSelectedThread(d.thread);changed=await markThreadRead(d.thread,data.notifications);}
    if(d.notice&&data.announcements.some(a=>a.id===d.notice)){setTab("announcements");setFocusNotice(d.notice);
-    if(!(data.noticeReads||[]).some(r=>r.announcement_id===d.notice)){await api({action:"announcement.read",announcementId:d.notice}).catch(()=>null);changed=true;}}
+    if(!(data.noticeReads||[]).some(r=>r.announcement_id===d.notice)){await api({action:"announcement.read",announcementId:d.notice}).catch(()=>null);changed=true;try{window.dispatchEvent(new Event("ds-notes-refresh"));}catch{}}}
    if(changed){await refresh();if(d.thread)setSelectedThread(d.thread);}
    if(d.notice)setTimeout(()=>document.getElementById("notice-"+d.notice)?.scrollIntoView({behavior:"smooth",block:"center"}),200);
   })();
