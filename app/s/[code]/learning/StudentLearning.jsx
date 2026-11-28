@@ -106,6 +106,7 @@ export default function StudentLearning({code}){
  const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
  const nav=[
   {label:"Dashboard",icon:"home",active:tab==="dashboard",onClick:()=>{setSearch("");setTab("dashboard");}},
+  {label:"My Courses",icon:"book",href:"/s/"+code+"/courses"},
   {label:"My Classes & Subjects",icon:"book",active:tab==="subjects",onClick:()=>setTab("subjects")},
   {label:"My Timetable",icon:"calendar",active:tab==="timetable",onClick:()=>setTab("timetable")},
   {label:"Homework",icon:"check",active:tab==="homework",badge:dueCount,onClick:()=>setTab("homework")},
