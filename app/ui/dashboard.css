@@ -152,3 +152,9 @@ li>.ds-item.ds-go{display:flex}
 .ds-notes strong{display:block;font-size:14px}.ds-notes small{display:block;color:var(--ds-muted);font-size:12px;overflow-wrap:anywhere}
 .ds-notes em{display:block;font-style:normal;color:var(--ds-muted);font-size:11px;margin-top:2px}
 .ds-ringlink{width:auto;background:transparent;border-radius:50%;padding:0;display:inline-grid}
+
+.ds-navgroup{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ds-muted);padding:12px 14px 2px}
+.ds-navgroup:first-child{padding-top:2px}
+.ds-navtext{display:flex;flex-direction:column;min-width:0;text-align:left;line-height:1.2}
+.ds-navtext small{font-size:11.5px;color:var(--ds-muted);font-weight:400;margin-top:2px;white-space:normal}
+.ds-nav .on .ds-navtext small{color:#dbe5ff}
