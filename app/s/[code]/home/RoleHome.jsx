@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
-import {DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
+import {Item,DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
 const rwf=v=>v===null||v===undefined||v===""?"—":Number(v).toLocaleString("en-US")+" RWF";
 const pct=(a,b)=>b?Math.round(100*a/b):null;
@@ -86,21 +86,21 @@ export default function RoleHome({code}){
  const NoData=({t})=><p className="ds-empty">{t}</p>;
  const pn=(ov?.platformNotices||[]).slice(0,3);
  const PlatformNotices=pn.length?<Card title="From the Umurage platform" icon="megaphone" size="s6">
-  <ul className="ds-list">{pn.map(n=><li key={n.id} className="ds-item"><span className="ds-ico blue"><Icon name="megaphone"/></span><div><strong>{n.title}</strong><small>{n.body}</small></div></li>)}</ul></Card>:null;
+  <ul className="ds-list">{pn.map(n=><Item key={n.id} href={"/s/"+code+"/communications?tab=announcements"}><span className="ds-ico blue"><Icon name="megaphone"/></span><div><strong>{n.title}</strong><small>{n.body}</small></div></Item>)}</ul></Card>:null;
  const Notices=<Card title="School Notices" icon="megaphone" size="s6" link={link("communications","All notices")}>
-  {notices.length?<ul className="ds-list">{notices.map(n=><li key={n.id} className="ds-item"><span className="ds-ico purple"><Icon name="megaphone"/></span>
-   <div><strong>{n.title}</strong><small>{when(n.published_at)}</small></div></li>)}</ul>:<NoData t="No notices have been published."/>}</Card>;
+  {notices.length?<ul className="ds-list">{notices.map(n=><Item key={n.id} href={"/s/"+code+"/communications?tab=announcements&notice="+n.id}><span className="ds-ico purple"><Icon name="megaphone"/></span>
+   <div><strong>{n.title}</strong><small>{when(n.published_at)}</small></div></Item>)}</ul>:<NoData t="No notices have been published."/>}</Card>;
  const Events=<Card title="Upcoming Events" icon="calendar" size="s6" link={link("communications","All events")}>
-  {events.length?<ul className="ds-list">{events.map(e=><li key={e.id} className="ds-item"><span className="ds-ico orange"><Icon name="calendar"/></span>
-   <div><strong>{e.title}</strong><small>{when(e.starts_at)}{e.location?" · "+e.location:""}</small></div></li>)}</ul>:<NoData t="No upcoming events."/>}</Card>;
+  {events.length?<ul className="ds-list">{events.map(e=><Item key={e.id} href={"/s/"+code+"/communications?tab=calendar"}><span className="ds-ico orange"><Icon name="calendar"/></span>
+   <div><strong>{e.title}</strong><small>{when(e.starts_at)}{e.location?" · "+e.location:""}</small></div></Item>)}</ul>:<NoData t="No upcoming events."/>}</Card>;
  const Maint=<Card title="Maintenance Requests" icon="wrench" size="s6" link={link("operations","Open operations")}>
-  {openMaint.length?<ul className="ds-list">{openMaint.slice(0,5).map(m=><li key={m.id} className="ds-item"><span className={"ds-ico "+(m.priority==="urgent"?"red":"orange")}><Icon name="wrench"/></span>
-   <div><strong>{m.title}</strong><small>{m.location||"School"} · {m.priority} · {m.status.replace("_"," ")}</small></div></li>)}</ul>:<NoData t="No open maintenance requests."/>}</Card>;
+  {openMaint.length?<ul className="ds-list">{openMaint.slice(0,5).map(m=><Item key={m.id} href={"/s/"+code+"/operations?request="+m.id}><span className={"ds-ico "+(m.priority==="urgent"?"red":"orange")}><Icon name="wrench"/></span>
+   <div><strong>{m.title}</strong><small>{m.location||"School"} · {m.priority} · {m.status.replace("_"," ")}</small></div></Item>)}</ul>:<NoData t="No open maintenance requests."/>}</Card>;
  const Low=<Card title="Low Stock" icon="alert" size="s6" link={link("operations","Manage stock")}>
-  {lowStock.length?<ul className="ds-list">{lowStock.slice(0,6).map(s=><li key={s.id} className="ds-item"><span className="ds-ico red"><Icon name="alert"/></span>
-   <div><strong>{s.name}</strong><small>{Number(s.quantity)} {s.unit} left · reorder at {Number(s.reorder_level)}</small></div></li>)}</ul>
+  {lowStock.length?<ul className="ds-list">{lowStock.slice(0,6).map(s=><Item key={s.id} href={"/s/"+code+"/operations"}><span className="ds-ico red"><Icon name="alert"/></span>
+   <div><strong>{s.name}</strong><small>{Number(s.quantity)} {s.unit} left · reorder at {Number(s.reorder_level)}</small></div></Item>)}</ul>
    :<NoData t={stock.length?"Every stock item is above its reorder level.":"No stock items have been recorded yet."}/>}</Card>;
- return <DashboardShell school={{...school,place:role}} title={title}
+ return <DashboardShell code={code} school={{...school,place:role}} title={title}
   user={{name:first||role,role}} nav={nav} notifications={manager?(fs?.pending_claims||0)+openMaint.length:openMaint.length}
   onBell={goto(manager||bursar?"finance":"inventory")}
   onSearch={s=>{setSearch(s);setSection("inventory");}} searchPlaceholder="Search stock and assets…"
@@ -113,19 +113,19 @@ export default function RoleHome({code}){
   {cur==="overview"&&<div className="ds-grid">
    <div className="ds-span8" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
     <div className="ds-stats" style={{margin:0}}>
-     <Stat icon="cap" tone="blue" value={ov?ov.people.students:"—"} label="Students enrolled"/>
-     <Stat icon="users" tone="purple" value={ov?.people.teachers??"—"} label="Teachers"/>
-     <Stat icon="book" tone="orange" value={ov?ov.classes.length:"—"} label="Active classes"/>
-     <Stat icon="user" tone="green" value={ov?.people.guardians??"—"} label="Parent links"/>
+     <Stat icon="cap" tone="blue" value={ov?ov.people.students:"—"} label="Students enrolled" href={"/s/"+code+"/admissions"}/>
+     <Stat icon="users" tone="purple" value={ov?.people.teachers??"—"} label="Teachers" href={"/s/"+code+"/admin"}/>
+     <Stat icon="book" tone="orange" value={ov?ov.classes.length:"—"} label="Active classes" href={"/s/"+code+"/admin"}/>
+     <Stat icon="user" tone="green" value={ov?.people.guardians??"—"} label="Parent links" href={"/s/"+code+"/admissions"}/>
     </div>
     <div className="ds-grid" style={{margin:0}}>
-     <Card title="Students per Class" icon="users" size="s6">
+     <Card title="Students per Class" icon="users" size="s6" link={link("admissions","Students")}>
       {ov?.classes?.length?<div className="ds-bars">{ov.classes.slice(0,8).map((c,i)=>
-       <Bar key={c.id} label={c.name+" ("+c.students+(c.capacity?"/"+c.capacity:"")+")"} value={c.capacity?pct(c.students,c.capacity):pct(c.students,Math.max(...ov.classes.map(x=>x.students),1))} color={["#3b8df0","#1fa64a","#f59e0b","#8b5cf6"][i%4]}/>)}</div>
+       <Bar key={c.id} label={c.name+" ("+c.students+(c.capacity?"/"+c.capacity:"")+")"} value={c.capacity?pct(c.students,c.capacity):pct(c.students,Math.max(...ov.classes.map(x=>x.students),1))} color={["#3b8df0","#1fa64a","#f59e0b","#8b5cf6"][i%4]} href={"/s/"+code+"/admissions"}/>)}</div>
        :<NoData t="No classes are set up for the current year."/>}
      </Card>
-     <Card title="Attendance, last 30 days" icon="clock" size="s6">
-      {ov?.attendance?.total?<div className="ds-split"><Ring value={attPct} label="Present"/>
+     <Card title="Attendance, last 30 days" icon="clock" size="s6" link={link("classroom?tab=attendance","Attendance")}>
+      {ov?.attendance?.total?<div className="ds-split"><Ring value={attPct} label="Present" href={"/s/"+code+"/classroom?tab=attendance"}/>
        <div className="ds-legend"><div><i className="ds-dot" style={{background:"#1fa64a"}}/>Present<b>{ov.attendance.present}</b></div>
         <div><i className="ds-dot" style={{background:"#f59e0b"}}/>Late<b>{ov.attendance.late}</b></div>
         <div><i className="ds-dot" style={{background:"#e5322d"}}/>Absent<b>{ov.attendance.absent}</b></div></div></div>
@@ -134,7 +134,7 @@ export default function RoleHome({code}){
     </div>
     <div className="ds-grid" style={{margin:0}}>
      <Card title="Fee Collection" icon="wallet" size="s6" link={link("fees","Open fees")}>
-      {fs?<div className="ds-split"><Ring value={collectedPct} label="Collected"/>
+      {fs?<div className="ds-split"><Ring value={collectedPct} label="Collected" href={"/s/"+code+"/fees"}/>
        <div className="ds-legend"><div>Invoiced<b>{rwf(fs.invoiced_rwf)}</b></div><div>Collected<b>{rwf(fs.collected_rwf)}</b></div>
         <div>Outstanding<b>{rwf(fs.outstanding_rwf)}</b></div></div></div>
        :<NoData t="Fee totals are not available to this account."/>}
@@ -158,27 +158,27 @@ export default function RoleHome({code}){
 
   {cur==="finance"&&<div className="ds-grid">
    <div className="ds-stats" style={{gridColumn:"1/-1",margin:0}}>
-    <Stat icon="wallet" tone="blue" value={fs?rwf(fs.invoiced_rwf):"—"} label="Total invoiced"/>
-    <Stat icon="check" tone="green" value={fs?rwf(fs.collected_rwf):"—"} label="Collected"/>
-    <Stat icon="alert" tone="orange" value={fs?rwf(fs.outstanding_rwf):"—"} label="Outstanding"/>
-    <Stat icon="clock" tone="red" value={fs?rwf(fs.overdue_rwf):"—"} label="Overdue"/>
+    <Stat icon="wallet" tone="blue" value={fs?rwf(fs.invoiced_rwf):"—"} label="Total invoiced" href={"/s/"+code+"/fees"}/>
+    <Stat icon="check" tone="green" value={fs?rwf(fs.collected_rwf):"—"} label="Collected" href={"/s/"+code+"/fees"}/>
+    <Stat icon="alert" tone="orange" value={fs?rwf(fs.outstanding_rwf):"—"} label="Outstanding" href={"/s/"+code+"/fees"}/>
+    <Stat icon="clock" tone="red" value={fs?rwf(fs.overdue_rwf):"—"} label="Overdue" href={"/s/"+code+"/fees"}/>
    </div>
    {!fs&&<div className="ds-panel" style={{gridColumn:"1/-1"}}><h3>Finance totals are not available</h3><p>Your account does not have finance reporting rights. The school owner can grant them.</p></div>}
    {fs&&<>
-   <Card title="Collection Progress" icon="chart" size="s4"><div className="ds-split"><Ring value={collectedPct} label="Collected"/>
+   <Card title="Collection Progress" icon="chart" size="s4"><div className="ds-split"><Ring value={collectedPct} label="Collected" href={"/s/"+code+"/fees"}/>
     <div className="ds-legend"><div>Issued invoices<b>{fs.issued_invoices}</b></div><div>Waived<b>{rwf(fs.waived_rwf)}</b></div>
     <div>As of<b>{when(fs.as_of)}</b></div></div></div></Card>
    <Card title="Payments Awaiting Approval" icon="clock" size="s4" link={link("fees","Review")}>
-    {pendingClaims.length?<ul className="ds-list">{pendingClaims.slice(0,5).map(p=><li key={p.id} className="ds-item"><span className="ds-ico orange"><Icon name="wallet"/></span>
-     <div><strong>{rwf(p.amount_rwf)}</strong><small>{p.method} · {when(p.proposed_at)}</small></div></li>)}</ul>
+    {pendingClaims.length?<ul className="ds-list">{pendingClaims.slice(0,5).map(p=><Item key={p.id} href={"/s/"+code+"/fees"}><span className="ds-ico orange"><Icon name="wallet"/></span>
+     <div><strong>{rwf(p.amount_rwf)}</strong><small>{p.method} · {when(p.proposed_at)}</small></div></Item>)}</ul>
      :<NoData t={fs.pending_claims?fs.pending_claims+" claim(s) are waiting for review.":"No payments are waiting for approval."}/>}</Card>
    <Card title="Overdue Invoices" icon="alert" size="s4" link={link("fees","All invoices")}>
-    {overdue.length?<ul className="ds-list">{overdue.map(i=><li key={i.id} className="ds-item"><span className="ds-ico red"><Icon name="alert"/></span>
-     <div><strong>{pupils.get(i.student_id)||"Pupil"}</strong><small>{rwf(i.balances.balance_rwf)} due {when(i.due_on)}</small></div></li>)}</ul>
+    {overdue.length?<ul className="ds-list">{overdue.map(i=><Item key={i.id} href={"/s/"+code+"/fees"}><span className="ds-ico red"><Icon name="alert"/></span>
+     <div><strong>{pupils.get(i.student_id)||"Pupil"}</strong><small>{rwf(i.balances.balance_rwf)} due {when(i.due_on)}</small></div></Item>)}</ul>
      :<NoData t="No overdue invoices."/>}</Card>
    <Card title="Recent Payments" icon="check" size="s6">
-    {recentPaid.length?<ul className="ds-list">{recentPaid.map(p=><li key={p.id} className="ds-item"><span className="ds-ico green"><Icon name="check"/></span>
-     <div><strong>{rwf(p.amount_rwf)}</strong><small>{p.method} · paid {when(p.paid_on)}</small></div></li>)}</ul>:<NoData t="No payments have been posted yet."/>}</Card>
+    {recentPaid.length?<ul className="ds-list">{recentPaid.map(p=><Item key={p.id} href={"/s/"+code+"/fees"}><span className="ds-ico green"><Icon name="check"/></span>
+     <div><strong>{rwf(p.amount_rwf)}</strong><small>{p.method} · paid {when(p.paid_on)}</small></div></Item>)}</ul>:<NoData t="No payments have been posted yet."/>}</Card>
    <Card title="Finance Tools" icon="bolt" size="s6"><div className="ds-actions">
     <a className="ds-action blue" href={"/s/"+code+"/fees"}>Open School Fees</a>
     <a className="ds-action green" href={"/s/"+code+"/fees"}>Record a payment</a></div>
@@ -188,18 +188,18 @@ export default function RoleHome({code}){
 
   {cur==="inventory"&&<div className="ds-grid">
    <div className="ds-stats" style={{gridColumn:"1/-1",margin:0}}>
-    <Stat icon="box" tone="blue" value={stock.length} label="Stock items"/>
-    <Stat icon="alert" tone="red" value={lowStock.length} label="Low stock"/>
-    <Stat icon="building" tone="purple" value={assets.length} label="Assets"/>
-    <Stat icon="wallet" tone="green" value={assetValue?rwf(assetValue):"—"} label="Recorded asset value"/>
+    <Stat icon="box" tone="blue" value={stock.length} label="Stock items" href={"/s/"+code+"/operations"}/>
+    <Stat icon="alert" tone="red" value={lowStock.length} label="Low stock" href={"/s/"+code+"/operations"}/>
+    <Stat icon="building" tone="purple" value={assets.length} label="Assets" href={"/s/"+code+"/operations"}/>
+    <Stat icon="wallet" tone="green" value={assetValue?rwf(assetValue):"—"} label="Recorded asset value" href={"/s/"+code+"/operations"}/>
    </div>
    {Low}{Maint}
    <Card title="Assets Needing Attention" icon="wrench" size="s6">
-    {needRepair.length?<ul className="ds-list">{needRepair.slice(0,6).map(a=><li key={a.id} className="ds-item"><span className="ds-ico red"><Icon name="wrench"/></span>
-     <div><strong>{a.name}</strong><small>{a.asset_code} · {a.location||"No location"} · {a.condition.replace("_"," ")}</small></div></li>)}</ul>:<NoData t="No asset is marked as needing repair."/>}</Card>
+    {needRepair.length?<ul className="ds-list">{needRepair.slice(0,6).map(a=><Item key={a.id} href={"/s/"+code+"/operations"}><span className="ds-ico red"><Icon name="wrench"/></span>
+     <div><strong>{a.name}</strong><small>{a.asset_code} · {a.location||"No location"} · {a.condition.replace("_"," ")}</small></div></Item>)}</ul>:<NoData t="No asset is marked as needing repair."/>}</Card>
    <Card title="Recent Stock Movements" icon="box" size="s6">
-    {(ops?.movements||[]).length?<ul className="ds-list">{ops.movements.slice(0,6).map(m=><li key={m.id} className="ds-item"><span className={"ds-ico "+(Number(m.change)<0?"orange":"green")}><Icon name="box"/></span>
-     <div><strong>{stock.find(s=>s.id===m.item_id)?.name||"Stock item"} {Number(m.change)>0?"+":""}{Number(m.change)}</strong><small>{m.note||"Stock update"} · {when(m.created_at)}</small></div></li>)}</ul>:<NoData t="No stock movements recorded yet."/>}</Card>
+    {(ops?.movements||[]).length?<ul className="ds-list">{ops.movements.slice(0,6).map(m=><Item key={m.id} href={"/s/"+code+"/operations"}><span className={"ds-ico "+(Number(m.change)<0?"orange":"green")}><Icon name="box"/></span>
+     <div><strong>{stock.find(s=>s.id===m.item_id)?.name||"Stock item"} {Number(m.change)>0?"+":""}{Number(m.change)}</strong><small>{m.note||"Stock update"} · {when(m.created_at)}</small></div></Item>)}</ul>:<NoData t="No stock movements recorded yet."/>}</Card>
    <Card title={"Stock List"+(q?" · matching “"+search+"”":"")} icon="box" size="s6" link={link("operations","Update stock")}>
     {(()=>{const rows=stock.filter(s=>!q||(s.name+" "+s.category).toLowerCase().includes(q));
      return rows.length?<table className="ds-table"><thead><tr><th>Item</th><th>Qty</th><th>Reorder</th></tr></thead>
@@ -214,32 +214,32 @@ export default function RoleHome({code}){
 
   {cur==="board"&&<div className="ds-grid">
    <div className="ds-stats" style={{gridColumn:"1/-1",margin:0}}>
-    <Stat icon="building" tone="blue" value={(ops?.boardMembers||[]).length} label="Board members"/>
-    <Stat icon="calendar" tone="purple" value={(ops?.boardMeetings||[]).length} label="Meetings recorded"/>
-    <Stat icon="cap" tone="green" value={ov?ov.people.students:"—"} label="Students enrolled"/>
-    <Stat icon="wallet" tone="orange" value={fs?(collectedPct===null?"—":collectedPct+"%"):"—"} label="Fees collected"/>
+    <Stat icon="building" tone="blue" value={(ops?.boardMembers||[]).length} label="Board members" href={"/s/"+code+"/operations"}/>
+    <Stat icon="calendar" tone="purple" value={(ops?.boardMeetings||[]).length} label="Meetings recorded" href={"/s/"+code+"/operations"}/>
+    <Stat icon="cap" tone="green" value={ov?ov.people.students:"—"} label="Students enrolled" href={"/s/"+code+"/admissions"}/>
+    <Stat icon="wallet" tone="orange" value={fs?(collectedPct===null?"—":collectedPct+"%"):"—"} label="Fees collected" href={"/s/"+code+"/fees"}/>
    </div>
    <Card title="Board Members" icon="users" size="s6" link={link("operations","Manage board")}>
-    {(ops?.boardMembers||[]).length?<ul className="ds-list">{ops.boardMembers.map((m,i)=><li key={m.id} className="ds-item"><span className={"ds-ico "+tones[i%tones.length]}><Icon name="user"/></span>
-     <div><strong>{m.full_name}</strong><small>{m.position}{m.term_end?" · term ends "+when(m.term_end):""}</small></div></li>)}</ul>
+    {(ops?.boardMembers||[]).length?<ul className="ds-list">{ops.boardMembers.map((m,i)=><Item key={m.id} href={"/s/"+code+"/operations"}><span className={"ds-ico "+tones[i%tones.length]}><Icon name="user"/></span>
+     <div><strong>{m.full_name}</strong><small>{m.position}{m.term_end?" · term ends "+when(m.term_end):""}</small></div></Item>)}</ul>
      :<NoData t="No board members have been recorded yet."/>}</Card>
    <Card title="Board Meetings" icon="calendar" size="s6">
-    {(ops?.boardMeetings||[]).length?<ul className="ds-list">{ops.boardMeetings.slice(0,6).map(m=><li key={m.id} className="ds-item"><span className="ds-ico purple"><Icon name="calendar"/></span>
-     <div><strong>{m.title}</strong><small>{when(m.held_on)} · {m.status}</small></div></li>)}</ul>:<NoData t="No board meetings have been recorded yet."/>}</Card>
-   <Card title="School at a Glance" icon="chart" size="s6"><div className="ds-split"><Ring value={attPct} label="Attendance"/>
-    <div className="ds-bars"><Bar label="Fees collected" value={collectedPct} color="#1fa64a"/>
-     <Bar label="Attendance (30 days)" value={attPct} color="#3b8df0"/>
-     <Bar label="Homework graded" value={ov?.homework?.submitted?pct(ov.homework.graded,ov.homework.submitted):null} color="#f59e0b"/></div></div></Card>
+    {(ops?.boardMeetings||[]).length?<ul className="ds-list">{ops.boardMeetings.slice(0,6).map(m=><Item key={m.id} href={"/s/"+code+"/operations"}><span className="ds-ico purple"><Icon name="calendar"/></span>
+     <div><strong>{m.title}</strong><small>{when(m.held_on)} · {m.status}</small></div></Item>)}</ul>:<NoData t="No board meetings have been recorded yet."/>}</Card>
+   <Card title="School at a Glance" icon="chart" size="s6"><div className="ds-split"><Ring value={attPct} label="Attendance" href={"/s/"+code+"/classroom?tab=attendance"}/>
+    <div className="ds-bars"><Bar label="Fees collected" value={collectedPct} color="#1fa64a" href={"/s/"+code+"/fees"}/>
+     <Bar label="Attendance (30 days)" value={attPct} color="#3b8df0" href={"/s/"+code+"/classroom?tab=attendance"}/>
+     <Bar label="Homework graded" value={ov?.homework?.submitted?pct(ov.homework.graded,ov.homework.submitted):null} color="#f59e0b" href={"/s/"+code+"/classroom?tab=submissions"}/></div></div></Card>
    <Card title="Assets and Maintenance" icon="wrench" size="s6"><div className="ds-legend"><div>Recorded asset value<b>{assetValue?rwf(assetValue):"—"}</b></div>
     <div>Assets needing repair<b>{needRepair.length}</b></div><div>Open maintenance requests<b>{openMaint.length}</b></div></div></Card>
   </div>}
 
   {cur==="staff"&&<div className="ds-grid">
    <div className="ds-stats" style={{gridColumn:"1/-1",margin:0}}>
-    <Stat icon="wrench" tone="orange" value={openMaint.length} label="Open maintenance requests"/>
-    <Stat icon="alert" tone="red" value={lowStock.length} label="Low stock items"/>
-    <Stat icon="megaphone" tone="purple" value={notices.length} label="Recent notices"/>
-    <Stat icon="calendar" tone="blue" value={events.length} label="Upcoming events"/>
+    <Stat icon="wrench" tone="orange" value={openMaint.length} label="Open maintenance requests" href={"/s/"+code+"/operations"}/>
+    <Stat icon="alert" tone="red" value={lowStock.length} label="Low stock items" href={"/s/"+code+"/operations"}/>
+    <Stat icon="megaphone" tone="purple" value={notices.length} label="Recent notices" href={"/s/"+code+"/communications?tab=announcements"}/>
+    <Stat icon="calendar" tone="blue" value={events.length} label="Upcoming events" href={"/s/"+code+"/communications?tab=calendar"}/>
    </div>
    {PlatformNotices}{Maint}{Low}{Notices}{Events}
   </div>}
