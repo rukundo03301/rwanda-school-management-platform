@@ -89,7 +89,7 @@ function Course({code,call,classId,subjectId,studentQ,tab,itemQ,go}){
  const act=async(body,ok)=>{setBusy(true);setNote("");try{await call("",body);if(ok)setNote(ok);await load();}catch(e){setNote(e.message);}finally{setBusy(false);}};
  if(err)return <section className="ds-panel"><p role="alert">{err}</p><button className="button secondary" onClick={()=>go({})}>Back to My Courses</button></section>;
  if(!d)return <section className="ds-panel"><p>Opening course…</p></section>;
- const setTab=t=>go({class:classId,subject:subjectId,student:studentQ,tab:t==="course"?"":t});
+ const setTab=t=>{setNote("");go({class:classId,subject:subjectId,student:studentQ,tab:t==="course"?"":t});};
  const sections=[{id:"general",title:"General",summary:"",items:d.items.filter(i=>!i.moduleId||!d.modules.some(m=>m.id===i.moduleId))},
   ...d.modules.map(m=>({...m,items:d.items.filter(i=>i.moduleId===m.id)}))];
  const pct=d.progress&&d.progress.total?Math.round(d.progress.done*100/d.progress.total):0;
