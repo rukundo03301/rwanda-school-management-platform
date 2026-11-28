@@ -86,8 +86,10 @@ export async function GET(request,{params}){
    const since=new Date(Date.now()-45*86400000).toISOString();
    const published=await checked(db.from("school_term_reports").select("id,student_id,term_number,published_at")
     .eq("school_id",school.id).in("student_id",learners).eq("status","published").gte("published_at",since).limit(20));
+   const viewed=published.length?new Set((await checked(db.from("school_report_audit").select("resource_id").eq("school_id",school.id)
+    .eq("actor_id",user.id).eq("event","term_report.viewed").in("resource_id",published.map(r=>r.id)).limit(40))).map(v=>v.resource_id)):new Set();
    const names=await students(learners);
-   for(const r of published)add("tr-pub:"+r.id,"Term report published",(names.get(r.student_id)||"Student")+" · Term "+r.term_number,
+   for(const r of published.filter(r=>!viewed.has(r.id)))add("tr-pub:"+r.id,"Term report published",(names.get(r.student_id)||"Student")+" · Term "+r.term_number,
     base+"report-card?report="+r.id,r.published_at,"green");
    const classOf=new Map(ctx.enrollments.map(e=>[e.student_id,e.class_id]));
    const classes=[...new Set(ctx.enrollments.map(e=>e.class_id))];
