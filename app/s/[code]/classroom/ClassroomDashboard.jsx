@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
@@ -57,10 +57,13 @@ export default function ClassroomDashboard({code}){
   if(!response.ok)throw Error(result.error||"School classroom request failed");
   return result;
  },[client,code]);
+ const seededSubject=useRef(false);
  const refresh=useCallback(async()=>{
   setLoading(true);
   try{const r=await api();setData(r);setError("");
-   setSelectedClass(old=>r.classes.some(c=>c.id===old)?old:r.myAssignments[0]?.class_id||r.classes[0]?.id||"");
+   const qp=new URLSearchParams(location.search),qc=qp.get("class"),qsub=qp.get("subject");
+   setSelectedClass(old=>r.classes.some(c=>c.id===old)?old:(qc&&r.classes.some(c=>c.id===qc)?qc:r.myAssignments[0]?.class_id||r.classes[0]?.id||""));
+   if(qsub&&!seededSubject.current){seededSubject.current=true;setSelectedSubject(qsub);}
   }catch(e){setError(e.message);}
   finally{setLoading(false);}
  },[api]);
@@ -180,7 +183,7 @@ export default function ClassroomDashboard({code}){
        <div id="my-classes" style={{scrollMarginTop:80}}/><Card title="My Classes" icon="users" size="s12" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Open →</button>}>
         {teacherClasses.length?<table className="ds-table"><thead><tr><th>Class</th><th>Subjects</th><th>Students</th><th></th></tr></thead><tbody>
          {teacherClasses.map(cls=><tr key={cls.id}><td><strong>{classLabel(cls.id)}</strong></td>
-          <td>{[...new Set(myAssignments.filter(a=>a.class_id===cls.id).map(a=>subjectLabel(a.subject_id)))].join(", ")||"—"}</td>
+          <td>{[...new Map(myAssignments.filter(a=>a.class_id===cls.id).map(a=>[a.subject_id,a])).values()].map((a,k)=><span key={a.subject_id}>{k?", ":""}<a className="ds-link" href={"/s/"+code+"/courses?class="+cls.id+"&subject="+a.subject_id}>{subjectLabel(a.subject_id)}</a></span>)}{!myAssignments.some(a=>a.class_id===cls.id)&&"—"}</td>
           <td>{new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</td>
           <td><button className="ds-link" onClick={()=>{setSelectedClass(cls.id);selectSection("attendance")}}>Open class →</button></td></tr>)}</tbody></table>
          :<p className="ds-empty">Your school administrator will assign your classes and subjects.</p>}
@@ -205,6 +208,7 @@ export default function ClassroomDashboard({code}){
          <button className="ds-action blue" onClick={()=>{const a=myAssignments[0];if(a)setSelectedClass(a.class_id);selectSection("homework");}}><Icon name="check"/>Create Homework</button>
          <button className="ds-action green" onClick={()=>selectSection("attendance")}><Icon name="clock"/>Record Attendance</button>
          <button className="ds-action purple" onClick={()=>{const a=myAssignments[0];if(a){setSelectedClass(a.class_id);open("lesson",{classId:a.class_id,subjectId:a.subject_id,lessonOn:currentDay});}else selectSection("lessons");}}><Icon name="book"/>Plan a Lesson</button>
+         <a className="ds-action blue" href={"/s/"+code+"/courses"}><Icon name="book"/>My Courses</a>
          <a className="ds-action orange" href={"/s/"+code+"/communications"}><Icon name="chat"/>School Messages</a>
         </div>
        </Card>
