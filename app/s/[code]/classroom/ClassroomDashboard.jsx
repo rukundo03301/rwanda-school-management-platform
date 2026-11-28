@@ -137,7 +137,7 @@ export default function ClassroomDashboard({code}){
  const TITLES={overview:"Teacher Dashboard",assignments:"Teacher Class Assignments",curriculum:"Curriculum Library: what to teach",lessons:"Lesson Planning",homework:"Homework and Deadlines",attendance:"Daily Attendance",submissions:"Homework Submissions",studentAccess:"Verified Student Accounts",materials:"Learning Materials"};
  const ICON={overview:"home",assignments:"users",curriculum:"book",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user",materials:"folder"};
  const NAMES={overview:"Dashboard",attendance:"Attendance",submissions:"Grade Submissions"};
- const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),
+ const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),{label:"My Courses",icon:"book",href:"/s/"+code+"/courses"},
   {label:"Term Reports",icon:"file",href:"/s/"+code+"/term-reports"},
   ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:"Early Years Observations",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
