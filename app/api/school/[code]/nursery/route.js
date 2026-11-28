@@ -60,6 +60,8 @@ export async function POST(request,{params}){
   const {db,school,role,actorId}=ctx;
   const body=await request.json().catch(()=>({}));
   const action=String(body.action||"");
+  // Term reports for every level, nursery included, are written and approved in Term Reports.
+  if(action.startsWith("report."))throw new ApiError(410,"Term reports are now written in Term Reports.");
   let result;
   if(action==="observation.record"){
    if(!role.teacher)throw new ApiError(403,"Only an assigned teacher records observations");
