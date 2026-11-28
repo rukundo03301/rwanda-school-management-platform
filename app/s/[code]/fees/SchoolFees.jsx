@@ -170,7 +170,7 @@ export default function SchoolFees({code}){
     <p>Fees are recorded for this institution only. The platform owner's separate charges never appear here.</p></div>
   </aside>
   <main className="fee-main"><div className="fee-title">
-   <span>MODULE 7 · SCHOOL FINANCIAL MANAGEMENT</span>
+   <span>SCHOOL FINANCIAL MANAGEMENT</span>
    <h1>{({
     overview:parent&&!manager?"My Children's School Fees":"School Financial Overview",
     catalog:"School Fee Schedules",invoices:"Student Invoices",
@@ -201,7 +201,7 @@ export default function SchoolFees({code}){
       <div className="fee-kpi"><strong>{data.summary?.pending_claims??claimed.length}</strong>
        <span>Pending claims across this school</span></div>
       {canApprove&&<button className="button secondary" onClick={()=>setTab("payments")}>Review pending collections</button>}</>:
-      <><p>You can review invoices, outstanding balances and school-approved receipts. A reported Mobile Money transfer is **not** automatically confirmed.</p>
+      <><p>You can review invoices, outstanding balances and school-approved receipts. A reported Mobile Money transfer is <strong>not</strong> automatically confirmed.</p>
        <button className="button secondary" onClick={()=>setTab("family")}>View family statements</button></>}
     </section>
     <section className="fee-panel"><h2>How school payments work</h2>
@@ -371,7 +371,7 @@ export default function SchoolFees({code}){
     <Field label="Payment due date"><input className="input" type="date" required
      value={form.dueOn||""} min={year?.starts_on} max={year?.ends_on}
      onChange={e=>setForm({...form,dueOn:e.target.value})}/></Field>
-    <p className="fee-callout">This creates a fee definition, not an invoice. You must issue invoices to eligible pupils separately. MFA is required.</p>
+    <p className="fee-callout">This creates a fee definition, not an invoice. You must issue invoices to eligible pupils separately. The appropriate school permissions are required.</p>
     <button className="button" disabled={busy} type="submit">Save new fee</button>
    </form>}
    {modal==="issue"&&<form onSubmit={e=>{e.preventDefault();action({
@@ -384,7 +384,7 @@ export default function SchoolFees({code}){
      onChange={e=>setForm({...form,studentId:e.target.value})}>
      <option value="">Select student</option>
      {data.pupils.filter(p=>p.active&&p.classId).map(p=><option key={p.id} value={p.id}>{p.name} · {p.studentCode}</option>)}</select></Field>
-    <p>School membership, active enrollment, class eligibility and duplicates are rechecked in the database. MFA is required.</p>
+    <p>School membership, active enrollment, class eligibility and duplicates are rechecked in the database. The appropriate school permissions are required.</p>
     <button className="button" disabled={busy||!form.feeId||!form.studentId} type="submit">Issue RWF invoice</button>
    </form>}
    {modal==="batch"&&<form onSubmit={e=>{e.preventDefault();action({
@@ -392,7 +392,7 @@ export default function SchoolFees({code}){
    },"Eligible student invoices issued.");}}>
     <p><strong>{form.fee.label}</strong> · {displayRwf(form.fee.amount_rwf)} per student</p>
     <p>This will issue a separate invoice to every currently enrolled student eligible for this fee. Existing student/fee invoices are skipped rather than duplicated.</p>
-    <div className="fee-callout">This is a bulk financial posting. Review the fee amount and eligible class before proceeding. MFA is required.</div>
+    <div className="fee-callout">This is a bulk financial posting. Review the fee amount and eligible class before proceeding. The appropriate school permissions are required.</div>
     <button className="button" disabled={busy} type="submit">Confirm bulk invoice issue</button>
    </form>}
    {modal==="claim"&&<form onSubmit={e=>{e.preventDefault();action({
@@ -429,7 +429,7 @@ export default function SchoolFees({code}){
      {REVIEW_EVIDENCE.map(x=><option key={x} value={x}>{cap(x)}</option>)}</select></Field>
     <Field label="Review note · at least 15 characters"><textarea className="input" required minLength={15} maxLength={500}
      value={form.review||""} onChange={e=>setForm({...form,review:e.target.value})}/></Field>
-    <button type="submit" className="button" disabled={busy||form.payment.proposed_by===actor.id}>Approve and issue school receipt (MFA)</button>
+    <button type="submit" className="button" disabled={busy||form.payment.proposed_by===actor.id}>Approve and issue school receipt </button>
    </form>}
    {["feeDisable","reject","reverse","cancelInvoice"].includes(modal)&&<form onSubmit={e=>{
     e.preventDefault();
@@ -455,7 +455,7 @@ export default function SchoolFees({code}){
      onChange={e=>setForm({...form,amount:e.target.value})}/></Field>
     <Field label="Approved justification"><textarea className="input" required minLength={12} maxLength={500}
      value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
-    <button className="button" type="submit" disabled={busy}>Approve fee waiver with MFA</button>
+    <button className="button" type="submit" disabled={busy}>Approve fee waiver </button>
    </form>}
    {modal==="access"&&<form onSubmit={e=>{e.preventDefault();action({
      action:"rights.set",userId:form.target.userId,permissions:form.permissions,reason:form.reason
@@ -471,7 +471,7 @@ export default function SchoolFees({code}){
        <span className="switch-track"/></label></td></tr>)}</tbody></table></div>
     <Field label="Audit reason for permission change"><textarea className="input" required minLength={8}
       maxLength={500} value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
-    <button className="button" disabled={busy} type="submit">Save financial access with MFA</button>
+    <button className="button" disabled={busy} type="submit">Save financial access </button>
    </form>}
   </Dialog>}
   {receiptById&&printedInvoice&&<div className="fee-receipt-overlay" role="presentation">

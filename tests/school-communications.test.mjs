@@ -122,7 +122,7 @@ test("owner-controlled ON/OFF staff permissions never confer access to private m
  assert.match(ui,/role="switch"/);
  assert.match(ui,/Private to the verified teacher and guardian/);
  assert.match(ui,/These switches never allow access to private family messages|do not grant private family message access/);
- assert.match(api,/requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/);
 });
 
 test("in-app notifications are real but provider email/SMS aren't falsely claimed",()=>{

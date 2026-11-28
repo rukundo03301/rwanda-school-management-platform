@@ -248,7 +248,7 @@ grant execute on function public.platform_configure_payment_method(uuid,boolean,
 
 
 -- Owner-controlled granular staff permissions. Only the server's service_role
--- may invoke this function. The HTTP API checks the verified owner and AAL2.
+-- may invoke this function. The HTTP API checks the verified platform owner and permissions.
 create or replace function public.platform_update_staff_permissions(
   p_staff_id uuid,p_role text,p_permissions text[],p_reason text,p_actor uuid
 ) returns jsonb language plpgsql security invoker

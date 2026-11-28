@@ -28,6 +28,12 @@ function asForm(p={},s={}){
    leaderTitle:s.leader_title||"",
    leaderMessage:s.leader_message||"",
    leaderPhotoUrl:s.leader_photo_url||"",
+    addressText:s.address_text||"",
+    programsIntro:s.programs_intro||"",
+    admissionsIntro:s.admissions_intro||"",
+    admissionsInstructions:s.admissions_instructions||"",
+    admissionsContact:s.admissions_contact||"",
+    gallery:Array.isArray(s.gallery)?s.gallery.filter(g=>g&&g.url).map(g=>({url:g.url,caption:g.caption||""})):[],
    advertisements:[0,1,2].map(i=>({title:s.advertisements?.[i]?.title||"",description:s.advertisements?.[i]?.description||"",enabled:Boolean(s.advertisements?.[i]?.enabled)}))
  };
 }
@@ -121,8 +127,11 @@ export default function SchoolSetup({code}){
        missionStatement:form.missionStatement,visionStatement:form.visionStatement,
        leaderName:form.leaderName,leaderTitle:form.leaderTitle,
        leaderMessage:form.leaderMessage,leaderPhotoUrl:form.leaderPhotoUrl,
-       advertisements:form.advertisements
-     });
+       advertisements:form.advertisements,
+        addressText:form.addressText,programsIntro:form.programsIntro,
+        admissionsIntro:form.admissionsIntro,admissionsInstructions:form.admissionsInstructions,
+        admissionsContact:form.admissionsContact,gallery:form.gallery
+      });
      setStep(nextStep);setMessage("Saved successfully. Your school setup is private until publishing.");
      if(exit)window.location.assign("/s/"+code+"/login");
      return true;
@@ -136,7 +145,9 @@ export default function SchoolSetup({code}){
      const data=new FormData();
      data.append("kind",kind);data.append("image",file);
      const result=await call(data,true);
-     setForm(prev=>({...prev,[kind==="logo"?"logoUrl":kind==="leader"?"leaderPhotoUrl":"heroUrl"]:result.url}));
+     setForm(prev=>kind==="gallery"
+        ?{...prev,gallery:[...prev.gallery,{url:result.url,caption:""}].slice(0,12)}
+        :{...prev,[kind==="logo"?"logoUrl":kind==="leader"?"leaderPhotoUrl":"heroUrl"]:result.url});
      setMessage("Photo uploaded. Select Continue or Save & Exit to save it to your school profile.");
    }catch(e){setError(e.message);}
    finally{setUploading(false);}
@@ -245,10 +256,31 @@ export default function SchoolSetup({code}){
                <FormField label="Description"><textarea className="input" maxLength={400} value={ad.description} onChange={e=>set("advertisements",form.advertisements.map((x,j)=>j===i?{...x,description:e.target.value}:x))} placeholder="What should visitors know?"/></FormField>
              </div>)}
            </div>
+<div className="school-editor-section">
+<h2>Programs &amp; education levels</h2><p className="muted">Your homepage lists only the education levels you select under School essentials (step 4). You may add an introduction in your school's own words.</p>
+<FormField label="Programs introduction (optional)"><textarea className="input" maxLength={1200} value={form.programsIntro} onChange={e=>set("programsIntro",e.target.value)} placeholder="Describe the education your school actually offers"/></FormField>
+</div>
+<div className="school-editor-section">
+<h2>Admissions information</h2><p className="muted">Explain how families can apply. Leave these blank to keep the admissions section off your homepage.</p>
+<FormField label="Admissions introduction"><textarea className="input" maxLength={1600} value={form.admissionsIntro} onChange={e=>set("admissionsIntro",e.target.value)} placeholder="Who can apply and when"/></FormField>
+<FormField label="How to apply (one step per line)"><textarea className="input" maxLength={1600} value={form.admissionsInstructions} onChange={e=>set("admissionsInstructions",e.target.value)} placeholder="Your school's real application steps"/></FormField>
+<FormField label="Admissions contact (email or telephone)"><input className="input" maxLength={254} value={form.admissionsContact} onChange={e=>set("admissionsContact",e.target.value)}/></FormField>
+</div>
+<div className="school-editor-section">
+<h2>School photo gallery</h2><p className="muted">Up to twelve approved photographs of your real school. They stay private until you publish. Do not upload photographs that identify students without permission.</p>
+{form.gallery.length<12&&<FormField label="Add a gallery photograph"><input className="input" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{upload(e.target.files?.[0],"gallery");e.target.value="";}}/></FormField>}
+<p className="micro">{form.gallery.length} of 12 photographs</p>
+<div className="school-gallery-editor">{form.gallery.map((g,i)=><div className="school-gallery-item" key={g.url}>
+<img src={g.url} alt={g.caption||"Gallery photograph "+(i+1)} width="150" height="110"/>
+<input className="input" aria-label={"Caption for photograph "+(i+1)} maxLength={120} value={g.caption} placeholder="Caption (optional)" onChange={e=>set("gallery",form.gallery.map((x,j)=>j===i?{...x,caption:e.target.value}:x))}/>
+<button type="button" className="button secondary small" onClick={()=>set("gallery",form.gallery.filter((_,j)=>j!==i))}>Remove</button>
+</div>)}</div>
+</div>
            <div className="grid-2">
              <FormField label="Official contact email"><input className="input" type="email" value={form.contactEmail} onChange={e=>set("contactEmail",e.target.value)}/></FormField>
              <FormField label="Telephone number"><input className="input" type="tel" value={form.contactPhone} maxLength={60} onChange={e=>set("contactPhone",e.target.value)}/></FormField>
            </div>
+<FormField label="School address or location"><input className="input" maxLength={240} value={form.addressText} onChange={e=>set("addressText",e.target.value)} placeholder="Street, sector, district"/></FormField>
          </>}
          {step===4&&<>
            <h1>Set up the essentials</h1><p className="muted">Only a few choices now. Subjects, homework, grading, fees and staff can be completed when their modules are ready.</p>
@@ -271,6 +303,9 @@ export default function SchoolSetup({code}){
              <p><strong>Mission &amp; Vision</strong><span>{form.missionStatement||form.visionStatement?"Entered":"Not yet entered"}</span></p>
              <p><strong>Leadership</strong><span>{form.leaderName||"Not yet entered"}</span></p>
              <p><strong>Active announcements</strong><span>{form.advertisements.filter(x=>x.enabled&&x.title).length}</span></p>
+<p><strong>Admissions information</strong><span>{form.admissionsIntro||form.admissionsInstructions?"Entered":"Not yet entered"}</span></p>
+<p><strong>Gallery photographs</strong><span>{form.gallery.length}</span></p>
+<p><strong>Address</strong><span>{form.addressText||"Not entered"}</span></p>
              <p><strong>Website identity</strong><span>{form.logoUrl?"Logo uploaded":"Text-only / no logo yet"} · {form.heroUrl?"Photo uploaded":"No campus photo yet"}</span></p>
            </div>
            <div className="row">

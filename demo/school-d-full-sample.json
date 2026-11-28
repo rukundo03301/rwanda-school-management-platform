@@ -1,0 +1,393 @@
+{
+  "schema_version": "2026-11-24.remezo.2",
+  "fictional": true,
+  "scope": "RW-SCH-000004",
+  "purpose": "Fictional Remezo Primary School training data. Synthetic persons, no real payments or messages.",
+  "academic_year": "2026-2027 (FICTIONAL TEST)",
+  "learners": {
+    "expected_total": 20,
+    "existing_verified": 2,
+    "additional_to_seed": 18,
+    "classes": [
+      {
+        "name": "P3 DEMO",
+        "capacity": 30,
+        "students": 5
+      },
+      {
+        "name": "P4 TEST",
+        "capacity": 30,
+        "students": 5
+      },
+      {
+        "name": "P5 TEST",
+        "capacity": 30,
+        "students": 5
+      },
+      {
+        "name": "P6 DEMO",
+        "capacity": 30,
+        "students": 5
+      }
+    ],
+    "guardian_directory": "Not generated as live parent accounts; requires identity and relationship verification"
+  },
+  "teachers": [
+    {
+      "code": "T01",
+      "name": "Demo Teacher A (FICTIONAL)",
+      "role": "class_teacher",
+      "subjects": [
+        "Mathematics"
+      ],
+      "assigned_class": "P4 TEST",
+      "portal": "teacher",
+      "account_status": "profile_only"
+    },
+    {
+      "code": "T02",
+      "name": "Demo Teacher B (FICTIONAL)",
+      "role": "class_teacher",
+      "subjects": [
+        "English",
+        "Kinyarwanda"
+      ],
+      "assigned_class": "P3 DEMO",
+      "portal": "teacher",
+      "account_status": "profile_only"
+    },
+    {
+      "code": "T03",
+      "name": "Demo Teacher C (FICTIONAL)",
+      "role": "class_teacher",
+      "subjects": [
+        "Science"
+      ],
+      "assigned_class": "P5 TEST",
+      "portal": "teacher",
+      "account_status": "profile_only"
+    },
+    {
+      "code": "T04",
+      "name": "Demo Teacher D (FICTIONAL)",
+      "role": "class_teacher",
+      "subjects": [
+        "Social Studies"
+      ],
+      "assigned_class": "P6 DEMO",
+      "portal": "teacher",
+      "account_status": "profile_only"
+    },
+    {
+      "code": "T05",
+      "name": "Demo Teacher E (FICTIONAL)",
+      "role": "class_teacher",
+      "subjects": [
+        "ICT",
+        "French"
+      ],
+      "assigned_class": "P6 DEMO",
+      "portal": "teacher",
+      "account_status": "profile_only"
+    }
+  ],
+  "staff": [
+    {
+      "code": "S01",
+      "name": "Demo Staff A (FICTIONAL)",
+      "role": "school_secretary",
+      "portal": "staff",
+      "permissions": [
+        "admission_reception",
+        "school_calendar"
+      ]
+    },
+    {
+      "code": "S02",
+      "name": "Demo Staff B (FICTIONAL)",
+      "role": "bursar",
+      "portal": "finance",
+      "permissions": [
+        "fee_receipts",
+        "reconciliation"
+      ]
+    },
+    {
+      "code": "S03",
+      "name": "Demo Staff C (FICTIONAL)",
+      "role": "cook",
+      "portal": "kitchen",
+      "permissions": [
+        "meal_plan",
+        "stock_issue"
+      ]
+    },
+    {
+      "code": "S04",
+      "name": "Demo Staff D (FICTIONAL)",
+      "role": "security_guard",
+      "portal": "security",
+      "permissions": [
+        "visitor_log",
+        "gate_register"
+      ]
+    },
+    {
+      "code": "S05",
+      "name": "Demo Staff E (FICTIONAL)",
+      "role": "maintenance_technician",
+      "portal": "maintenance",
+      "permissions": [
+        "asset_inspection",
+        "work_orders"
+      ]
+    }
+  ],
+  "leadership": [
+    {
+      "position": "School Owner",
+      "access": "institution governance and executive oversight; not automatic access to confidential student case records"
+    },
+    {
+      "position": "Head Teacher / Principal",
+      "access": "daily school leadership, staff approvals, reporting"
+    },
+    {
+      "position": "Deputy Head Teacher - Studies / Dean of Studies",
+      "access": "curriculum, class allocations, teaching quality"
+    },
+    {
+      "position": "Deputy Head Teacher - Discipline / Dean of Discipline",
+      "access": "attendance, safeguarding and conduct with restricted case scope"
+    },
+    {
+      "position": "Matron / Patron / Animatrice (if applicable)",
+      "access": "boarding, welfare and supervision; only where school type requires it"
+    }
+  ],
+  "board": [
+    {
+      "position": "Board Chair / General Assembly Chair",
+      "name": "Demo Board Chair (FICTIONAL)"
+    },
+    {
+      "position": "Secretary",
+      "name": "Demo Board Secretary (FICTIONAL)"
+    },
+    {
+      "position": "Parent Representative",
+      "name": "Demo Parent Representative (FICTIONAL)"
+    },
+    {
+      "position": "Education Representative",
+      "name": "Demo Education Representative (FICTIONAL)"
+    },
+    {
+      "position": "Treasurer / Audit Representative",
+      "name": "Demo Audit Representative (FICTIONAL)"
+    }
+  ],
+  "assets": [
+    {
+      "code": "AST-001",
+      "label": "Classroom desks",
+      "quantity": 40,
+      "location": "P3 and P4"
+    },
+    {
+      "code": "AST-002",
+      "label": "Student chairs",
+      "quantity": 40,
+      "location": "P3 and P4"
+    },
+    {
+      "code": "AST-003",
+      "label": "Teacher desks",
+      "quantity": 4,
+      "location": "Teaching rooms"
+    },
+    {
+      "code": "AST-004",
+      "label": "Projectors",
+      "quantity": 2,
+      "location": "ICT / multipurpose room"
+    },
+    {
+      "code": "AST-005",
+      "label": "Laptop computers",
+      "quantity": 6,
+      "location": "ICT lab"
+    },
+    {
+      "code": "AST-006",
+      "label": "Whiteboards",
+      "quantity": 4,
+      "location": "P3-P6"
+    },
+    {
+      "code": "AST-007",
+      "label": "Water tanks",
+      "quantity": 2,
+      "location": "Facilities"
+    },
+    {
+      "code": "AST-008",
+      "label": "Kitchen refrigerators",
+      "quantity": 1,
+      "location": "Kitchen"
+    },
+    {
+      "code": "AST-009",
+      "label": "Fire extinguishers",
+      "quantity": 6,
+      "location": "Facilities"
+    },
+    {
+      "code": "AST-010",
+      "label": "School generator",
+      "quantity": 1,
+      "location": "Maintenance"
+    }
+  ],
+  "inventory": [
+    {
+      "sku": "STK-001",
+      "name": "A4 exercise books",
+      "quantity": 120,
+      "unit": "each",
+      "reorder_level": 30
+    },
+    {
+      "sku": "STK-002",
+      "name": "Chalk / board markers",
+      "quantity": 48,
+      "unit": "box",
+      "reorder_level": 10
+    },
+    {
+      "sku": "STK-003",
+      "name": "Pens",
+      "quantity": 150,
+      "unit": "each",
+      "reorder_level": 40
+    },
+    {
+      "sku": "STK-004",
+      "name": "Rice",
+      "quantity": 85,
+      "unit": "kg",
+      "reorder_level": 25
+    },
+    {
+      "sku": "STK-005",
+      "name": "Beans",
+      "quantity": 60,
+      "unit": "kg",
+      "reorder_level": 20
+    },
+    {
+      "sku": "STK-006",
+      "name": "Cooking oil",
+      "quantity": 24,
+      "unit": "litre",
+      "reorder_level": 8
+    },
+    {
+      "sku": "STK-007",
+      "name": "Soap",
+      "quantity": 50,
+      "unit": "bar",
+      "reorder_level": 15
+    },
+    {
+      "sku": "STK-008",
+      "name": "First-aid kits",
+      "quantity": 4,
+      "unit": "kit",
+      "reorder_level": 2
+    },
+    {
+      "sku": "STK-009",
+      "name": "Cleaning gloves",
+      "quantity": 30,
+      "unit": "pair",
+      "reorder_level": 10
+    }
+  ],
+  "maintenance": [
+    {
+      "id": "WO-001",
+      "asset_code": "AST-004",
+      "task": "Inspect projector cabling",
+      "status": "open",
+      "assigned_role": "maintenance_technician"
+    },
+    {
+      "id": "WO-002",
+      "asset_code": "AST-009",
+      "task": "Monthly fire-extinguisher checks",
+      "status": "scheduled",
+      "assigned_role": "maintenance_technician"
+    },
+    {
+      "id": "WO-003",
+      "asset_code": "AST-008",
+      "task": "Clean refrigerator condenser",
+      "status": "scheduled",
+      "assigned_role": "maintenance_technician"
+    }
+  ],
+  "event_plan": [
+    {
+      "title": "FICTIONAL: Open School Day",
+      "audience": "all",
+      "date": "2026-12-05"
+    },
+    {
+      "title": "FICTIONAL: Parent–Teacher Meeting",
+      "audience": "parents",
+      "date": "2026-12-12"
+    },
+    {
+      "title": "FICTIONAL: Science Exhibition",
+      "audience": "all",
+      "date": "2027-02-13"
+    },
+    {
+      "title": "FICTIONAL: Sports Day",
+      "audience": "all",
+      "date": "2027-03-06"
+    }
+  ],
+  "social_media": {
+    "youtube": null,
+    "tiktok": null,
+    "facebook": null,
+    "instagram": null,
+    "website": null,
+    "note": "School must provide verified official links. Do not invent or publish external school accounts."
+  },
+  "academic_reporting": {
+    "formats": [
+      "class attendance",
+      "subject assessment",
+      "published student report card",
+      "school enrollment",
+      "term outcomes"
+    ],
+    "privacy": "Draft marks private; authorized teacher entry, principal moderation, student/verified guardian published view"
+  },
+  "fee_examples": {
+    "currency": "RWF",
+    "tuition_per_term": 85000,
+    "meals_per_term": 15000,
+    "payments": "None initiated; examples are unpaid when later posted"
+  },
+  "implementation_state": {
+    "students_and_academic_records": "existing database, seed in separate checked SQL",
+    "teacher_auth": "Only preexisting verified teacher account is real; five directory profiles are NOT logins",
+    "operations_and_governance": "design/demo fixture until secure school-scoped CRUD and purge-manifest updates",
+    "social_media": "field definitions only; no external links claimed"
+  },
+  "schoolName": "Remezo Primary School"
+}

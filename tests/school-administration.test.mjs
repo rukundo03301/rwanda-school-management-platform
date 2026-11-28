@@ -48,7 +48,7 @@ test("cross-school academic foreign keys prevent assigning a subject or year fro
 });
 test("school owner is required to invite admins or change their permissions",()=>{
  assert.match(api,/if\(role==="school_admin"\)requireSchoolOwner\(actor\)/);
- assert.match(api,/requireSchoolOwner\(actor\);requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/); assert.match(api,/requireSchoolOwner\(actor\)/);
  assert.match(db,/Only the school owner may update admin permissions/);
  assert.match(db,/Only school owner may invite administrators/);
  assert.match(db,/Only school owner can revoke administrator/);
@@ -77,7 +77,7 @@ test("invitation acceptance requires matching verified email and an active schoo
 test("administration never reads platform owner's manual fee ledger or student records",()=>{
  assert.doesNotMatch(api,/platform_fee_terms|platform_manual_payments|platform_staff|school_student/);
  assert.doesNotMatch(page,/platform_fee_terms|platform_manual_payments/);
- assert.match(page,/Student records are not part of Module 2/);
+ assert.doesNotMatch(page,/Student records are not part of Module/);
 });
 test("three source migrations run in dependency order in isolated Supabase stack",()=>{
  const first=ci.indexOf("supabase migration new platform_owner_console");

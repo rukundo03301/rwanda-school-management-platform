@@ -2,7 +2,7 @@ import {
  reportingContext,hasReportPermission,reportText,reportUrl,reportId,
  reportDate,validateAssessmentCategory,normalizeReportPermissions,CURRICULUM_TRACKS
 } from "../../../../../lib/school-reporting.mjs";
-import {ApiError,checked,jsonError,requireAal2} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const headers={"Cache-Control":"no-store"};
@@ -213,13 +213,13 @@ export async function POST(request,{params}){
     }).select("id,unit_code").single());
   }else if(action==="curriculum.approve"){
     if(!actor.owner)throw new ApiError(403,"Only the school owner approves curriculum");
-    requireAal2(token);
+    
     result=await checked(db.rpc("school_approve_curriculum",{
       p_school:school.id,p_profile:reportId(body.profileId,"curriculum"),p_actor:actor.id
     }));
   }else if(action==="curriculum.subjectApprove"){
     if(!actor.owner)throw new ApiError(403,"Only the school owner approves syllabus allocations");
-    requireAal2(token);
+    
     result=await checked(db.rpc("school_approve_curriculum_subject",{
       p_school:school.id,p_class:reportId(body.classId,"class"),
       p_subject:reportId(body.subjectId,"subject"),p_actor:actor.id
@@ -263,7 +263,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="report.publish"){
     if(!actor.owner)throw new ApiError(403,"Only this school's owner can publish reports");
-    requireAal2(token);
+    
     const remark=typeof body.remark==="string"&&body.remark.length<=2000?body.remark:"";
     result=await checked(db.rpc("school_publish_term_report",{
       p_school:school.id,p_student:reportId(body.studentId,"student"),
@@ -271,7 +271,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="report.withdraw"){
     if(!actor.owner)throw new ApiError(403,"Only the school owner can withdraw reports");
-    requireAal2(token);
+    
     const reason=reportText(body.reason,1000,{min:8});
     result=await checked(db.rpc("school_withdraw_term_report",{
       p_school:school.id,p_report:reportId(body.reportId,"report"),
@@ -279,7 +279,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="report.permissions"){
     if(!actor.owner)throw new ApiError(403,"Only the school owner can grant report access");
-    requireAal2(token);
+    
     const permissions=normalizeReportPermissions(body.permissions||[]);
     result=await checked(db.rpc("school_set_report_permissions",{
       p_school:school.id,p_target:reportId(body.userId,"administrator"),

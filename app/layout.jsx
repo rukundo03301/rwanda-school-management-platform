@@ -1,7 +1,8 @@
 import "./globals.css";
 export const metadata = {
-  title: "Rwanda Education Platform · Owner Console",
-  description: "Tenant, subscriptions, support, and staff management for the Rwanda School Management Platform.",
+  // Neutral default: school pages under /s/ must never be labelled as the owner console.
+  title: "Rwanda Education Platform",
+  description: "Rwanda School Management Platform.",
   robots: { index: false, follow: false },
 };
 export default function RootLayout({ children }) {

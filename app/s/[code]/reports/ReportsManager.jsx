@@ -2,6 +2,8 @@
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {NESA_PRIMARY_REFERENCE,primaryReferenceForGrade} from "../../../../lib/rwanda-nesa-primary-reference.mjs";
+import {buildTeacherTermPreview} from "../../../../lib/school-term-preview.mjs";
+import TeacherReportPreview from "./TeacherReportPreview.jsx";
 
 const SECTIONS=[
  {id:"overview",title:"Overview"},
@@ -21,7 +23,7 @@ const TRACKS=[
  ["higher_education","Higher Education (institutional rules)"]
 ];
 const LEVEL_BANDS={
- general:[["lower_primary","Lower Primary P1–P3 (LEGRA needs separate engine)"],
+ general:[["lower_primary","Lower Primary P1–P3 (Kinyarwanda uses LEGRA)"],
   ["upper_primary","Upper Primary P4–P6"],["ordinary_secondary","Ordinary Level S1–S3"],
   ["advanced_secondary","Advanced Level S4–S6"]],
  professional:[["professional","Professional Education"]],
@@ -44,6 +46,7 @@ export default function ReportsManager({code}){
  const [tab,setTab]=useState("overview"),[modal,setModal]=useState(null),[form,setForm]=useState({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false);
  const [termId,setTermId]=useState(""),[classId,setClassId]=useState("");
+ const [previewStudentId,setPreviewStudentId]=useState("");
  const [referenceGrade,setReferenceGrade]=useState("P4");
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
@@ -112,6 +115,11 @@ export default function ReportsManager({code}){
  const selectedTerm=terms.find(t=>t.id===termId);
  const selectedClass=klass(classId);
  const visibleMarks=marks.filter(m=>m.term_id===termId&&m.class_id===classId);
+ const chosenPreviewStudent=classRoster.find(s=>s.studentId===previewStudentId)||classRoster[0]||null;
+ const draftPreview=buildTeacherTermPreview({
+  school,year,term:selectedTerm,student:chosenPreviewStudent,selectedClass,
+  courses:gradeCourse,subjects,curriculum,units,marks
+ });
  const ownerAction=(kind,fields={})=>open(kind,fields);
  const stats=[["Approved syllabuses",courseMappings.filter(c=>c.approved_at).length,"Loaded subject mappings"],
   ["Term periods",terms.length,"For current academic year"],
@@ -131,7 +139,7 @@ export default function ReportsManager({code}){
      onClick={()=>{setTab(s.id);setError("");}}>{s.title}</button>)}
    <div className="repm-sidefoot"><small>School ID</small><b>{school.code}</b><p>Every calculation uses school-approved curriculum references.</p></div>
   </aside><section className="repm-content">
-   <div className="repm-title"><span className="repm-eyebrow">ACADEMIC QUALITY · MODULE 5</span>
+   <div className="repm-title"><span className="repm-eyebrow">ACADEMIC QUALITY</span>
     <h1>{({overview:"Curriculum-based academic reports",curriculum:"Curriculum & Syllabuses",
       marks:"Assessment Marks",published:"Approved School Reports",
       access:"Administrator Access"})[tab]}</h1>
@@ -208,7 +216,7 @@ export default function ReportsManager({code}){
    </>}
    {tab==="marks"&&(teacher||canRead)&&<>
     <div className="repm-section-top"><div><h2>Assessment gradebook</h2>
-      <p>Only assigned teachers may record marks; report viewers receive only school-approved publications.</p></div>
+      <p>Only assigned teachers may record marks; report viewers receive only school-approved publications. <a href="/templates/Umurage_Rwanda_School_Report_Templates.xlsx" download>Download editable Excel report template</a> (guidance-aligned draft for school review).</p></div>
       {teacher&&<button className="button" disabled={!termId||!classId||!classRoster.length} onClick={()=>ownerAction("mark",{
        termId,classId,studentId:classRoster[0]?.studentId,
        subjectId:gradeCourse[0]?.subject_id,category:"unit",assessmentCode:"",
@@ -224,6 +232,10 @@ export default function ReportsManager({code}){
        <td>{m.assessment_code}</td><td><strong>{m.raw_score} / {m.raw_maximum}</strong><p className="micro">Curriculum equivalent: {m.score} / {m.maximum_marks}</p></td>
        <td>{safeDate(m.entered_at)}</td></tr>)}</tbody></table>
       {!visibleMarks.length&&<Empty label="No marks entered" description="Approved and assigned teachers can record actual curriculum assessments after the school configures a term."/>}</div></article>
+    <article className="repm-panel">
+      <TeacherReportPreview report={draftPreview} students={classRoster}
+       selectedId={chosenPreviewStudent?.studentId||""} onSelect={setPreviewStudentId}/>
+    </article>
     <article className="repm-panel"><h3>Curriculum units available for marking</h3>
       <div className="repm-unit-grid">{units.filter(u=>u.class_id===classId).map(u=><div key={u.id}>
        <small>{subject(u.subject_id)?.name}</small><strong>{u.unit_code} · {u.unit_title}</strong><p>Term {u.term_number}: {u.key_competence}</p></div>)}</div>
@@ -315,7 +327,7 @@ export default function ReportsManager({code}){
    {modal==="approveProfile"&&<form onSubmit={e=>{e.preventDefault();act({action:"curriculum.approve",profileId:form.profile.id});}}>
     <p>As school owner, confirm the source is valid for the school's academic year: <strong>{form.profile.name}</strong>.</p>
     <p><a href={form.profile.source_url} target="_blank" rel="noreferrer">Review source in new tab</a></p>
-    <p>This approval does not claim ministry endorsement and requires MFA.</p>
+    <p>This approval does not claim ministry endorsement and requires authorized academic staff.</p>
     <button className="button" disabled={busy} type="submit">Approve source version</button>
    </form>}
    {modal==="approveSubject"&&<form onSubmit={e=>{e.preventDefault();act({action:"curriculum.subjectApprove",classId:form.course.class_id,subjectId:form.course.subject_id});}}>
@@ -323,7 +335,7 @@ export default function ReportsManager({code}){
     <p><strong>{courseTitle(form.course)}</strong> · {klass(form.course.class_id)?.name}</p>
     <p><a href={form.course.syllabus_url} target="_blank" rel="noreferrer">View source syllabus</a></p>
     <p className="repm-info">{units.filter(u=>u.class_id===form.course.class_id&&u.subject_id===form.course.subject_id).length} syllabus unit(s) currently entered.</p>
-    <button className="button" disabled={busy} type="submit">Approve subject mapping with MFA</button>
+    <button className="button" disabled={busy} type="submit">Approve subject mapping </button>
    </form>}
    {modal==="term"&&<form onSubmit={e=>{e.preventDefault();act({action:"term.create",yearId:year.id,...form});}}>
     <Field label="School term"><select className="input" value={form.termNumber||1} onChange={e=>setForm({...form,termNumber:Number(e.target.value)})}>
@@ -340,12 +352,16 @@ export default function ReportsManager({code}){
      {gradeCourse.map(m=><option key={m.subject_id} value={m.subject_id}>{courseTitle(m)} · Max {m.weekly_periods*10}</option>)}</select></Field>
     <Field label="Assessment type"><select className="input" value={form.category} onChange={e=>setForm({...form,category:e.target.value,assessmentCode:""})}>
      <option value="unit">End of unit</option><option value="project">Project assessment</option>
-     <option value="end_term">End of term</option></select></Field>
+     <option value="end_term">End of term</option>
+     <option value="legra">LEGRA (P1-P3 Kinyarwanda)</option></select></Field>
     {form.category==="unit"&&<Field label="Curriculum unit"><select required className="input" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}>
      <option value="">Choose official unit</option>
      {units.filter(u=>u.class_id===form.classId&&u.subject_id===form.subjectId
        &&u.term_number===terms.find(t=>t.id===form.termId)?.term_number).map(u=><option key={u.id} value={u.unit_code}>{u.unit_code} · {u.unit_title}</option>)}</select></Field>}
     {form.category==="project"&&<Field label="Project reference"><input className="input" required maxLength={30} placeholder="PROJECT-1" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}/></Field>}
+    {form.category==="legra"&&<Field label="LEGRA aspect"><select required className="input" value={form.assessmentCode||""} onChange={e=>setForm({...form,assessmentCode:e.target.value})}>
+     <option value="">Choose LEGRA aspect</option><option value="LEGRA_GUTAHURA">Gutahura inyuguti/amagambo</option><option value="LEGRA_ICYANDIKWA">Icyandikwa</option>
+     <option value="LEGRA_GUSOMA">Gusoma udategwa</option><option value="LEGRA_KUMVA">Kumva wandikiwe</option></select></Field>}
     {form.category==="end_term"&&<p className="repm-info">The end-of-term examination is recorded once as TERM for this subject.</p>}
     <Field label="Marks earned on this assessment"><input className="input" type="number" step="0.01" min="0" required
       max={form.rawMaximum||undefined}
@@ -360,7 +376,7 @@ export default function ReportsManager({code}){
     <button className="button" disabled={busy||!form.subjectId||!form.studentId||!form.rawMaximum} type="submit">Record secure mark</button>
    </form>}
    {modal==="publish"&&<form onSubmit={e=>{e.preventDefault();act({action:"report.publish",termId:form.termId,studentId:form.studentId,remark:form.remark||""});}}>
-    <p>Publish a school's report only after reviewing all official mapped subjects, unit assessments, at least two projects per subject, and the end-of-term examination. Requires MFA.</p>
+    <p>Publish a school's report only after reviewing all official mapped subjects, unit assessments, at least two projects per subject, and the end-of-term examination. Requires authorized school staff.</p>
     <Field label="Student"><select className="input" required value={form.studentId||""} onChange={e=>setForm({...form,studentId:e.target.value})}>
      {roster.map(s=><option key={s.studentId} value={s.studentId}>{s.name} · {s.studentCode}</option>)}</select></Field>
     <Field label="Term"><select className="input" required value={form.termId||""} onChange={e=>setForm({...form,termId:e.target.value})}>
@@ -395,7 +411,7 @@ export default function ReportsManager({code}){
       <span className="switch-track"/></label></td></tr>)}</tbody></table></div>
     <Field label="Reason required for access change"><textarea required minLength={8} maxLength={600} className="input"
      value={form.reason||""} onChange={e=>setForm({...form,reason:e.target.value})}/></Field>
-    <button className="button" disabled={busy} type="submit">Save ON/OFF permissions with MFA</button>
+    <button className="button" disabled={busy} type="submit">Save ON/OFF permissions </button>
    </form>}
   </Modal>}
  </main>;

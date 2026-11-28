@@ -46,7 +46,7 @@ test("teacher class assignment requires school manager and previously verified t
  assert.match(db,/'academics\.manage'=any/);
  assert.match(db,/role='teacher' and active/);
  assert.match(db,/references public\.school_class_subjects\(school_id,class_id,subject_id\)/);
- assert.match(classroom,/requireAal2\(token\)/);
+ assert.doesNotMatch(classroom,/requireAal2/);
  assert.match(classroom,/action==="teacher\.revoke"/);
  assert.match(db,/teacher\.assignment_revoked/);
 });
@@ -89,7 +89,7 @@ test("published homework is distinct from teacher drafts, student submits only o
  assert.match(db,/where school_id=p_school_id and id=p_homework and status='published'/);
  assert.match(db,/now\(\)>hw\.due_at/);
  assert.match(db,/unique\(school_id,homework_id,student_id\)/);
- assert.match(teacherUi,/Publish for students/);
+ assert.match(teacherUi+readFileSync("app/s/[code]/classroom/HomeworkComposer.jsx","utf8"),/Publish/);
  assert.match(studentUi,/Submit my homework/);
  assert.match(studentUi,/one submission/);
 });

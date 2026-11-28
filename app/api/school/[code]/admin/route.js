@@ -2,7 +2,7 @@ import {
   schoolAdminContext,requireSchoolPermission,requireSchoolOwner,
   validatedAdminPermissions,schoolAdminText,schoolAdminAudit,schoolAdminCan
 } from "../../../../../lib/school-admin.mjs";
-import {ApiError,checked,validateUuid,requireAal2,jsonError} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,validateUuid,jsonError} from "../../../../../lib/platform-server.js";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -95,12 +95,15 @@ export async function GET(request,{params}){
     }
   }
   if(schoolAdminCan(actor,"academics.read")){
+    // The levels the owner chose in School setup decide which levels a class can belong to.
+    const setup=await checked(db.from("school_onboarding").select("education_levels").eq("school_id",school.id).maybeSingle());
+    data.offeredLevels=Array.isArray(setup?.education_levels)?setup.education_levels:[];
     [data.years,data.classes,data.subjects,data.classSubjects]=await Promise.all([
       checked(db.from("school_academic_years")
         .select("id,name,starts_on,ends_on,status").eq("school_id",school.id)
         .order("starts_on",{ascending:false}).limit(250)),
       checked(db.from("school_classes")
-        .select("id,academic_year_id,name,level,section,capacity,status").eq("school_id",school.id)
+        .select("id,academic_year_id,name,level,level_band,section,capacity,status").eq("school_id",school.id)
         .order("name",{ascending:true}).limit(500)),
       checked(db.from("school_subjects")
         .select("id,code,name").eq("school_id",school.id)
@@ -126,7 +129,7 @@ export async function POST(request,{params}){
   const action=String(body.action||"");
   let result;
   if(action==="member.invite"){
-    requireSchoolPermission(actor,"people.invite");requireAal2(token);
+    requireSchoolPermission(actor,"people.invite");
     const email=schoolAdminText(body.email||"",254).toLowerCase();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new ApiError(400,"Enter a valid staff email address");
     const role=allowedInvitedRole(body.role);
@@ -151,7 +154,7 @@ export async function POST(request,{params}){
     }
     result={...result,email,mailStatus,loginPath};
   }else if(action==="admin.permissions"){
-    requireSchoolOwner(actor);requireAal2(token);
+    requireSchoolOwner(actor);
     const target=validateUuid(body.userId,"staff");
     const permissions=validatedAdminPermissions(body.permissions||[]);
     const reason=schoolAdminText(body.reason||"",500);
@@ -161,7 +164,7 @@ export async function POST(request,{params}){
       p_reason:reason,p_actor:actor.id
     }));
   }else if(action==="member.revoke"){
-    requireSchoolPermission(actor,"people.manage");requireAal2(token);
+    requireSchoolPermission(actor,"people.manage");
     const target=validateUuid(body.userId,"staff");
     const role=allowedInvitedRole(body.role);
     if(role==="school_admin")requireSchoolOwner(actor);
@@ -194,12 +197,15 @@ export async function POST(request,{params}){
     await assertSchoolRow(db,"school_academic_years",school.id,yearId);
     const name=schoolAdminText(body.name||"",100);
     const level=schoolAdminText(body.level||"",100);
+    const levelBand=String(body.levelBand||"");
+    if(!["nursery","primary","secondary","tvet","university"].includes(levelBand))
+      throw new ApiError(400,"Choose the education level this class belongs to");
     const section=schoolAdminText(body.section||"",50,{required:false});
     const cap=body.capacity==null||body.capacity===""?null:Number(body.capacity);
     if(cap!==null&&(!Number.isInteger(cap)||cap<1||cap>2000))
       throw new ApiError(400,"Class capacity must be between 1 and 2000");
     result=await checked(db.from("school_classes").insert({
-      school_id:school.id,academic_year_id:yearId,name,level,section,capacity:cap,
+      school_id:school.id,academic_year_id:yearId,name,level,level_band:levelBand,section,capacity:cap,
       created_by:actor.id
     }).select("id,name").single());
     await schoolAdminAudit(db,school.id,actor.id,"academic.class_created",{id:result.id,yearId});
@@ -225,6 +231,17 @@ export async function POST(request,{params}){
       school_id:school.id,class_id:classId,subject_id:subjectId,created_by:actor.id
     },{onConflict:"school_id,class_id,subject_id"}).select("class_id,subject_id").single());
     await schoolAdminAudit(db,school.id,actor.id,"academic.subject_assigned",{classId,subjectId});
+  }else if(action==="academic.classSubjectRemove"){
+    requireSchoolPermission(actor,"academics.manage");
+    const classId=validateUuid(body.classId,"class");
+    const subjectId=validateUuid(body.subjectId,"subject");
+    const busy=await checked(db.from("school_teacher_assignments").select("teacher_id").eq("school_id",school.id)
+      .eq("class_id",classId).eq("subject_id",subjectId).eq("active",true).limit(1));
+    if(busy.length)throw new ApiError(409,"A teacher is still assigned to this subject in this class. Remove the teacher first.");
+    const del=await db.from("school_class_subjects").delete().eq("school_id",school.id).eq("class_id",classId).eq("subject_id",subjectId);
+    if(del.error)throw new ApiError(409,"This subject already has homework, marks or reports in this class, so it stays linked.");
+    await schoolAdminAudit(db,school.id,actor.id,"academic.subject_unassigned",{classId,subjectId});
+    result={classId,subjectId,removed:true};
   }else{
     throw new ApiError(400,"Unsupported school administration action");
   }

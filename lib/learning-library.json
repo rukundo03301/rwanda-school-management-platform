@@ -1,0 +1,554 @@
+{
+ "name": "Umurage platform learning library",
+ "notes": "Built into the platform and available to every school for the levels it offers. Original activities aligned to the Rwanda competence-based curriculum; teachers confirm suitability before use.",
+ "items": [
+  {
+   "id": "PLT-LESSON-001",
+   "level": "primary",
+   "grade": "P3",
+   "subject": "Mathematics",
+   "title": "Multiplication as repeated addition",
+   "learningObjective": "Represent multiplication with groups of equal objects and solve simple word problems.",
+   "teacherActivities": [
+    "Draw four groups of three dots.",
+    "Write 4 × 3 as repeated addition.",
+    "Explain the answer using counters."
+   ],
+   "studentPractice": "Four baskets contain three mangoes each. How many mangoes are there? Show two methods.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-002",
+   "level": "primary",
+   "grade": "P3",
+   "subject": "Kinyarwanda",
+   "title": "Gusoma no kumva inkuru ngufi",
+   "learningObjective": "Read a short age-appropriate story and identify the main character, setting and message.",
+   "teacherActivities": [
+    "Read a teacher-approved short story.",
+    "Identify the main character and location.",
+    "Summarize the story in three sentences."
+   ],
+   "studentPractice": "Andika interuro eshatu zivuga ibyo wumvise mu nkuru.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-003",
+   "level": "primary",
+   "grade": "P4",
+   "subject": "Mathematics",
+   "title": "Fractions of a whole",
+   "learningObjective": "Represent a fraction as equal parts and compare familiar unit fractions.",
+   "teacherActivities": [
+    "Draw a rectangle and divide it into four equal parts.",
+    "Shade one quarter.",
+    "Compare one half and one quarter."
+   ],
+   "studentPractice": "A family divides 12 oranges equally among 4 children. How many oranges does each child receive?",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-004",
+   "level": "primary",
+   "grade": "P4",
+   "subject": "English",
+   "title": "Reading comprehension: identifying main ideas",
+   "learningObjective": "Read a short informational text and identify the main idea and supporting details.",
+   "teacherActivities": [
+    "Read a short passage approved by the teacher.",
+    "Underline the main idea.",
+    "Write two facts from the passage."
+   ],
+   "studentPractice": "Write four sentences summarizing an article about caring for the environment.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-005",
+   "level": "primary",
+   "grade": "P4",
+   "subject": "Science and Elementary Technology",
+   "title": "Healthy habits and hygiene",
+   "learningObjective": "Identify common everyday hygiene practices and explain why they help protect health.",
+   "teacherActivities": [
+    "Identify handwashing moments in daily school life.",
+    "Demonstrate proper handwashing.",
+    "Create a class hygiene poster."
+   ],
+   "studentPractice": "List five actions that help keep your classroom clean.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-006",
+   "level": "primary",
+   "grade": "P5",
+   "subject": "Mathematics",
+   "title": "Decimals in everyday quantities",
+   "learningObjective": "Read, compare and order simple decimal numbers in meaningful contexts.",
+   "teacherActivities": [
+    "Write everyday measurements using decimals.",
+    "Order 1.25, 1.5 and 1.05.",
+    "Explain the value of the tenths place."
+   ],
+   "studentPractice": "Arrange 2.4 L, 2.04 L and 2.44 L from least to greatest.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-007",
+   "level": "primary",
+   "grade": "P5",
+   "subject": "Science and Elementary Technology",
+   "title": "Simple electrical circuits",
+   "learningObjective": "Recognize basic circuit components and distinguish open and closed circuits.",
+   "teacherActivities": [
+    "Identify a cell, lamp, switch and wire.",
+    "Draw a safe low-voltage circuit diagram.",
+    "Explain why the lamp goes out when a circuit opens."
+   ],
+   "studentPractice": "Draw and label a circuit with a switch and bulb. Do not use mains electricity.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-008",
+   "level": "primary",
+   "grade": "P5",
+   "subject": "Social and Religious Studies",
+   "title": "Responsible care for our community",
+   "learningObjective": "Describe ways citizens can protect shared resources and cooperate respectfully.",
+   "teacherActivities": [
+    "List shared school facilities.",
+    "Discuss ways to prevent damage.",
+    "Plan a class clean-up activity."
+   ],
+   "studentPractice": "Write three examples of taking responsibility for shared property.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-009",
+   "level": "primary",
+   "grade": "P6",
+   "subject": "Mathematics",
+   "title": "Ratios in simple situations",
+   "learningObjective": "Express and simplify ratios using whole-number examples.",
+   "teacherActivities": [
+    "Count blue and green counters.",
+    "Write the ratio of blue to green counters.",
+    "Simplify a ratio such as 6:9."
+   ],
+   "studentPractice": "In a group there are 12 notebooks and 18 pencils. Simplify the notebooks-to-pencils ratio.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-010",
+   "level": "primary",
+   "grade": "P6",
+   "subject": "ICT",
+   "title": "Researching reliable online resources",
+   "learningObjective": "Recognize trustworthy online sources and protect personal information while learning.",
+   "teacherActivities": [
+    "Compare official education websites and advertisements.",
+    "Identify author, date and institution on a web page.",
+    "Discuss why student passwords should stay private."
+   ],
+   "studentPractice": "Find one REB resource with your teacher and record its title and topic without sharing your personal details.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-LESSON-011",
+   "level": "primary",
+   "grade": "P6",
+   "subject": "French",
+   "title": "Se présenter et présenter son école",
+   "learningObjective": "Use short French sentences to introduce oneself and describe one's school.",
+   "teacherActivities": [
+    "Practice Je m'appelle…",
+    "Describe a classroom using common nouns.",
+    "Write three simple school-related sentences."
+   ],
+   "studentPractice": "Écris cinq phrases courtes sur ton école fictive.",
+   "sources": [
+    {
+     "label": "REB YouTube learning channel",
+     "url": "https://www.youtube.com/channel/UCCSm2s9wZC8B611SIslsUWg/videos"
+    },
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    },
+    {
+     "label": "REB Curriculum, Teaching and Learning Resources Department",
+     "url": "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-001",
+   "level": "nursery",
+   "grade": "N1",
+   "subject": "Language and communication",
+   "title": "My name and my family",
+   "learningObjective": "Say their own name and name two family members in a full sentence.",
+   "teacherActivities": [
+    "Sit in a circle and model: My name is ... I live with ...",
+    "Pass a soft ball; each child says their name when they catch it.",
+    "Praise every full sentence and repeat it back."
+   ],
+   "studentPractice": "At home, tell a family member the names of two friends from class.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-002",
+   "level": "nursery",
+   "grade": "N2",
+   "subject": "Language and communication",
+   "title": "Story time with picture cards",
+   "learningObjective": "Retell a short story in the right order using three picture cards.",
+   "teacherActivities": [
+    "Tell a short story about a goat looking for water, showing one card per event.",
+    "Mix the cards and ask the class to put them back in order.",
+    "Ask: What happened first? Next? At the end?"
+   ],
+   "studentPractice": "Draw one picture from the story and tell a grown-up what happens.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-003",
+   "level": "nursery",
+   "grade": "N1",
+   "subject": "Numeracy and early mathematics",
+   "title": "Counting beans to five",
+   "learningObjective": "Count up to five objects and match the count to a number card.",
+   "teacherActivities": [
+    "Give each child a cup with beans.",
+    "Call a number from 1 to 5; children count out that many beans.",
+    "Hold up the matching number card together."
+   ],
+   "studentPractice": "Count spoons, cups or shoes at home and say the number out loud.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-004",
+   "level": "nursery",
+   "grade": "N3",
+   "subject": "Numeracy and early mathematics",
+   "title": "Shapes around our classroom",
+   "learningObjective": "Name circle, square and triangle and find each shape in the classroom.",
+   "teacherActivities": [
+    "Show cut-out shapes and trace the edges with a finger.",
+    "Go on a shape hunt around the room in small groups.",
+    "Sort found objects into three shape baskets."
+   ],
+   "studentPractice": "Find one circle, one square and one triangle at home.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-005",
+   "level": "nursery",
+   "grade": "N1",
+   "subject": "Social and emotional development",
+   "title": "How do I feel today?",
+   "learningObjective": "Name a feeling (happy, sad, angry, scared) and say why.",
+   "teacherActivities": [
+    "Show four face cards and act out each feeling.",
+    "Each child points to a face and finishes: I feel ... because ...",
+    "Agree on one kind thing to do when a friend feels sad."
+   ],
+   "studentPractice": "Tell a grown-up one feeling you had today and why.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-006",
+   "level": "nursery",
+   "grade": "N2",
+   "subject": "Social and emotional development",
+   "title": "Taking turns and sharing",
+   "learningObjective": "Wait for a turn and share materials in a small group game.",
+   "teacherActivities": [
+    "Play a simple rolling-ball game in groups of four.",
+    "Use a talking stick: only the holder speaks.",
+    "Notice and praise good turn-taking out loud."
+   ],
+   "studentPractice": "Play a game at home where everyone takes turns.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-007",
+   "level": "nursery",
+   "grade": "N1",
+   "subject": "Physical development and health",
+   "title": "Washing our hands",
+   "learningObjective": "Wash hands with soap and water in the right steps.",
+   "teacherActivities": [
+    "Demonstrate the five steps: wet, soap, rub, rinse, dry.",
+    "Sing a short song for the rubbing step so it lasts long enough.",
+    "Every child practises at the tap with a helper."
+   ],
+   "studentPractice": "Show a family member the five hand-washing steps before eating.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-008",
+   "level": "nursery",
+   "grade": "N3",
+   "subject": "Physical development and health",
+   "title": "Jump, hop and balance",
+   "learningObjective": "Jump with two feet, hop on one foot and balance for five seconds.",
+   "teacherActivities": [
+    "Warm up with stretching and marching in place.",
+    "Set up a line of hoops for jumping and a line for hopping.",
+    "Count to five together while children balance."
+   ],
+   "studentPractice": "Practise balancing on one foot while a grown-up counts to five.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-009",
+   "level": "nursery",
+   "grade": "N2",
+   "subject": "Creative arts and culture",
+   "title": "Traditional song and clapping",
+   "learningObjective": "Sing a short traditional song and clap a steady beat.",
+   "teacherActivities": [
+    "Teach the song line by line, children echoing each line.",
+    "Add a steady clap, then try soft and loud clapping.",
+    "Perform for another class or for parents."
+   ],
+   "studentPractice": "Sing the song at home and teach the clapping to someone.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-010",
+   "level": "nursery",
+   "grade": "N3",
+   "subject": "Creative arts and culture",
+   "title": "Imigongo-style patterns",
+   "learningObjective": "Make a repeating pattern inspired by Rwandan imigongo art.",
+   "teacherActivities": [
+    "Show pictures of imigongo zigzag and diamond patterns.",
+    "Children repeat a two-colour pattern with paper strips.",
+    "Display the patterns and let children describe them."
+   ],
+   "studentPractice": "Make a pattern at home using leaves, stones or bottle caps.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-011",
+   "level": "nursery",
+   "grade": "N1",
+   "subject": "Environment and science",
+   "title": "Plants need water",
+   "learningObjective": "Say what a plant needs to grow and water a class plant.",
+   "teacherActivities": [
+    "Show two bean seedlings: one watered, one dry.",
+    "Ask the class what they notice after three days.",
+    "Make a watering rota so each child has a turn."
+   ],
+   "studentPractice": "Help water a plant at home and say how it looks.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  },
+  {
+   "id": "PLT-NUR-012",
+   "level": "nursery",
+   "grade": "N2",
+   "subject": "Environment and science",
+   "title": "Animals and their homes",
+   "learningObjective": "Match five common animals to where they live.",
+   "teacherActivities": [
+    "Show pictures of a cow, bird, fish, dog and bee.",
+    "Children place each animal on the matching home picture.",
+    "Talk about how we care for animals."
+   ],
+   "studentPractice": "Name an animal you saw today and where it lives.",
+   "sources": [
+    {
+     "label": "Rwanda Basic Education Board eLearning",
+     "url": "https://elearning.reb.rw/"
+    }
+   ]
+  }
+ ]
+}

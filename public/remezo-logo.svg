@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Remezo Primary School">
+<rect width="120" height="120" rx="26" fill="#0b6b3a"/>
+<circle cx="60" cy="46" r="17" fill="#f6c343"/>
+<g stroke="#f6c343" stroke-width="4" stroke-linecap="round"><path d="M60 18v6M36 28l4 4M84 28l-4 4M26 48h6M88 48h6"/></g>
+<path d="M18 74c14-6 28-6 42 2v22c-14-8-28-8-42-2z" fill="#ffffff"/>
+<path d="M102 74c-14-6-28-6-42 2v22c14-8 28-8 42-2z" fill="#d9f2e3"/>
+<path d="M60 76v22" stroke="#0b6b3a" stroke-width="3"/>
+</svg>

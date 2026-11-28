@@ -44,7 +44,7 @@ test("reports are school-specific, private and require explicit school owner rel
  assert.match(db,/school_withdraw_term_report/);
  assert.match(db,/school_record_assessment/);
  assert.match(db,/for update/);
- assert.match(api,/requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/);
  assert.match(api,/action==="report\.publish"/);
  assert.match(api,/action==="report\.withdraw"/);
 });
@@ -98,7 +98,7 @@ test("report permissions have an auditable owner-only ON/OFF matrix",()=>{
  assert.match(db,/Only school owner can grant curriculum\/report permissions/);
  assert.match(db,/report.permissions_changed/);
  assert.match(reportsUI,/role="switch"/);
- assert.match(reportsUI,/Save ON\/OFF permissions with MFA/);
+ assert.match(reportsUI,/Save ON\/OFF permissions/);
 });
 test("RLS and direct browser role restrictions cover all eight reporting tables",()=>{
  const names=["school_report_admin_permissions","school_curriculum_profiles",

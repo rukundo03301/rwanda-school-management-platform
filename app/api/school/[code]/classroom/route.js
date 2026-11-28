@@ -2,7 +2,8 @@ import {
  classroomContext,classroomText,localSchoolDate,classroomDeadline,
  teacherAssignmentAllowed,teacherClassAllowed,requiredSchoolId
 } from "../../../../../lib/school-classroom.mjs";
-import {ApiError,checked,jsonError,requireAal2} from "../../../../../lib/platform-server.js";
+import {ApiError,checked,jsonError} from "../../../../../lib/platform-server.js";
+import {materialInput} from "../../../../../lib/school-materials.mjs";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const noStore={"Cache-Control":"no-store"};
@@ -14,7 +15,7 @@ export async function GET(request,{params}){
    const [year,classes,subjects,mappings]=await Promise.all([
      checked(db.from("school_academic_years").select("id,name,starts_on,ends_on")
        .eq("school_id",school.id).eq("status","current").maybeSingle()),
-     checked(db.from("school_classes").select("id,academic_year_id,name,section,level,status")
+     checked(db.from("school_classes").select("id,academic_year_id,name,section,level,level_band,status")
        .eq("school_id",school.id).eq("status","active").limit(500)),
      checked(db.from("school_subjects").select("id,code,name")
        .eq("school_id",school.id).limit(500)),
@@ -70,10 +71,19 @@ export async function GET(request,{params}){
      homework=homework.filter(h=>pairs.has(h.class_id+"#"+h.subject_id));
      if(homework.length){
        submissions=await checked(db.from("school_homework_submissions")
-         .select("id,homework_id,student_id,response_text,submitted_at,is_late")
+         .select("id,homework_id,student_id,response_text,submitted_at,is_late,score,max_score,feedback,graded_at")
          .eq("school_id",school.id).in("homework_id",homework.map(h=>h.id))
          .order("submitted_at",{ascending:false}).limit(1000));
      }
+   }
+   let materials=[];
+   if(role.teacher&&teacherAssignments.length){
+     const own=await db.from("school_learning_materials")
+       .select("id,class_id,subject_id,title,kind,url,description,published,created_at")
+       .eq("school_id",school.id).eq("teacher_id",actorId)
+       .order("created_at",{ascending:false}).limit(300);
+     const pairsNow=new Set(teacherAssignments.map(a=>a.class_id+"#"+a.subject_id));
+     materials=own.error?[]:own.data.filter(m=>pairsNow.has(m.class_id+"#"+m.subject_id));
    }
    const teacherMembers=role.manager?await checked(db.from("school_memberships")
      .select("auth_user_id,role,active").eq("school_id",school.id)
@@ -107,12 +117,13 @@ export async function GET(request,{params}){
        logo:brand?.logo_url||null,color:/^#[0-9a-f]{6}$/i.test(brand?.primary_color||"")?
          brand.primary_color:"#204a78"},
      actor:{...role,id:actorId},
-     year,classes:year?classes.filter(c=>c.academic_year_id===year.id):[],
-     subjects,mappings,
+     year,classes:year?classes.filter(c=>c.academic_year_id===year.id&&(role.manager||teacherAssignments.some(a=>a.class_id===c.id))):[],
+     subjects:role.manager?subjects:subjects.filter(x=>teacherAssignments.some(a=>a.subject_id===x.id)),
+     mappings:role.manager?mappings:mappings.filter(x=>teacherAssignments.some(a=>a.class_id===x.class_id&&a.subject_id===x.subject_id)),
      assignments:role.manager?allAssignments:teacherAssignments,
      myAssignments:teacherAssignments,
      teachers:teacherMembers.map(m=>({userId:m.auth_user_id,email:emails.get(m.auth_user_id)||"Verified teacher"})),
-     roster,lessons,homework,submissions,attendance,
+     roster,lessons,homework,submissions,attendance,materials,
      studentCandidates,studentInvites,studentAccounts
    },{headers:noStore});
  }catch(e){return jsonError(e);}
@@ -129,7 +140,7 @@ export async function POST(request,{params}){
   let result;
   if(action==="teacher.assign"){
     if(!role.manager)throw new ApiError(403,"School academic management permission required");
-    requireAal2(token);
+    
     const teacherId=requiredSchoolId(body.teacherId,"teacher");
     if(!cls||!subj)throw new ApiError(400,"Choose class and subject");
     result=await checked(db.rpc("school_assign_teacher",{
@@ -138,7 +149,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="teacher.revoke"){
     if(!role.manager)throw new ApiError(403,"School academic management permission required");
-    requireAal2(token);
+    
     const teacherId=requiredSchoolId(body.teacherId,"teacher");
     const reason=classroomText(body.reason,500,{min:8});
     result=await checked(db.rpc("school_revoke_teacher_assignment",{
@@ -171,6 +182,37 @@ export async function POST(request,{params}){
     result=await checked(db.rpc("school_publish_homework",{
       p_school_id:school.id,p_homework:homeworkId,p_teacher:actorId
     }));
+  }else if(action==="material.create"){
+    if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
+    if(!cls||!subj)throw new ApiError(400,"Choose your assigned class and subject");
+    const mine=await checked(db.from("school_teacher_assignments").select("class_id")
+      .eq("school_id",school.id).eq("teacher_id",actorId).eq("class_id",cls)
+      .eq("subject_id",subj).eq("active",true).limit(1));
+    if(!mine.length)throw new ApiError(403,"You are not assigned to teach this subject in this class");
+    const input=materialInput(body);
+    const made=await db.from("school_learning_materials").insert({
+      school_id:school.id,class_id:cls,subject_id:subj,teacher_id:actorId,...input,published:false
+    }).select("id").single();
+    if(made.error)throw new ApiError(400,"The material could not be saved");
+    result={id:made.data.id,published:false};
+  }else if(action==="material.toggle"){
+    if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
+    const id=requiredSchoolId(body.materialId,"material");
+    const publish=body.published===true;
+    const found=await db.from("school_learning_materials").select("id,class_id,subject_id")
+      .eq("school_id",school.id).eq("id",id).eq("teacher_id",actorId).maybeSingle();
+    if(found.error||!found.data)throw new ApiError(404,"Material not found");
+    if(publish){
+      const mine=await checked(db.from("school_teacher_assignments").select("class_id")
+        .eq("school_id",school.id).eq("teacher_id",actorId).eq("class_id",found.data.class_id)
+        .eq("subject_id",found.data.subject_id).eq("active",true).limit(1));
+      if(!mine.length)throw new ApiError(403,"You are no longer assigned to this class and subject");
+    }
+    const upd=await db.from("school_learning_materials")
+      .update({published:publish,updated_at:new Date().toISOString()})
+      .eq("school_id",school.id).eq("id",id).eq("teacher_id",actorId);
+    if(upd.error)throw new ApiError(400,"The material could not be updated");
+    result={id,published:publish};
   }else if(action==="attendance.record"){
     if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
     if(!cls)throw new ApiError(400,"Choose your class");
@@ -184,7 +226,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="student.revoke"){
     if(!role.owner)throw new ApiError(403,"Only the school owner can revoke student access");
-    requireAal2(token);
+    
     const studentId=requiredSchoolId(body.studentId,"student");
     const reason=classroomText(body.reason,500,{min:8});
     result=await checked(db.rpc("school_revoke_student_account",{
@@ -192,7 +234,7 @@ export async function POST(request,{params}){
     }));
   }else if(action==="student.invite"){
     if(!role.owner)throw new ApiError(403,"Only the school owner can authorize a student account");
-    requireAal2(token);
+    
     const studentId=requiredSchoolId(body.studentId,"student");
     const email=String(body.email||"").trim().toLowerCase();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)
@@ -211,6 +253,36 @@ export async function POST(request,{params}){
       mailStatus=error?"provider_rejected_or_existing_account":"provider_accepted";
     }
     result={...result,mailStatus};
+  }else if(action==="submission.grade"){
+    if(!role.teacher)throw new ApiError(403,"A verified assigned teacher is required");
+    const submissionId=requiredSchoolId(body.submissionId,"submission");
+    const feedback=typeof body.feedback==="string"?body.feedback.trim():"";
+    if(feedback.length>2000)throw new ApiError(400,"Feedback can be up to 2000 characters");
+    const hasScore=body.score!==undefined&&body.score!==null&&body.score!=="";
+    let score=null,maxScore=null;
+    if(hasScore){
+      score=Number(body.score);maxScore=Number(body.maxScore);
+      if(!Number.isFinite(score)||!Number.isFinite(maxScore)||maxScore<=0||maxScore>1000||score<0||score>maxScore)
+        throw new ApiError(400,"Enter a score between 0 and the maximum mark (up to 1000)");
+      score=Math.round(score*100)/100;maxScore=Math.round(maxScore*100)/100;
+    }
+    if(!hasScore&&!feedback)throw new ApiError(400,"Enter a score or written feedback");
+    const submission=await checked(db.from("school_homework_submissions").select("id,homework_id")
+      .eq("school_id",school.id).eq("id",submissionId).maybeSingle());
+    if(!submission)throw new ApiError(404,"Submission not found");
+    const hw=await checked(db.from("school_homework").select("id,class_id,subject_id,teacher_id")
+      .eq("school_id",school.id).eq("id",submission.homework_id).maybeSingle());
+    const mine=await checked(db.from("school_teacher_assignments").select("class_id,subject_id,active")
+      .eq("school_id",school.id).eq("teacher_id",actorId).eq("active",true).limit(700));
+    // Only the teacher who set the homework, while still assigned to that class
+    // and subject, may grade it. Another teacher or a revoked one is refused.
+    if(!hw||hw.teacher_id!==actorId||!teacherAssignmentAllowed(mine,hw.class_id,hw.subject_id))
+      throw new ApiError(403,"You are not the assigned teacher for this homework");
+    result=await checked(db.from("school_homework_submissions").update({
+      score,max_score:maxScore,feedback:feedback||null,graded_at:new Date().toISOString(),graded_by:actorId
+    }).eq("school_id",school.id).eq("id",submissionId).select("id,score,max_score,graded_at").single());
+    await checked(db.from("school_classroom_audit").insert({
+      school_id:school.id,actor_id:actorId,event:"homework.graded",resource_id:submissionId}));
   }else throw new ApiError(400,"Unsupported classroom action");
   return Response.json({ok:true,result},{headers:noStore});
  }catch(e){return jsonError(e);}

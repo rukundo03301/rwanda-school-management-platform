@@ -1,0 +1,26 @@
+.cl-root h3{margin:18px 0 8px}.cl-root h4{margin:14px 0 6px;font-size:15px}
+.cl-chips{display:flex;flex-wrap:wrap;gap:8px}
+.cl-chip{border:1px solid #cfdceb;background:#fff;border-radius:999px;padding:8px 14px;font:inherit;cursor:pointer;color:#17335a}
+.cl-chip small{opacity:.65}.cl-chip:hover{border-color:#2d6ed6}.cl-chip.on{background:#1f56b8;color:#fff;border-color:#1f56b8}
+.cl-help,.cl-note{color:#52627a;font-size:14px;margin:8px 0}.cl-note{background:#f3f7fc;border-radius:10px;padding:10px 12px}
+.cl-mine{margin-top:12px}.cl-mine strong{display:block;margin-bottom:6px}
+.cl-search{max-width:320px;margin:0 0 10px}
+.cl-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.cl-eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#52627a}
+.cl-course{border-top:1px solid #e1eaf2;padding-top:14px;margin-top:14px}.cl-course h3{margin-top:0}
+.cl-files{display:flex;flex-wrap:wrap;gap:8px}
+.cl-file{display:inline-flex;gap:8px;align-items:center;border:1px solid #cfdceb;border-radius:10px;padding:8px 12px;text-decoration:none;color:#17335a;background:#f7faff;max-width:100%;overflow-wrap:anywhere}
+.cl-file span{background:#1f56b8;color:#fff;border-radius:6px;padding:2px 7px;font-size:12px;white-space:nowrap}
+.cl-file.link span{background:#23805f}.cl-file.open span{background:#6b7a90}
+.cl-units{padding-left:20px;margin:0}.cl-units li{margin:6px 0}.cl-units p{margin:2px 0 0;color:#52627a;font-size:14px}
+.tb-bar{background:#fff;border:1px solid #dbe3f3;border-radius:16px;padding:14px 18px;margin-bottom:16px;display:grid;gap:10px}
+.tb-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.tb-label{min-width:64px;padding-top:8px;color:#1e3a8a}
+.tb-chips{display:flex;gap:8px;flex-wrap:wrap}
+.tb-chip{border:1px solid #c7d2ea;background:#fff;border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}
+.tb-chip.on{background:#2547c4;border-color:#2547c4;color:#fff}
+.tb-chip.add{border-style:dashed;color:#2547c4}
+.tb-meta{justify-content:space-between;color:#475569;font-size:14px}
+.tb-link{background:none;border:0;color:#2547c4;cursor:pointer;font:inherit}
+.tb-help{background:#eef3ff;border-radius:12px;padding:12px 16px;font-size:14px}
+.tb-help p{margin:6px 0 0}

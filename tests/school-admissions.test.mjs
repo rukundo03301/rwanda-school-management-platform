@@ -23,7 +23,7 @@ test("admissions permissions are four separate school-specific capabilities",()=
  assert.match(dashboard,/ADMISSIONS_ACTIONS\.map/);
  assert.match(dashboard,/role="switch"/);
  assert.match(api,/if\(!actor\.isOwner\)/);
- assert.match(api,/requireAal2\(token\)/);
+ assert.doesNotMatch(api,/requireAal2/);
  assert.match(db,/school_set_admissions_permissions/);
  assert.match(db,/Only this school|School owner required/);
 });

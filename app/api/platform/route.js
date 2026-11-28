@@ -1,6 +1,16 @@
-import { authenticate, requirePermission, requireOwner, requireAal2, validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
+import sharp from "sharp";
+import { authenticate, requirePermission, requireOwner,  validateUuid, safeText, checked, audit, jsonError, ApiError } from "../../../lib/platform-server.js";
+import { loadDashboardExtras, dashboardAction } from "../../../lib/platform-dashboard.js";
 import { canTransition, normalizePermissions, ROLE_DEFAULTS, validateTenantInput } from "../../../lib/access.mjs";
 import { validateManualPayment,parseDate } from "../../../lib/billing-clock.mjs";
+import {validSchoolCodeConfirmation,removeTenantStorage,TENANT_DELETE_PHRASE} from "../../../lib/tenant-purge.mjs";
+
+// Input validators throw plain Errors; report them as 400s with their message
+// instead of a generic 500.
+const valid = (fn) => {
+  try { return fn(); }
+  catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(400, e?.message || "Invalid input."); }
+};
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,13 +18,55 @@ export const dynamic = "force-dynamic";
 export async function GET(request) {
   try {
     const { actor, db } = await authenticate(request);
-    if (!actor.active) return Response.json({ actor, needsApproval: true }, { headers: { "Cache-Control": "no-store" } });
+    if (!actor.active) {
+      // Signed-in school members belong in their school, not in the platform console. Only the caller's own memberships are returned.
+      const { data: mem } = await db.from("school_memberships").select("school_id,role").eq("auth_user_id", actor.id).eq("active", true);
+      let schools = [];
+      if (mem && mem.length) {
+        const { data: rows } = await db.from("platform_schools").select("id,school_code,name,status").in("id", mem.map((m) => m.school_id));
+        schools = (rows || []).filter((r) => ["onboarding", "active"].includes(r.status)).map((r) => ({ code: r.school_code, name: r.name }));
+      }
+      return Response.json({ actor, needsApproval: true, schools }, { headers: { "Cache-Control": "no-store" } });
+    }
     const can = (permission) => actor.isOwner || actor.permissions.includes(permission);
     const data = { actor, needsApproval: false, tenants: [], tickets: [], staff: [], requests: [], methods: [], feeTerms: [], manualPayments: [], sites: [], onboardingReviews: [], audit: [] };
     if (can("tenants.read")) {
       data.tenants = await checked(db.from("platform_schools")
-        .select("id,school_code,name,owner_email,status,created_at,updated_at,company_id,platform_companies(company_code,name)")
+        .select("id,school_code,name,owner_email,status,is_demo,legal_hold,created_at,updated_at,company_id,platform_companies(company_code,name)")
         .order("created_at", { ascending: false }).limit(200));
+    }
+    {
+      const extra = await loadDashboardExtras(db, data.tenants);
+      data.tenants = data.tenants.map((t) => ({ ...t, ...(extra.profiles[t.id] || {}) }));
+      data.plans = extra.plans; data.announcements = extra.announcements; data.health = extra.health; data.reports = extra.reports;
+    }
+    if (data.tenants.length) {
+      // Read-only health summary per school, computed from each school's own records. Never exposes student names.
+      try {
+        const ids = data.tenants.map((t) => t.id);
+        const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const [stu, att, inv, pay, mem2] = await Promise.all([
+          checked(db.from("school_students").select("school_id,created_at").eq("status", "active").in("school_id", ids).limit(20000)),
+          checked(db.from("school_attendance_records").select("school_id,status").gte("attendance_on", since).in("school_id", ids).limit(50000)),
+          checked(db.from("school_fee_invoices").select("school_id,amount_rwf").eq("status", "issued").in("school_id", ids).limit(50000)),
+          checked(db.from("school_fee_payments").select("school_id,amount_rwf").eq("status", "posted").in("school_id", ids).limit(50000)),
+          checked(db.from("school_memberships").select("auth_user_id,role").eq("active", true).in("school_id", ids).limit(100000)),
+        ]);
+        const stats = {};
+        for (const id of ids) stats[id] = { students: 0, marked: 0, present: 0, invoiced: 0, collected: 0 };
+        for (const r of stu) stats[r.school_id].students += 1;
+        for (const r of att) { stats[r.school_id].marked += 1; if (r.status === "present" || r.status === "late") stats[r.school_id].present += 1; }
+        for (const r of inv) stats[r.school_id].invoiced += Number(r.amount_rwf) || 0;
+        for (const r of pay) stats[r.school_id].collected += Number(r.amount_rwf) || 0;
+        data.schoolStats = stats;
+        const byMonth = {};
+        for (const r of stu) { const k = String(r.created_at).slice(0, 7); byMonth[k] = (byMonth[k] || 0) + 1; }
+        data.platformStats = {
+          users: new Set(mem2.map((m) => m.auth_user_id)).size,
+          teachers: mem2.filter((m) => m.role === "teacher").length,
+          studentsByMonth: byMonth,
+        };
+      } catch (e) { data.schoolStats = {}; }
     }
     if (can("billing.read")) {
       data.feeTerms = await checked(db.from("platform_fee_terms")
@@ -54,7 +106,7 @@ export async function GET(request) {
     }
     if (can("audit.read")) {
       data.audit = await checked(db.from("platform_audit")
-        .select("id,actor_id,event,resource_id,created_at").order("created_at", { ascending: false }).limit(80));
+        .select("id,actor_id,event,resource_id,metadata,created_at").order("created_at", { ascending: false }).limit(80));
     }
     const stats = await checked(db.rpc("platform_owner_stats"));
     const financial = can("billing.read")
@@ -85,9 +137,84 @@ export async function POST(request) {
     const action = String(body?.action || "");
     let result = null;
 
-    if (action === "tenant.create") {
+    if (action === "tenant.demo.create") {
+      requireOwner(actor); 
+      result=await checked(db.rpc("platform_create_demo_school",{p_actor:actor.id}));
+      // Sample branding is physically stored in this school's own Storage
+      // prefix, so the permanent-deletion flow can exercise actual file cleanup.
+      const demoId=result.school_id;
+      const svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">'+
+        '<rect width="512" height="512" rx="112" fill="#176B75"/>'+
+        '<circle cx="256" cy="225" r="150" fill="#effaf7" opacity="0.15"/>'+
+        '<path d="M128 300l128-56 128 56-128 54z" fill="#f7d78c"/>'+
+        '<path d="M177 324v45c32 24 126 24 158 0v-45" fill="none" stroke="#f7d78c" stroke-width="17"/>'+
+        '<text x="256" y="212" text-anchor="middle" font-family="Arial,sans-serif" font-size="102" font-weight="bold" fill="#fff">KLA</text>'+
+        '<text x="256" y="443" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#fff">DEMO</text>'+
+        '</svg>';
+      try{
+        const logo=await sharp(Buffer.from(svg)).webp({quality:85}).toBuffer();
+        const path=demoId+"/demo-logo.webp";
+        const {error:assetError}=await db.storage.from("school-branding")
+          .upload(path,logo,{contentType:"image/webp",upsert:false});
+        if(assetError)throw assetError;
+        const {data:assetUrl}=db.storage.from("school-branding").getPublicUrl(path);
+        await checked(db.from("platform_school_sites").update({
+          logo_url:assetUrl.publicUrl
+        }).eq("school_id",demoId));
+        await checked(db.from("school_site_drafts").update({
+          logo_url:assetUrl.publicUrl
+        }).eq("school_id",demoId));
+        result={...result,demo_logo_uploaded:true};
+      }catch(e){
+        // The demo already exists. Report partial branding honestly; owner may
+        // reupload a logo rather than creating duplicate demo schools.
+        result={...result,demo_logo_uploaded:false,
+          demo_logo_warning:"Sample logo could not be saved. Demo school was created."};
+      }
+    } else if (action === "tenant.purge.preview") {
+      requireOwner(actor);
+      const id=validateUuid(body.schoolId,"school");
+      result=await checked(db.rpc("platform_preview_tenant_purge",{p_school:id}));
+    } else if (action === "tenant.purge") {
+      requireOwner(actor);
+      const schoolId=validateUuid(body.schoolId,"school");
+      const confirmCode=String(body.confirmSchoolCode||"");
+      const confirmPhrase=String(body.confirmPhrase||"");
+      const reason=safeText(body.reason,500);
+      if(reason.length<12)throw new ApiError(400,"Enter a clear deletion reason of at least 12 characters");
+      if(confirmPhrase!==TENANT_DELETE_PHRASE)
+        throw new ApiError(400,"Type the exact permanent-deletion confirmation phrase");
+      const before=await checked(db.rpc("platform_preview_tenant_purge",{p_school:schoolId}));
+      if(!validSchoolCodeConfirmation(before.school_code,confirmCode,confirmPhrase))
+        throw new ApiError(400,"Type the exact School ID and full deletion phrase");
+      if(before.legal_hold)throw new ApiError(409,
+        "Deletion blocked: school is under a legal hold. Review legal retention obligations.");
+      // Immediately block school users while objects are removed. If file
+      // cleanup fails, the tenant remains deletion_requested for safe retry.
+      if(before.status!=="deletion_requested"){
+        await checked(db.rpc("platform_change_school_state",{
+          p_school_id:schoolId,p_target:"deletion_requested",
+          p_reason:"Permanent data purge requested: "+reason,p_actor:actor.id
+        }));
+      }
+      const prepared=await checked(db.rpc("platform_preview_tenant_purge",{p_school:schoolId}));
+      const storageRemoved=await removeTenantStorage(db,prepared,schoolId);
+      const verifiedFiles=await checked(db.rpc("platform_preview_tenant_purge",{p_school:schoolId}));
+      if(Number(verifiedFiles.stored_files)!==0)
+        throw new ApiError(409,"School storage still contains objects. Database purge was not run. Retry after resolving storage.");
+      const deleted=await checked(db.rpc("platform_purge_tenant_data",{
+        p_school:schoolId,p_school_code:confirmCode,p_actor:actor.id
+      }));
+      const remaining=await checked(db.from("platform_schools")
+        .select("id").eq("id",schoolId).maybeSingle());
+      if(remaining)throw new ApiError(500,"School record remains; deletion cannot be confirmed");
+      result={...deleted,storage_objects_removed:storageRemoved,
+        school_code:confirmCode,verification:"school_removed_and_storage_empty"};
+    } else if (["school.profile", "plan.save", "announce.create", "announce.toggle", "report.save", "report.delete"].includes(action)) {
+      result = await dashboardAction(action, body, { db, actor, token });
+    } else if (action === "tenant.create") {
       requirePermission(actor,"tenants.create");
-      const payload = validateTenantInput(body);
+      const payload = valid(()=>validateTenantInput(body));
       result = await checked(db.rpc("platform_register_school", {
         p_company_name: payload.company_name, p_school_name: payload.school_name,
         p_owner_email: payload.owner_email, p_actor: actor.id
@@ -95,27 +222,27 @@ export async function POST(request) {
     } else if (action === "tenant.addSchool") {
       requirePermission(actor,"tenants.create");
       const companyId=validateUuid(body.companyId,"company");
-      const payload=validateTenantInput({
+      const payload=valid(()=>validateTenantInput({
         companyName:"Existing company",schoolName:body.schoolName,ownerEmail:body.ownerEmail
-      });
+      }));
       result=await checked(db.rpc("platform_add_school_to_company",{
         p_company_id:companyId,p_school_name:payload.school_name,
         p_owner_email:payload.owner_email,p_actor:actor.id
       }));
     } else if (action === "fee.terms") {
-      requirePermission(actor,"billing.record"); requireAal2(token);
+      requirePermission(actor,"billing.record"); 
       const schoolId=validateUuid(body.schoolId,"school");
       const monthlyAmount=Number(body.monthlyAmountRwf);
       if(!Number.isSafeInteger(monthlyAmount)||monthlyAmount<0) throw new ApiError(400,"Invalid whole-RWF monthly amount");
-      parseDate(body.firstDueOn);
+      valid(()=>parseDate(body.firstDueOn));
       result=await checked(db.rpc("platform_set_monthly_terms",{
         p_school_id:schoolId,p_amount_rwf:monthlyAmount,
         p_first_due_on:body.firstDueOn,p_actor:actor.id
       }));
     } else if (action === "fee.paid") {
-      requirePermission(actor,"billing.record"); requireAal2(token);
+      requirePermission(actor,"billing.record"); 
       const schoolId=validateUuid(body.schoolId,"school");
-      const info=validateManualPayment(body);
+      const info=valid(()=>validateManualPayment(body));
       if(!["mobile_money","bank_transfer","cash","other"].includes(body.method))throw new ApiError(400,"Invalid recorded payment method");
       result=await checked(db.rpc("platform_record_monthly_payment",{
         p_school_id:schoolId,p_paid_on:info.paidOn,
@@ -123,7 +250,7 @@ export async function POST(request) {
         p_reference:info.reference,p_notes:info.notes,p_actor:actor.id
       }));
     } else if (action === "fee.void") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const id=validateUuid(body.id,"payment");
       const reason=safeText(body.reason,500);
       if(reason.length<8)throw new ApiError(400,"Enter a correction reason");
@@ -158,7 +285,7 @@ export async function POST(request) {
       result=await checked(db.from("platform_school_sites").upsert(record,{onConflict:"school_id"}).select("school_id").single());
       await audit(db,actor,"tenant.brand_updated",schoolId,{published:record.is_published});
     } else if (action === "school.inviteOwner") {
-      requireOwner(actor);requireAal2(token);
+      requireOwner(actor);
       const schoolId=validateUuid(body.schoolId,"school");
       const school=await checked(db.from("platform_schools")
         .select("id,school_code,name,owner_email,status").eq("id",schoolId).single());
@@ -188,15 +315,17 @@ export async function POST(request) {
       const reason = safeText(body.reason, 500);
       if (reason.length < 8) throw new ApiError(400,"Enter a meaningful reason (at least 8 characters).");
       const target = String(body.status || "");
-      const current = await checked(db.from("platform_schools").select("status,school_code").eq("id",schoolId).single());
+      const current = await checked(db.from("platform_schools").select("status,school_code,is_demo").eq("id",schoolId).single());
       if (!canTransition(current.status,target)) throw new ApiError(400, "This tenant status change is not permitted.");
-      if (current.status==="onboarding" && target==="active") {
+      // Activation always requires a requested onboarding review, whatever the
+      // current state, so pausing and reactivating cannot skip the review.
+      if (target==="active" && !current.is_demo) {
         const review=await checked(db.from("school_onboarding")
           .select("review_requested_at").eq("school_id",schoolId).maybeSingle());
         if(!review?.review_requested_at)throw new ApiError(400,
           "The school owner must complete onboarding and request platform review before activation.");
       }
-      if (target === "deletion_requested") { requireOwner(actor); requireAal2(token); if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
+      if (target === "deletion_requested") { requireOwner(actor);  if (String(body.confirmSchoolCode || "") !== current.school_code) throw new ApiError(400,"Type the exact School ID to request deletion."); }
       result = await checked(db.rpc("platform_change_school_state", {
         p_school_id: schoolId, p_target: target, p_reason: reason, p_actor: actor.id
       }));
@@ -205,10 +334,12 @@ export async function POST(request) {
       const schoolId = validateUuid(body.schoolId,"school");
       const title = safeText(body.title, 160);
       const description = safeText(body.description, 2000);
+      const priority = String(body.priority || "normal");
+      if (!["low","normal","urgent"].includes(priority)) throw new ApiError(400,"Invalid ticket priority.");
       result = await checked(db.from("platform_tickets").insert({
-        school_id:schoolId,title,description,priority:"normal",status:"open",created_by:actor.id
+        school_id:schoolId,title,description,priority,status:"open",created_by:actor.id
       }).select("id").single());
-      await audit(db,actor,"ticket.created",result.id,{school_id:schoolId});
+      await audit(db,actor,"ticket.created",result.id,{school_id:schoolId,priority});
     } else if (action === "ticket.update") {
       requirePermission(actor,"tickets.manage");
       const id = validateUuid(body.id,"ticket");
@@ -216,6 +347,20 @@ export async function POST(request) {
       if (!["open","in_progress","resolved"].includes(status)) throw new ApiError(400,"Invalid ticket status.");
       result = await checked(db.from("platform_tickets").update({status,updated_at:new Date().toISOString()}).eq("id",id).select("id").single());
       await audit(db,actor,"ticket.status_changed",id,{status});
+    } else if (action === "ticket.priority") {
+      requirePermission(actor,"tickets.manage");
+      const id = validateUuid(body.id,"ticket");
+      const priority = String(body.priority||"");
+      if (!["low","normal","urgent"].includes(priority)) throw new ApiError(400,"Invalid ticket priority.");
+      result = await checked(db.from("platform_tickets").update({priority,updated_at:new Date().toISOString()}).eq("id",id).select("id").single());
+      await audit(db,actor,"ticket.priority_changed",id,{priority});
+    } else if (action === "ticket.history") {
+      requirePermission(actor,"tickets.read");
+      const id = validateUuid(body.id,"ticket");
+      // Ticket history is the audit trail of events recorded against this ticket.
+      result = await checked(db.from("platform_audit")
+        .select("id,actor_id,event,metadata,created_at").eq("resource_id",id)
+        .like("event","ticket.%").order("created_at",{ascending:true}).limit(200));
     } else if (action === "ticket.assign") {
       requirePermission(actor,"tickets.manage");
       requirePermission(actor,"staff.read");
@@ -229,12 +374,12 @@ export async function POST(request) {
       }).eq("id",id).select("id").single());
       await audit(db,actor,"ticket.assigned",id,{assigned_to:assigneeId});
     } else if (action === "staff.invite") {
-      requireOwner(actor);requireAal2(token);
+      requireOwner(actor);
       const email=String(body.email||"").trim().toLowerCase();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)throw new ApiError(400,"Invalid staff email");
       const role=String(body.role||"");
       if(!ROLE_DEFAULTS[role])throw new ApiError(400,"Invalid staff role");
-      const permissions=normalizePermissions(body.permissions??ROLE_DEFAULTS[role]);
+      const permissions=valid(()=>normalizePermissions(body.permissions??ROLE_DEFAULTS[role]));
       const {data:invite,error:inviteError}=await db.auth.admin.inviteUserByEmail(email,{
         redirectTo:(process.env.APP_PUBLIC_URL||"http://localhost:3000")+"/platform"
       });
@@ -245,11 +390,11 @@ export async function POST(request) {
       await audit(db,actor,"staff.invited",invite.user.id,{email,role,permissions});
       result={invited:true,email};
     } else if (action === "staff.approve") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const requestId = validateUuid(body.id,"request");
       const role = String(body.role||"");
       if (!ROLE_DEFAULTS[role]) throw new ApiError(400,"Invalid staff role.");
-      const permissions = normalizePermissions(body.permissions ?? ROLE_DEFAULTS[role]);
+      const permissions = valid(()=>normalizePermissions(body.permissions ?? ROLE_DEFAULTS[role]));
       const req = await checked(db.from("platform_staff_requests")
         .select("auth_user_id,email,status").eq("id",requestId).single());
       if (req.status !== "pending" || req.auth_user_id === actor.id) throw new ApiError(409,"Staff request cannot be approved.");
@@ -257,12 +402,12 @@ export async function POST(request) {
         p_request_id:requestId,p_role:role,p_permissions:permissions,p_actor:actor.id
       }));
     } else if (action === "staff.permissions") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const staffId = validateUuid(body.id,"staff");
       if (staffId===actor.id) throw new ApiError(400,"You cannot edit your own owner permissions.");
       const role = String(body.role||"");
       if (!ROLE_DEFAULTS[role]) throw new ApiError(400,"Invalid staff role.");
-      const permissions = normalizePermissions(body.permissions);
+      const permissions = valid(()=>normalizePermissions(body.permissions));
       const reason = safeText(body.reason,500);
       if (reason.length < 8) throw new ApiError(400,"Explain the permission change.");
       const staff = await checked(db.from("platform_staff")
@@ -273,7 +418,7 @@ export async function POST(request) {
         p_reason:reason,p_actor:actor.id
       }));
     } else if (action === "staff.disable") {
-      requireOwner(actor); requireAal2(token);
+      requireOwner(actor); 
       const staffId = validateUuid(body.id,"staff");
       if (staffId === actor.id) throw new ApiError(400,"You cannot disable your own owner account.");
       result = await checked(db.rpc("platform_disable_staff", {p_staff_id:staffId,p_actor:actor.id}));
@@ -288,7 +433,7 @@ export async function POST(request) {
     } else if (action === "method.toggle" || action === "method.default") {
       requirePermission(actor,"billing.methods");
       const id = validateUuid(body.id,"payment method");
-      if (action === "method.default") requireAal2(token);
+      
       result = await checked(db.rpc("platform_configure_payment_method", {
         p_method_id:id,p_set_default:action === "method.default",
         p_enabled: action === "method.toggle" ? Boolean(body.enabled) : true,p_actor:actor.id

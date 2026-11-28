@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {SCHOOL_ROLES,SCHOOL_ROLE_IDS,schoolPortalPath,validSchoolRole} from "../lib/school-roles.mjs";
+import {SCHOOL_ROLES,SCHOOL_ROLE_IDS,schoolPortalPath,validSchoolRole,approvedSchoolRoles,resolveSchoolRole,schoolWorkspacePath} from "../lib/school-roles.mjs";
 
 const read=(path)=>readFileSync(new URL(path,import.meta.url),"utf8");
 const migration=read("../database/school_onboarding_v1.sql");
@@ -12,15 +12,15 @@ const accessApi=read("../app/api/school/[code]/access/route.js");
 const schoolApi=read("../app/api/school/[code]/route.js");
 const onboarding=read("../app/s/[code]/setup/SchoolSetup.jsx");
 
-test("exactly six school roles presented with distinct navigation intent",()=>{
+test("exactly six supported role types; school login does not ask users to select one",()=>{
   assert.deepEqual(SCHOOL_ROLE_IDS,["school_owner","school_admin","teacher","staff","parent","student"]);
   assert.equal(SCHOOL_ROLES.length,6);
   assert.equal(validSchoolRole("platform_owner"),false);
   assert.throws(()=>schoolPortalPath("RW-SCH-000002","platform_owner"),/Invalid/);
   assert.equal(schoolPortalPath("RW-SCH-000002","teacher"),"/s/RW-SCH-000002/portal?role=teacher");
-  assert.match(schoolLogin,/SCHOOL_ROLES\.map/);
-  assert.match(schoolLogin,/Choose your school role before signing in/);
-  assert.match(schoolLogin,/schoolPortalPath\(code,role\)/);
+  assert.doesNotMatch(schoolLogin,/SCHOOL_ROLES\.map|Choose your school role before signing in/);
+  assert.match(schoolLogin,/Your school administrator assigns and manages roles/);
+  assert.match(schoolLogin,/window\.location\.assign/);
   assert.doesNotMatch(schoolLogin,/window\.location\.assign\("\/s\/"\+code\+"\/setup"\)/);
 });
 
@@ -34,7 +34,7 @@ test("role picker cannot authorize membership, including across schools",()=>{
   assert.doesNotMatch(accessApi,/body\.role/);
   assert.match(schoolPortal,/access\?\.roles\?\.includes\(role\)===true/);
   assert.match(schoolPortal,/This role is not approved for your account/);
-  assert.match(schoolPortal,/Workspace under development/);
+  assert.match(schoolPortal,/Operations, Stock & Board/);
 });
 
 test("homepage uses published marketing content, not a draft or operator ledger",()=>{
@@ -69,4 +69,17 @@ test("multi-role schools remain scoped and owner setup requires owner membership
   assert.match(migration,/primary key\(school_id,auth_user_id,role\)/);
   assert.match(security,/eq\("role","school_owner"\)/);
   assert.match(migration,/check\(role in \('school_owner','school_admin','teacher','staff','parent','student'\)\)/);
+});
+
+test("role routing uses approved membership, not user-selected labels",()=>{
+ assert.deepEqual(approvedSchoolRoles(["teacher","teacher","student","fake"]),["teacher","student"]);
+ assert.equal(resolveSchoolRole(["teacher"],"school_owner"),"teacher");
+ assert.equal(resolveSchoolRole(["teacher","parent"],"school_owner"),null);
+ assert.equal(resolveSchoolRole(["teacher","parent"],"parent"),"parent");
+ assert.equal(resolveSchoolRole([],"school_owner"),null);
+ assert.equal(schoolWorkspacePath("RW-SCH-000004","teacher"),"/s/RW-SCH-000004/classroom");
+ assert.equal(schoolWorkspacePath("RW-SCH-000004","student"),"/s/RW-SCH-000004/learning");
+ assert.equal(schoolWorkspacePath("RW-SCH-000004","parent"),"/s/RW-SCH-000004/family");
+ assert.equal(schoolWorkspacePath("RW-SCH-000004","school_admin"),"/s/RW-SCH-000004/admin");
+ assert.throws(()=>schoolWorkspacePath("RW-SCH-000004","platform_owner"),/Invalid/);
 });

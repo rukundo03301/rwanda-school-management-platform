@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
-import {SCHOOL_ROLES,validSchoolRole,schoolPortalPath} from "../../../../lib/school-roles.mjs";
+import {studentLoginEmail} from "../../../../lib/school-roles.mjs";
 
 export default function SchoolLogin({code,name,logo,color,unavailable}) {
  const [client,setClient]=useState(null);
@@ -11,12 +11,8 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState("");
  const [error,setError]=useState("");
- const [role,setRole]=useState(null);
  const [signedIn,setSignedIn]=useState(false);
  useEffect(()=>{
-   const qs=new URLSearchParams(window.location.search);
-   const intended=qs.get("role");
-   if(validSchoolRole(intended))setRole(intended);
    const c=browserSupabase();setClient(c);
    if(!c)return;
    c.auth.getSession().then(({data})=>{
@@ -27,26 +23,32 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
    e.preventDefault();setBusy(true);setError("");setMessage("");
    try{
      if(!client)throw Error("School sign-in is not configured");
-     if(mode==="login"&&!role)throw Error("Choose your school role before signing in");
      if(mode==="forgot"){
+if(!email.includes("@"))throw Error("Student ID passwords are reset by the school office. Ask your teacher or the school secretary.");
        const {error}=await client.auth.resetPasswordForEmail(email.trim(),{
          redirectTo:window.location.origin+"/s/"+code+"/reset-password"
        });
        if(error)throw error;
        setMessage("If the account exists, we have emailed recovery instructions.");
      } else {
-       const {error}=await client.auth.signInWithPassword({email:email.trim(),password});
-       if(error)throw error;
-       window.location.assign(schoolPortalPath(code,role));
+       // A value without @ is a school-issued Student ID.
+let loginEmail=email.trim();
+if(!loginEmail.includes("@")){
+try{loginEmail=studentLoginEmail(code,loginEmail);}
+catch{throw Error("Enter your email address or your Student ID exactly as the school gave it to you");}
+}
+const {data:signed,error}=await client.auth.signInWithPassword({email:loginEmail,password});
+if(error)throw Error(error.message==="Invalid login credentials"?"The email or Student ID and password do not match":error.message);
+// A first or reset password from the school must be replaced before continuing.
+window.location.assign("/s/"+code+(signed?.user?.user_metadata?.must_change_password===true?"/password":"/portal"));
      }
    }catch(e){setError(e.message||"Sign-in failed");}
    finally{setBusy(false);}
  }
  async function google(){
    setError("");setBusy(true);
-   if(!role){setError("Choose your school role first");setBusy(false);return;}
    const {error}=await client.auth.signInWithOAuth({
-     provider:"google",options:{redirectTo:window.location.origin+schoolPortalPath(code,role)}
+     provider:"google",options:{redirectTo:window.location.origin+"/s/"+code+"/portal"}
    });
    if(error){setError(error.message);setBusy(false);}
  }
@@ -61,40 +63,30 @@ export default function SchoolLogin({code,name,logo,color,unavailable}) {
        {logo?<img src={logo} alt={name+" official logo"} width="62" height="62" style={{objectFit:"contain"}}/>:<div className="site-icon">✦</div>}
        <div><strong>{name}</strong><div className="micro">Secure School Portal</div></div>
      </div>
-     <h2>{mode==="login"?"Choose your school role":"Reset your password"}</h2>
-     {mode==="login"&&<>
-       <p className="muted">Select how you belong to this school. Your verified account and approved school membership determine what you may actually access.</p>
-       <div className="school-role-options login-roles" role="group" aria-label="Choose school login role">
-         {SCHOOL_ROLES.map(r=><button key={r.id} type="button"
-           aria-pressed={role===r.id} className={role===r.id?"school-role-choice selected":"school-role-choice"}
-           onClick={()=>{setRole(r.id);setError("");}}>
-           <span aria-hidden="true">{r.icon}</span><strong>{r.label}</strong>
-           <small>{r.description}</small>
-         </button>)}
-       </div>
-     </>}
+     <h2>{mode==="login"?"Sign in to your school":"Reset your password"}</h2>
+     {mode==="login"&&<p className="muted">Sign in with the account approved by your school. Your teacher, parent, student or administrative workspace is selected automatically from your verified membership.</p>}
      <p className="muted">Only people verified and invited by this school can access its private workspace.</p>
      {unavailable&&<div className="notice error">This school is currently unavailable. Contact its administrator.</div>}
      {error&&<div className="notice error">{error}</div>}
      {message&&<div className="notice ok">{message}</div>}
      {signedIn&&mode==="login"?<div className="notice info">
        <strong>You're already signed in.</strong>
-       <p>Select an authorized school role above to continue. You can switch accounts if this is not your intended identity.</p>
-       <div className="row"><button className="button" type="button" disabled={!role||unavailable} onClick={()=>window.location.assign(schoolPortalPath(code,role))}>Continue to selected workspace</button>
+       <p>Continue to your assigned school workspace, or sign out to use another account.</p>
+       <div className="row"><button className="button" type="button" disabled={unavailable} onClick={()=>window.location.assign("/s/"+code+"/portal")}>Continue to my school workspace</button>
          <button className="button secondary" type="button" onClick={async()=>{await client.auth.signOut();setSignedIn(false);}}>Use another account</button></div>
      </div>:<form onSubmit={submit}>
-       <label className="field">Email address<input className="input" required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+       <label className="field">Email address or Student ID<input className="input" required type="text" autoCapitalize="none" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)}/></label>
        {mode==="login"&&<label className="field">Password<input className="input" required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
-       <button className="button" type="submit" disabled={!client||busy||unavailable||(mode==="login"&&!role)} style={{width:"100%"}}>{busy?"Please wait…":mode==="login"?"Sign in to your school":"Email reset link"}</button>
+       <button className="button" type="submit" disabled={!client||busy||unavailable} style={{width:"100%"}}>{busy?"Please wait…":mode==="login"?"Sign in to your school":"Email reset link"}</button>
      </form>}
      {mode==="login"&&!signedIn&&<>
        <div className="auth-divider"><span>or</span></div>
-       <button className="button secondary" style={{width:"100%"}} disabled={!client||busy||unavailable||!role} onClick={google}>Continue with Google</button>
+       <button className="button secondary" style={{width:"100%"}} disabled={!client||busy||unavailable} onClick={google}>Continue with Google</button>
      </>}
      <div className="auth-links">
        <button className="button flat" onClick={()=>{setMode(mode==="login"?"forgot":"login");setError("");setMessage("");}}>{mode==="login"?"Forgot password?":"Back to sign in"}</button>
      </div>
-     <p className="micro" style={{marginTop:18}}>Roles are approved by your school. School owners can complete setup now; teacher, staff, parent and student dashboards are being developed in separate modules.</p>
+     <p className="micro" style={{marginTop:18}}>Your school administrator assigns and manages roles. A role cannot be selected or granted from this login page.</p>
    </div></section>
  </main>;
 }

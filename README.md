@@ -127,3 +127,10 @@ See [Module 6 School Communications](docs/MODULE_06_SCHOOL_COMMUNICATIONS.md). T
 School-owner and authorized bursar dashboards for current-year RWF fee schedules, enrolled-student invoices, independent review of cash/transfer records, school-issued receipts, fee waivers, overdue balances, school finance totals, and per-user ON/OFF financial access switches. Verified guardians can view only their linked children's financial statements and report **already-made** MTN MoMo/Airtel/bank transfer references, which remain pending until a separate reviewer verifies independent evidence. No payment provider integration or real-money collection is initiated in this module.
 
 See [Module 7 RWF School Fees](docs/MODULE_07_SCHOOL_FEES_RWF.md). GitHub development only; no live APEX change, no web production deploy, no native mobile binaries. The individual school's fee module is completely separate from the platform owner's invisible private monthly school-tenant payment tracker.
+
+
+## Platform Owner — Demo school and verified tenant-data wipe (draft)
+
+The Owner Console can create a fictional, branded sample school with a real unique School ID, mocked student/academic/fee records, and the banner **DEMO SCHOOL — SAMPLE DATA ONLY**. In Tenants → **Permanently delete**, the verified Platform Owner uses an MFA-protected confirmation form that previews exactly which school database records and platform-managed Storage files will be deleted. A fail-closed 54-table manifest and foreign-key-ordered SQL transaction remove school-scoped records without affecting other tenants; school-owned files are deleted through the Supabase Storage API before SQL purge. Shared Auth identities, third-party copies, and existing provider backups are not misrepresented as immediately erased.
+
+Read [Demo School & Secure Tenant Purge](docs/PLATFORM_DEMO_SCHOOL_AND_TENANT_PURGE.md). **Development branch only:** no live tenant has been created or deleted in APEX, and the site is not deployed.
