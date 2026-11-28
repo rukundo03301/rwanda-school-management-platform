@@ -92,7 +92,7 @@ export default function FamilyDashboard({code}){
   {label:"Report Cards",icon:"file",href:"/s/"+code+"/report-card"},
   {label:"Fees & Payments",icon:"wallet",active:tab==="fees",badge:0,onClick:()=>setTab("fees")},
   {label:"Messages",icon:"chat",href:"/s/"+code+"/communications"},
-  ...(code==="RW-SCH-000004"?[{label:"Learning Resources",icon:"folder",href:"/s/"+code+"/resources"}]:[]),
+  {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
   {label:"Help & Support",icon:"help",active:tab==="help",onClick:()=>setTab("help")},
  ];
  const school={name:data.school.name,logoUrl:fees?.school?.logoUrl||null};
