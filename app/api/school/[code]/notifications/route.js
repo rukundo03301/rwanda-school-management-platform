@@ -92,7 +92,7 @@ export async function GET(request,{params}){
    const classOf=new Map(ctx.enrollments.map(e=>[e.student_id,e.class_id]));
    const classes=[...new Set(ctx.enrollments.map(e=>e.class_id))];
    if(classes.length){
-    const hw=await checked(db.from("school_homework").select("id,class_id,title,due_at").eq("school_id",school.id)
+    const hw=await checked(db.from("school_homework").select("id,class_id,title,due_at,published_at").eq("school_id",school.id)
      .in("class_id",classes).eq("status","published").gte("due_at",new Date(Date.now()-86400000).toISOString())
      .order("due_at",{ascending:true}).limit(60));
     const done=hw.length?new Set((await checked(db.from("school_homework_submissions").select("homework_id,student_id")
@@ -100,7 +100,7 @@ export async function GET(request,{params}){
     const home=ctx.parent?"family":"learning";
     for(const sid of learners)for(const h of hw.filter(h=>h.class_id===classOf.get(sid)&&!done.has(h.id+"#"+sid)).slice(0,5))
      add("hw:"+h.id+":"+sid,"Homework due "+new Date(h.due_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"Africa/Kigali"}),
-      (ctx.parent?(names.get(sid)||"Child")+" · ":"")+h.title,base+home+"?tab=homework&homework="+h.id,h.due_at,"purple");
+      (ctx.parent?(names.get(sid)||"Child")+" · ":"")+h.title,base+home+"?tab=homework&homework="+h.id,h.published_at||h.due_at,"purple");
    }
   }
 
