@@ -11,6 +11,15 @@ const STOCK=["food","kitchen","cleaning","stationery","teaching","uniform","othe
 const ASSET=["furniture","ict","kitchen","sports","teaching","building","vehicle","other"];
 const CONDITION=["good","fair","needs_repair","out_of_service"];
 const PRIORITY=["low","normal","urgent"];
+// Asset codes are made by the system: a category prefix and the next number, e.g. FUR-0007.
+const PREFIX={furniture:"FUR",ict:"ICT",kitchen:"KIT",sports:"SPT",teaching:"TCH",building:"BLD",vehicle:"VEH",other:"OTH"};
+function nextNumbers(codes){
+ const next={};for(const [cat,pre] of Object.entries(PREFIX)){let max=0;
+  for(const c of codes){const m=new RegExp("^"+pre+"-(\\d+)$").exec(c);if(m)max=Math.max(max,Number(m[1]));}
+  next[cat]=max+1;}
+ return next;
+}
+const assetCode=(cat,n)=>PREFIX[cat]+"-"+String(n).padStart(4,"0");
 const STATUS=["open","in_progress","done","cancelled"];
 const HOSTS={youtube:["youtube.com","youtu.be"],tiktok:["tiktok.com"],facebook:["facebook.com","fb.com"],
   instagram:["instagram.com"],x:["x.com","twitter.com"],whatsapp:["wa.me","whatsapp.com"]};
@@ -81,8 +90,11 @@ export async function GET(request,{params}){
      .eq("school_id",sid).order("held_on",{ascending:false}).limit(60)):[],
    checked(db.from("school_social_links").select("platform,url").eq("school_id",sid))
   ]);
+  const allCodes=office?await checked(db.from("school_assets").select("asset_code").eq("school_id",sid).limit(20000)):[];
+  const nums=nextNumbers(allCodes.map(x=>x.asset_code));
+  const nextAssetCode=Object.fromEntries(Object.keys(PREFIX).map(c=>[c,assetCode(c,nums[c])]));
   return Response.json({
-   school:{name:school.name,code:school.school_code},
+   school:{name:school.name,code:school.school_code},nextAssetCode,
    actor:{owner:ctx.owner,manager:ctx.manager,staff:ctx.staff,teacher:ctx.teacher},
    stock,movements,assets,
    maintenance:maintenance.map(({reported_by,...rest})=>({...rest,mine:reported_by===user.id})),
@@ -134,15 +146,26 @@ export async function POST(request,{params}){
    result={quantity:next};
   }else if(action==="asset.add"){
    managerOnly();
-   const assetCode=text(body.assetCode,"Asset code",2,30).toUpperCase();
-   const existing=await checked(db.from("school_assets").select("id").eq("school_id",sid).eq("asset_code",assetCode).maybeSingle());
-   if(existing)throw new ApiError(409,"This asset code is already used");
-   result=await checked(db.from("school_assets").insert({school_id:sid,asset_code:assetCode,
-     name:text(body.name,"Asset name",2,120),category:pick(body.category,ASSET,"asset category"),
+   const category=pick(body.category,ASSET,"asset category");
+   const count=Number(body.quantity??1);
+   if(!Number.isInteger(count)||count<1||count>200)throw new ApiError(400,"How many must be a whole number from 1 to 200");
+   const base={school_id:sid,name:text(body.name,"Asset name",2,120),category,
      location:optional(body.location,"Location",120),condition:pick(body.condition||"good",CONDITION,"condition"),
      acquired_on:day(body.acquiredOn,"Date acquired",false),
-     value_rwf:body.valueRwf===""||body.valueRwf==null?null:Math.round(amount(body.valueRwf,"Value in RWF",100000000000))
-   }).select("id").single());
+     value_rwf:body.valueRwf===""||body.valueRwf==null?null:Math.round(amount(body.valueRwf,"Value in RWF",100000000000))};
+   // Two people saving at once could pick the same next number; the unique code then fails and we try again.
+   let inserted=null;
+   for(let attempt=0;attempt<3&&!inserted;attempt++){
+    const codes=await checked(db.from("school_assets").select("asset_code").eq("school_id",sid).like("asset_code",PREFIX[category]+"-%").limit(20000));
+    const start=nextNumbers(codes.map(x=>x.asset_code))[category];
+    const rows=Array.from({length:count},(_,i)=>({...base,asset_code:assetCode(category,start+i)}));
+    const ins=await db.from("school_assets").insert(rows).select("id,asset_code");
+    if(!ins.error)inserted=ins.data;
+    else if(ins.error.code!=="23505")throw new ApiError(400,"The asset could not be saved");
+   }
+   if(!inserted)throw new ApiError(409,"Someone else is adding assets right now. Try again");
+   const sorted=inserted.map(x=>x.asset_code).sort();
+   result={count:inserted.length,first:sorted[0],last:sorted[sorted.length-1]};
   }else if(action==="asset.condition"){
    officeOnly();
    const updated=await checked(db.from("school_assets").update({condition:pick(body.condition,CONDITION,"condition"),updated_at:now})
