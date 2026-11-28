@@ -73,6 +73,7 @@ export default function RoleHome({code}){
    {label:"Classes & Teachers",icon:"book",href:"/s/"+code+"/classroom"},
    {label:"Reports & Curriculum",icon:"chart",href:"/s/"+code+"/reports"},
    ...((d.access.levels||[]).includes("nursery")?[{label:"Early Years Reports",icon:"users",href:"/s/"+code+"/nursery"}]:[])]:[]),
+  {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
   {label:"Messages & Notices",icon:"chat",href:"/s/"+code+"/communications"},
   {label:"School Operations",icon:"wrench",href:"/s/"+code+"/operations"},
   {label:"Leave & Purchase Requests",icon:"file",href:"/s/"+code+"/requests"},
