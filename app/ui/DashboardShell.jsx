@@ -1,7 +1,8 @@
 "use client";
 import "./dashboard.css";
-import {useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
+import {browserSupabase} from "../../lib/client.js";
 
 const ICONS={
  home:["M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"],
@@ -46,24 +47,70 @@ export function todayLabel(date=new Date()){
  return new Intl.DateTimeFormat("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Kigali"}).format(date);
 }
 export function initials(name){return String(name||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join("")||"?";}
-export function Stat({icon,tone="blue",value,label}){
- return <div className="ds-stat"><div className={"ds-ico "+tone}><Icon name={icon} size={24}/></div>
-  <div><strong>{value}</strong><span>{label}</span></div></div>;
+// A stat opens the page behind its number when given href or onClick.
+export function Stat({icon,tone="blue",value,label,href,onClick}){
+ const body=<><div className={"ds-ico "+tone}><Icon name={icon} size={24}/></div>
+  <div><strong>{value}</strong><span>{label}</span></div></>;
+ if(href)return <Link href={href} className="ds-stat ds-go" aria-label={label+": "+value}>{body}</Link>;
+ if(onClick)return <button type="button" className="ds-stat ds-go" onClick={onClick} aria-label={label+": "+value}>{body}</button>;
+ return <div className="ds-stat">{body}</div>;
 }
-export function Ring({value,label="Present",color}){
+// A list row that opens its record.
+export function Item({href,onClick,children}){
+ if(href)return <li><Link href={href} className="ds-item ds-go">{children}</Link></li>;
+ if(onClick)return <li><button type="button" className="ds-item ds-go" onClick={onClick}>{children}</button></li>;
+ return <li className="ds-item">{children}</li>;
+}
+const when=at=>{if(!at)return "";const d=new Date(at),m=Math.round((Date.now()-d.getTime())/60000);
+ if(m>=0&&m<60)return m<=1?"just now":m+" min ago";if(m>=0&&m<1440)return Math.round(m/60)+" h ago";
+ return d.toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"Africa/Kigali"});};
+// The bell lists what needs this person's attention; every entry opens the page that resolves it.
+function Bell({code,count=0,onBell,light}){
+ const [open,setOpen]=useState(false),[items,setItems]=useState(null),[err,setErr]=useState(""),ref=useRef(null);
+ const load=async()=>{
+  if(!code)return;
+  try{const c=browserSupabase();const {data}=await c.auth.getSession();if(!data.session)return;
+   const r=await fetch("/api/school/"+code+"/notifications",{cache:"no-store",headers:{Authorization:"Bearer "+data.session.access_token}});
+   const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||"Notifications could not load");setItems(j.items||[]);setErr("");}
+  catch(e){setErr(e.message);}
+ };
+ useEffect(()=>{load();const t=setInterval(load,60000);return()=>clearInterval(t);},[code]);
+ useEffect(()=>{if(!open)return;const f=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+  document.addEventListener("mousedown",f);return()=>document.removeEventListener("mousedown",f);},[open]);
+ const n=code?(items?items.length:0):count;
+ return <div className="ds-bellwrap" ref={ref}>
+  <button className="ds-bell" aria-haspopup="menu" aria-expanded={open} aria-label={"Notifications"+(n?" ("+n+")":"")}
+   onClick={()=>{if(!code){onBell?.();return;}setOpen(o=>!o);if(!open)load();}}><Icon name="bell" size={24}/>{n>0&&<b>{n>99?"99+":n}</b>}</button>
+  {open&&<div className="ds-notes" role="menu">
+   <header><strong>Notifications</strong>{onBell&&<button type="button" onClick={()=>{setOpen(false);onBell();}}>View all</button>}</header>
+   {err&&<p className="ds-empty">{err} <button type="button" className="ds-link" onClick={load}>Try again</button></p>}
+   {!err&&items&&!items.length&&<p className="ds-empty">You are all caught up.</p>}
+   {!err&&!items&&<p className="ds-empty">Loading…</p>}
+   {items&&items.length>0&&<ul>{items.map(i=><li key={i.id}><Link role="menuitem" href={i.href} onClick={()=>setOpen(false)}>
+    <span className={"ds-ico "+(i.tone||"blue")}><Icon name="bell" size={16}/></span>
+    <span><strong>{i.title}</strong><small>{i.detail}</small><em>{when(i.at)}</em></span></Link></li>)}</ul>}
+  </div>}
+ </div>;
+}
+export function Ring({value,label="Present",color,href,onClick}){
  const v=Math.max(0,Math.min(100,Number(value)||0));
- return <div className="ds-ring" style={{"--v":v,...(color?{"--c":color}:{})}}>
+ const ring=<div className="ds-ring" style={{"--v":v,...(color?{"--c":color}:{})}}>
   <div><span><strong>{value===null||value===undefined?"—":Math.round(v)+"%"}</strong>{label}</span></div></div>;
+ const aria="Open "+label.toLowerCase()+" details";
+ if(href)return <Link href={href} className="ds-go ds-ringlink" aria-label={aria}>{ring}</Link>;
+ if(onClick)return <button type="button" className="ds-go ds-ringlink" onClick={onClick} aria-label={aria}>{ring}</button>;
+ return ring;
 }
-export function Bar({label,value,color="#1fa64a"}){
+export function Bar({label,value,color="#1fa64a",href}){
  const v=value===null||value===undefined?null:Math.max(0,Math.min(100,value));
- return <div className="ds-bar"><span><b style={{fontWeight:500}}>{label}</b><b>{v===null?"—":Math.round(v)+"%"}</b></span>
+ const bar=<div className="ds-bar"><span><b style={{fontWeight:500}}>{label}</b><b>{v===null?"—":Math.round(v)+"%"}</b></span>
   <i><u style={{width:(v||0)+"%",background:color}}/></i></div>;
+ return href?<Link href={href} className="ds-go" style={{display:"block",background:"transparent",borderRadius:8}}>{bar}</Link>:bar;
 }
 export function Card({title,icon,link,size="",children}){
  return <section className={"ds-card "+size}><h3>{icon&&<Icon name={icon}/>}{title}{link}</h3>{children}</section>;
 }
-export function DashboardShell({school,title,subtitle,nav,user,notifications=0,onBell,onSearch,searchPlaceholder="Search…",helpTitle="Need Help?",helpText,onSignOut,portalHref,children}){
+export function DashboardShell({school,code,title,subtitle,nav,user,notifications=0,onBell,onSearch,searchPlaceholder="Search…",helpTitle="Need Help?",helpText,onSignOut,portalHref,children}){
  const [open,setOpen]=useState(false);
  const [menu,setMenu]=useState(false);
  const [q,setQ]=useState("");
@@ -77,8 +124,7 @@ export function DashboardShell({school,title,subtitle,nav,user,notifications=0,o
    <h1>{title}{subtitle&&<span className="ds-sub">{subtitle}</span>}</h1>
    {onSearch&&<form className="ds-search" role="search" onSubmit={e=>{e.preventDefault();onSearch(q.trim());}}>
     <Icon name="search" size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder={searchPlaceholder} aria-label="Search"/></form>}
-   <button className="ds-bell" aria-label={"Notifications"+(notifications?" ("+notifications+")":"")} onClick={onBell}
-    style={onSearch?undefined:{marginLeft:"auto"}}><Icon name="bell" size={24}/>{notifications>0&&<b>{notifications}</b>}</button>
+   <div style={onSearch?undefined:{marginLeft:"auto"}}><Bell code={code} count={notifications} onBell={onBell}/></div>
    <div className="ds-user"><button onClick={()=>setMenu(m=>!m)} aria-haspopup="menu" aria-expanded={menu}>
      <span className="ds-avatar">{initials(user?.name)}</span>
      <span><strong>{user?.name}</strong><small>{user?.role}</small></span><Icon name="down" size={16}/></button>
