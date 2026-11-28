@@ -1,5 +1,6 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 
 const number=(v)=>typeof v==="number"?Number(v).toLocaleString("en-RW",{maximumFractionDigits:2}):"—";
@@ -10,6 +11,8 @@ export default function PublishedReportCard({code}){
  const [client,setClient]=useState(null),[ready,setReady]=useState(false),[session,setSession]=useState(null);
  const [loading,setLoading]=useState(true),[data,setData]=useState(null),[error,setError]=useState("");
  const [selected,setSelected]=useState("");
+ // ?report= (from a notification) chooses which report opens first.
+ const wanted=useSearchParams().get("report")||"",seen=useRef(new Set());
  useEffect(()=>{
   const c=browserSupabase();setClient(c);
   if(!c){setLoading(false);setReady(true);return;}
@@ -29,11 +32,17 @@ export default function PublishedReportCard({code}){
    });
    const d=await res.json().catch(()=>({}));
    if(!res.ok)throw Error(d.error||"Published reports are unavailable");
-   d.nurseryReports=d.nurseryReports||[];setData(d);setSelected(v=>d.reports.some(r=>r.id===v)||d.nurseryReports.some(r=>"n:"+r.id===v)?v:(d.nurseryReports[0]?"n:"+d.nurseryReports[0].id:d.reports[0]?.id||""));
+   d.nurseryReports=d.nurseryReports||[];setData(d);setSelected(v=>d.reports.some(r=>r.id===v)||d.nurseryReports.some(r=>"n:"+r.id===v)?v:d.nurseryReports.some(r=>r.id===wanted)?"n:"+wanted:d.reports.some(r=>r.id===wanted)?wanted:(d.nurseryReports[0]?"n:"+d.nurseryReports[0].id:d.reports[0]?.id||""));
   }catch(e){setError(e.message);}
   finally{setLoading(false);}
  },[client,code]);
  useEffect(()=>{if(ready&&session)load();else if(ready){setLoading(false);setData(null);}},[ready,session?.user?.id,load]);
+ useEffect(()=>{if(wanted&&data&&data.nurseryReports.some(r=>r.id===wanted))setSelected("n:"+wanted);},[wanted,data]);
+ // Opening a term report tells the school it was seen, which clears it from the bell.
+ useEffect(()=>{const id=selected.startsWith("n:")?selected.slice(2):"";if(!id||!client||seen.current.has(id))return;seen.current.add(id);
+  client.auth.getSession().then(({data:{session:s}})=>s&&fetch("/api/school/"+code+"/published-reports",{method:"POST",
+   headers:{Authorization:"Bearer "+s.access_token,"Content-Type":"application/json"},body:JSON.stringify({action:"viewed",reportId:id})})
+   .then(()=>{try{window.dispatchEvent(new Event("ds-notes-refresh"));}catch{}}).catch(()=>null));},[selected,client,code]);
  if(!ready||loading)return <main className="school-admin-loading">Checking your authorized school reports…</main>;
  if(!session)return <main className="school-admin-loading"><h2>Verified school sign-in required</h2>
   <p>Only a school-approved student or the child's verified parent/guardian can view a published report.</p>
