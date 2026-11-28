@@ -129,7 +129,8 @@ export default function ClassroomDashboard({code}){
  const ICON={overview:"home",assignments:"users",curriculum:"book",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user",materials:"folder"};
  const NAMES={overview:"Dashboard",attendance:"Attendance",submissions:"Grade Submissions"};
  const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),
-  ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:actor.teacher?"Early Years Observations":"Early Years Reports",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
+  {label:"Term Reports",icon:"file",href:"/s/"+code+"/term-reports"},
+  ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:"Early Years Observations",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
   {label:"Assessment Gradebook",icon:"chart",href:"/s/"+code+"/reports"},
   {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
