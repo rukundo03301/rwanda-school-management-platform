@@ -72,7 +72,7 @@ async function listCourses(db,school,v){
  if(!list.length)return [];
  const cIds=[...new Set(list.map(c=>c.classId))],sIds=[...new Set(list.map(c=>c.subjectId))];
  const [classes,subjects,hw,mats,mods]=await Promise.all([
-  checked(db.from("school_classes").select("id,name,section,level").eq("school_id",school.id).in("id",cIds)),
+  checked(db.from("school_classes").select("id,name,section,level,level_band").eq("school_id",school.id).in("id",cIds)),
   checked(db.from("school_subjects").select("id,name,code").eq("school_id",school.id).in("id",sIds)),
   checked(db.from("school_homework").select("id,class_id,subject_id,status,release_at,due_at").eq("school_id",school.id).in("class_id",cIds).in("status",["published","closed"]).limit(4000)),
   checked(db.from("school_learning_materials").select("id,class_id,subject_id").eq("school_id",school.id).in("class_id",cIds).eq("published",true).limit(4000)),
@@ -95,7 +95,7 @@ async function listCourses(db,school,v){
    return {studentId:sid,name:ch?ch.name:null,done:d,total:items.length,percent:items.length?Math.round(d*100/items.length):0};
   });
   const next=items.filter(i=>i.t==="h"&&new Date(i.due)>new Date()).sort((a,b)=>new Date(a.due)-new Date(b.due))[0];
-  out.push({classId:c.classId,subjectId:c.subjectId,lens:c.lens,className:cl.name+(cl.section?" "+cl.section:""),level:cl.level,
+  out.push({classId:c.classId,subjectId:c.subjectId,lens:c.lens,className:cl.name+(cl.section?" "+cl.section:""),level:cl.level,levelBand:cl.level_band||null,
    subject:sb.name,subjectCode:sb.code,items:items.length,modules:mods.filter(m=>m.class_id===c.classId&&m.subject_id===c.subjectId).length,
    nextDue:next?.due||null,progress});
  }
@@ -199,7 +199,7 @@ export async function GET(request,{params}){
   }
   const courses=await listCourses(db,school,v);
   return Response.json({courses,year:v.year?.name||null,children:v.children.map(c=>({id:c.studentId,name:c.name})),
-   canBuild:v.manager||v.assignments.length>0},{headers:noStore});
+   canBuild:v.manager||v.assignments.length>0,canManage:v.manager},{headers:noStore});
  }catch(e){return jsonError(e);}
 }
 
