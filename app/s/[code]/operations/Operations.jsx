@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 
 // School operations workspace: maintenance, stock, assets, board of directors and social links.
@@ -17,6 +18,8 @@ export default function Operations({code}){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [tab,setTab]=useState("maintenance");
+ // Links from dashboards and the bell: ?tab=stock|assets|board|social and ?request= (a maintenance request).
+ const sp=useSearchParams(),wantTab=sp.get("tab")||"",focus=sp.get("request")||"";
  const [busy,setBusy]=useState(false);
  const [form,setForm]=useState({});
 
@@ -51,6 +54,8 @@ export default function Operations({code}){
  const set=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
  const val=k=>form[k]??"";
 
+ useEffect(()=>{if(!data)return;const ac=data.actor||{},ok=["maintenance",...(ac.manager||ac.staff?["stock","assets"]:[]),...(ac.manager?["board","social"]:[])];
+  if(wantTab&&ok.includes(wantTab))setTab(wantTab);if(focus){setTab("maintenance");setTimeout(()=>document.getElementById("req-"+focus)?.scrollIntoView({behavior:"smooth",block:"center"}),150);}},[data,wantTab,focus]);
  if(loading)return <main className="shell">Opening school operations...</main>;
  if(!data)return <main className="shell"><div className="notice error" role="alert">{error||"Unable to open school operations"}</div>
    <p><a className="button secondary small" href={"/s/"+code+"/login"}>Sign in to your school</a></p></main>;
@@ -91,7 +96,7 @@ export default function Operations({code}){
     <button type="button" className="button small" disabled={busy} onClick={()=>act({action:"maintenance.report",title:val("title"),location:val("location"),priority:val("priority")||"normal",details:val("details")},"Maintenance request reported.")}>Report problem</button>
    </div>
    {data.maintenance.length?<div style={{overflowX:"auto"}}><table style={TABLE}><thead><tr><th style={CELL}>Problem</th><th style={CELL}>Where</th><th style={CELL}>Priority</th><th style={CELL}>Status</th>{office&&<th style={CELL}>Update</th>}</tr></thead>
-    <tbody>{data.maintenance.map(m=><tr key={m.id}><td style={CELL}><strong>{m.title}</strong>{m.details&&<><br/><span className="micro">{m.details}</span></>}{m.resolution&&<><br/><span className="micro">Done: {m.resolution}</span></>}</td>
+    <tbody>{data.maintenance.map(m=><tr key={m.id} id={"req-"+m.id} style={m.id===focus?{background:"#fff6dc",scrollMarginTop:90}:undefined}><td style={CELL}><strong>{m.title}</strong>{m.details&&<><br/><span className="micro">{m.details}</span></>}{m.resolution&&<><br/><span className="micro">Done: {m.resolution}</span></>}</td>
      <td style={CELL}>{m.location||"Not stated"}</td><td style={CELL}>{nice(m.priority)}</td><td style={CELL}>{nice(m.status)}<br/><span className="micro">{new Date(m.created_at).toLocaleDateString()}</span></td>
      {office&&<td style={CELL}><select value={m.status} disabled={busy} onChange={e=>act({action:"maintenance.update",requestId:m.id,status:e.target.value,resolution:m.resolution||""},"Maintenance request updated.")}>{data.options.status.map(s=><option key={s} value={s}>{nice(s)}</option>)}</select></td>}</tr>)}</tbody></table></div>
     :<div className="adm-empty"><strong>No maintenance requests</strong><p>Nothing has been reported yet.</p></div>}
