@@ -140,7 +140,7 @@ export function DashboardShell({school,code,title,subtitle,nav,user,notification
    <nav className="ds-nav" aria-label="Sections">{nav.map((n,i)=>{
      // Optional group headings and a one-line description under each item.
      const head=n.group&&n.group!==nav[i-1]?.group?<div key={"g"+n.group} className="ds-navgroup">{n.group}</div>:null;
-     const body=<><Icon name={n.icon}/><span className="ds-navtext">{n.label}{n.hint&&<small>{n.hint}</small>}</span>{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</>;
+     const body=<><span className={"ds-navico"+(n.tone?" t-"+n.tone:"")}><Icon name={n.icon}/></span><span className="ds-navtext">{n.label}{n.hint&&<small>{n.hint}</small>}</span>{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</>;
      const el=n.href
       ?<Link key={n.label} href={n.href} prefetch title={n.hint||undefined} className={n.active?"on":""}>{body}</Link>
       :<button key={n.label} title={n.hint||undefined} className={n.active?"on":""} onClick={()=>{n.onClick?.();setOpen(false);}}>{body}</button>;
