@@ -59,3 +59,14 @@
 .st-col{display:grid;gap:6px;justify-items:start}
 .st-confirm{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;background:#fff4f4;border:1px solid #f5c2c2;border-radius:8px;padding:6px 8px}
 .button.danger{background:#b91c1c;border-color:#b91c1c;color:#fff}
+.st-pay{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));display:grid!important;gap:10px;background:#f0fdf4;border:1px solid #bbf7d0!important;border-radius:10px;padding:10px!important}
+.st-pay label{display:grid!important;gap:4px;font-weight:600!important}
+.st-media{display:grid;grid-template-columns:200px 1fr;gap:16px;margin:10px 0}
+.st-media>div{display:grid;gap:8px;justify-items:start}
+.st-logo{width:180px;height:180px;border-radius:16px;border:2px dashed #cbd5e1;display:grid;place-items:center;overflow:hidden;background:#f8fafc}
+.st-hero{width:100%;max-width:520px;aspect-ratio:16/7;border-radius:16px;border:2px dashed #cbd5e1;display:grid;place-items:center;overflow:hidden;background:#f8fafc}
+.st-logo img,.st-hero img{width:100%;height:100%;object-fit:cover}
+.st-logo span,.st-hero span{color:#94a3b8;font-size:13px}
+.st-ad{grid-template-columns:1fr 2fr auto;margin:6px 0;background:#fdf4ff;border:1px solid #f5d0fe}
+.st-show{display:flex!important;align-items:center;gap:6px}
+@media (max-width:700px){.st-media{grid-template-columns:1fr}.st-ad{grid-template-columns:1fr}}

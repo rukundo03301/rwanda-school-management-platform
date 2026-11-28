@@ -20,6 +20,7 @@ const SECTIONS=[
  ["teachers","Teachers","Add teachers, give them a login, and choose what they teach","cap"],
  ["fees","School fees","How much each class pays, per term or per year","wallet"],
  ["board","Board of directors","Board members and their terms","building"],
+ ["homepage","Logo and homepage","Your logo, cover photo, homepage notice and advertisements","megaphone"],
  ["staff","Staff access","Principals, staff, logins and permissions","gear"]
 ];
 
@@ -65,6 +66,7 @@ export default function SchoolSettings({code}){
     {section==="teachers"&&<Teachers {...props}/>}
     {section==="fees"&&<Fees {...props}/>}
     {section==="board"&&<Board {...props}/>}
+    {section==="homepage"&&<Homepage {...props}/>}
     {section==="staff"&&<Staff {...props}/>}
    </main>
   </div>
@@ -199,6 +201,7 @@ function Teachers({d,code,run,busy,call,load,setNote}){
   setAdd(null);
   const fresh=await call("settings");
   const t=fresh.teachers.find(x=>x.email===email);
+  if(t&&add.salary!==""){const ok=await run("money",{action:"pay.set",userId:t.id,jobTitle:add.jobTitle||"Teacher",monthlySalary:Number(add.salary),payDay:Number(add.payDay),method:add.method});if(!ok)return;}
   if(t&&add.mode==="school"){await giveLogin(t);}
   else setNote({ok:true,text:name+" was added. They sign in at the school login page with "+email+" and press Forgot password the first time to choose a password."});
   setA(x=>({...x,teacherId:t?.id||""}));
@@ -224,14 +227,20 @@ function Teachers({d,code,run,busy,call,load,setNote}){
   <section className="ds-panel">
    <div className="st-row"><h3>Teachers ({d.teachers.length})</h3>
     <div className="st-row"><input className="input" aria-label="Search teachers" placeholder="Search teachers" value={q} onChange={e=>setQ(e.target.value)}/>
-     {d.actor.isOwner&&!add&&<button className="button" onClick={()=>setAdd({name:"",email:"",mode:"school"})}><Icon name="users" size={16}/> Add a teacher</button>}</div></div>
+     {d.actor.isOwner&&!add&&<button className="button" onClick={()=>setAdd({name:"",email:"",mode:"school",jobTitle:"Teacher",salary:"",payDay:28,method:"bank_transfer"})}><Icon name="users" size={16}/> Add a teacher</button>}</div></div>
    {add&&<form className="st-form st-addform" onSubmit={addTeacher}>
     <label>Full name<input className="input" required minLength={3} maxLength={120} placeholder="Jeanne Uwase" value={add.name} onChange={e=>setAdd({...add,name:e.target.value})}/></label>
     <fieldset className="st-radio"><legend>How will the teacher sign in?</legend>
      <label><input type="radio" checked={add.mode==="school"} onChange={()=>setAdd({...add,mode:"school"})}/> The school gives a login and first password (best when the teacher has no email)</label>
      <label><input type="radio" checked={add.mode==="email"} onChange={()=>setAdd({...add,mode:"email"})}/> With the teacher's own email address</label></fieldset>
     {add.mode==="email"&&<label>Teacher's email<input className="input" type="email" required value={add.email} onChange={e=>setAdd({...add,email:e.target.value})}/></label>}
+    <fieldset className="st-radio st-pay"><legend>Pay (the owner can change it later in Salaries and Payroll)</legend>
+     <label>Job title<input className="input" maxLength={80} value={add.jobTitle} onChange={e=>setAdd({...add,jobTitle:e.target.value})}/></label>
+     <label>Monthly salary (RWF)<input className="input" type="number" min={0} step={1} required placeholder="250000" value={add.salary} onChange={e=>setAdd({...add,salary:e.target.value})}/></label>
+     <label>Paid on day<select className="input" value={add.payDay} onChange={e=>setAdd({...add,payDay:Number(e.target.value)})}>{Array.from({length:28},(_,i)=>i+1).map(n=><option key={n} value={n}>{n} of each month</option>)}</select></label>
+     <label>Paid by<select className="input" value={add.method} onChange={e=>setAdd({...add,method:e.target.value})}><option value="bank_transfer">Bank transfer</option><option value="mtn_momo">MTN MoMo</option><option value="airtel_money">Airtel Money</option><option value="cash">Cash</option></select></label></fieldset>
     <div className="st-actions"><button className="button" disabled={busy}>Add teacher</button><button type="button" className="button secondary" onClick={()=>setAdd(null)}>Cancel</button></div></form>}
+   <p className="muted">Salaries and pay days are in <a href={"/s/"+code+"/money?tab=salaries"}>Salaries and Payroll</a>.</p>
    <table className="st-table"><thead><tr><th>Teacher</th><th>Teaches</th><th>Login</th></tr></thead><tbody>
     {shown.map(t=>{const mine=d.assignments.filter(x=>x.teacher_id===t.id&&C.has(x.class_id));return <tr key={t.id}>
      <td><b>{t.name||"No name"}</b><br/><small className="muted">{t.email}</small></td>
@@ -339,6 +348,70 @@ function Staff({d,code}){
     <a href={"/s/"+code+"/fees"}><b>Finance permissions</b><small>Choose who can bill, record and approve payments (Fees and Payments page, Finance Permissions tab)</small></a>
     <a href={"/s/"+code+"/setup"}><b>School website and profile</b><small>Name, logo, contact details and the public school page</small></a>
    </div>
+  </section>
+ </>;
+}
+
+// Logo, cover photo, homepage notice and up to three advertisements, saved and published in one step.
+function Homepage({d,code,call,busy,setNote}){
+ const [site,setSite]=useState(null),[progress,setProgress]=useState(null),[saving,setSaving]=useState(false),[up,setUp]=useState("");
+ useEffect(()=>{call("").then(j=>{setSite(j.site||{});setProgress(j.progress||{});}).catch(e=>setNote({ok:false,text:e.message}));},[call,setNote]);
+ if(!d.actor.isOwner)return <section className="ds-panel"><p>Only the school owner can change the logo and the homepage.</p></section>;
+ if(!site)return <section className="ds-panel"><p>Loading your homepage…</p></section>;
+ const ads=[0,1,2].map(i=>({title:site.advertisements?.[i]?.title||"",description:site.advertisements?.[i]?.description||"",enabled:!!site.advertisements?.[i]?.enabled}));
+ const setAd=(i,k,v)=>setSite(x=>({...x,advertisements:ads.map((a,j)=>j===i?{...a,[k]:v}:a)}));
+ async function upload(kind,file){
+  if(!file)return;setUp(kind);
+  try{
+   const fd=new FormData();fd.append("kind",kind);fd.append("image",file);
+   const {data:{session}}=await browserSupabase().auth.getSession();if(!session)throw Error("Sign in again to continue");
+   const r=await fetch("/api/school/"+code+"/upload",{method:"POST",headers:{Authorization:"Bearer "+session.access_token},body:fd});
+   const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||"Upload failed");
+   setSite(x=>({...x,[kind==="logo"?"logo_url":"hero_url"]:j.url}));setNote({ok:true,text:(kind==="logo"?"Logo":"Cover photo")+" uploaded. Press Save and publish to show it."});
+  }catch(e){setNote({ok:false,text:e.message});}finally{setUp("");}
+ }
+ async function save(){
+  setSaving(true);setNote(null);
+  const s=site;
+  const body={action:"saveSite",tagline:s.tagline||"",aboutText:s.about_text||"",announcement:s.announcement||"",logoUrl:s.logo_url||"",heroUrl:s.hero_url||"",
+   primaryColor:s.primary_color||"#204a78",contactEmail:s.contact_email||"",contactPhone:s.contact_phone||"",missionStatement:s.mission_statement||"",visionStatement:s.vision_statement||"",
+   leaderName:s.leader_name||"",leaderTitle:s.leader_title||"",leaderMessage:s.leader_message||"",leaderPhotoUrl:s.leader_photo_url||"",
+   advertisements:ads,addressText:s.address_text||"",programsIntro:s.programs_intro||"",admissionsIntro:s.admissions_intro||"",admissionsInstructions:s.admissions_instructions||"",
+   admissionsContact:s.admissions_contact||"",gallery:Array.isArray(s.gallery)?s.gallery.filter(g=>g&&g.url).map(g=>({url:g.url,caption:g.caption||""})):[]};
+  try{
+   await call("",body);
+   if(progress?.review_requested_at){await call("",{action:"publish"});setNote({ok:true,text:"Saved and published. Your public homepage now shows the changes."});}
+   else setNote({ok:true,text:"Saved. The homepage goes live after the platform reviews your school (School website and profile)."});
+  }catch(e){setNote({ok:false,text:e.message});}finally{setSaving(false);}
+ }
+ return <>
+  <section className="ds-panel">
+   <div className="st-row"><h3>Logo and cover photo</h3><a className="button secondary small" href={"/s/"+code} target="_blank" rel="noopener noreferrer">View public homepage</a></div>
+   <div className="st-media">
+    <div><div className="st-logo">{site.logo_url?<img src={site.logo_url} alt="School logo"/>:<span>No logo yet</span>}</div>
+     <label className="button secondary small">{up==="logo"?"Uploading…":"Upload logo"}<input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e=>upload("logo",e.target.files?.[0])}/></label></div>
+    <div><div className="st-hero">{site.hero_url?<img src={site.hero_url} alt="School cover"/>:<span>No cover photo yet</span>}</div>
+     <label className="button secondary small">{up==="hero"?"Uploading…":"Upload cover photo"}<input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e=>upload("hero",e.target.files?.[0])}/></label></div>
+   </div>
+   <div className="st-form">
+    <label>Short line under the school name<input className="input" maxLength={160} value={site.tagline||""} onChange={e=>setSite({...site,tagline:e.target.value})}/></label>
+    <label>School colour<input className="input" type="color" value={site.primary_color||"#204a78"} onChange={e=>setSite({...site,primary_color:e.target.value})}/></label>
+   </div>
+  </section>
+  <section className="ds-panel"><h3>Homepage notice</h3>
+   <p className="muted">One short message shown at the top of your public homepage, for example "Admissions for 2027 are open".</p>
+   <textarea className="input" rows={2} maxLength={300} style={{width:"100%"}} value={site.announcement||""} onChange={e=>setSite({...site,announcement:e.target.value})}/>
+  </section>
+  <section className="ds-panel"><h3>Advertisements on the homepage</h3>
+   <p className="muted">Up to three boxes on your homepage: admissions, events, transport, school trips. Tick "Show" to put one on the homepage.</p>
+   {ads.map((a,i)=><div key={i} className="st-form st-ad">
+    <label>Title<input className="input" maxLength={100} value={a.title} onChange={e=>setAd(i,"title",e.target.value)}/></label>
+    <label>Text<input className="input" maxLength={400} value={a.description} onChange={e=>setAd(i,"description",e.target.value)}/></label>
+    <label className="st-show"><input type="checkbox" checked={a.enabled} onChange={e=>setAd(i,"enabled",e.target.checked)}/> Show</label></div>)}
+  </section>
+  <section className="ds-panel">
+   <button className="button" disabled={saving||busy} onClick={save}>{saving?"Saving…":progress?.review_requested_at?"Save and publish":"Save"}</button>
+   <a className="button secondary" style={{marginLeft:8}} href={"/s/"+code+"/setup"}>Edit the full homepage (about, mission, leader, gallery, contacts)</a>
   </section>
  </>;
 }
