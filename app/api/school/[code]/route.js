@@ -87,8 +87,13 @@ export async function POST(request,{params}){
     if(action==="saveSite"){
       const color=String(body.primaryColor||"#204a78");
       if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new ApiError(400,"Invalid theme color");
+      // A school may always keep an image it already has (for example a logo set up by the platform);
+      // any new image must come from this school's own upload folder.
+      const current=await checked(db.from("school_site_drafts").select("logo_url,hero_url,leader_photo_url,gallery").eq("school_id",school.id).maybeSingle());
+      const kept=new Set([current?.logo_url,current?.hero_url,current?.leader_photo_url,...(Array.isArray(current?.gallery)?current.gallery.map(g=>g?.url):[])].filter(Boolean));
       const image=(url)=>{
         if(!url)return null;
+        if(typeof url==="string"&&kept.has(url))return url;
         const prefix="https://stgqhkhfpnqmsiyrvvhe.supabase.co/storage/v1/object/public/school-branding/"+school.id+"/";
         if(typeof url!=="string"||!url.startsWith(prefix)||!/\.webp(?:\?.*)?$/.test(url)||url.length>1200)
           throw new ApiError(400,"School image must be uploaded to your school's media library");
