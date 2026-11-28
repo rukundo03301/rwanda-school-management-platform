@@ -138,16 +138,16 @@ export default function ClassroomDashboard({code}){
  const ICON={overview:"home",assignments:"users",curriculum:"book",lessons:"book",homework:"check",attendance:"clock",submissions:"file",studentAccess:"user",materials:"folder"};
  const NAMES={overview:"Dashboard",attendance:"Attendance",submissions:"Grade Submissions"};
  const navItems=[...visibleTabs.map(t=>({label:NAMES[t.id]||t.label,icon:ICON[t.id],active:tab===t.id,onClick:()=>{setTab(t.id);setError("");}})),{label:"My Courses",icon:"book",href:"/s/"+code+"/courses"},
-  {label:"Term Reports",icon:"file",href:"/s/"+code+"/term-reports"},
-  ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:"Early Years Observations",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
+  {label:"Write Report Cards",icon:"file",href:"/s/"+code+"/term-reports"},
+  ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:"Nursery Progress Notes",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
-  {label:"Assessment Gradebook",icon:"chart",href:"/s/"+code+"/reports"},
-  {label:"Smart Learning Studio",icon:"book",href:"/s/"+code+"/studio"},
+  {label:"Curriculum & Marks",icon:"chart",href:"/s/"+code+"/reports"},
+  {label:"Practice Games",icon:"book",href:"/s/"+code+"/studio"},
   {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
   ...(actor.manager?[{label:"Administration",icon:"gear",href:"/s/"+code+"/admin"}]:[])];
  const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login?role="+(actor.teacher?"teacher":"school_owner"));};
  return <DashboardShell code={code} school={{name:school.name,logoUrl:school.logo,place:actor.teacher?"Teacher workspace":"Academic workspace"}}
-  title={TITLES[tab]} user={{name:session.user.email||"School member",role:actor.teacher?"Teacher":actor.owner?"School Owner":"School Staff"}}
+  title={!actor.teacher&&tab==="overview"?"Academic Management":TITLES[tab]} user={{name:session.user.email||"School member",role:actor.teacher?"Teacher":actor.owner?"School Owner":"School Staff"}}
   nav={navItems} notifications={actor.teacher?toGrade.length:0} onBell={()=>selectSection("submissions")}
   helpText="Contact the school administration." onSignOut={signOut} portalHref={"/s/"+code+"/portal?role="+(actor.teacher?"teacher":"school_owner")}>
     {!(tab==="overview"&&actor.teacher)&&<div className="cr-title">
