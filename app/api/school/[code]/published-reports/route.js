@@ -2,10 +2,8 @@ import {schoolVerifiedContext} from "../../../../../lib/school-admin.mjs";
 import {checked,jsonError} from "../../../../../lib/platform-server.js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-export async function GET(request,{params}){
- try{
-  const {code}=await params;
-  const {db,school,user}=await schoolVerifiedContext(request,code);
+// Students this account may see: the parent's verified children, or the student themself.
+async function permitted(db,school,user){
   const [memberships,linkedChildren,studentAccount]=await Promise.all([
     checked(db.from("school_memberships")
       .select("role").eq("school_id",school.id).eq("auth_user_id",user.id)
@@ -23,8 +21,31 @@ export async function GET(request,{params}){
     ...(isParent?linkedChildren.map(g=>g.student_id):[]),
     ...(isStudent&&studentAccount?[studentAccount.student_id]:[])
   ]);
+  return {isParent,isStudent,studentIds:[...permittedStudents]};
+}
+// Records that a parent or student opened a published term report (clears its notification).
+export async function POST(request,{params}){
+ try{
+  const {code}=await params;
+  const {db,school,user}=await schoolVerifiedContext(request,code);
+  const body=await request.json().catch(()=>({}));
+  if(body.action!=="viewed"||!/^[0-9a-f-]{36}$/i.test(String(body.reportId||"")))return Response.json({error:"Unknown action"},{status:400});
+  const {studentIds}=await permitted(db,school,user);
+  const row=studentIds.length?await checked(db.from("school_term_reports").select("id").eq("school_id",school.id)
+    .eq("id",body.reportId).eq("status","published").in("student_id",studentIds).maybeSingle()):null;
+  if(!row)return Response.json({error:"Report not found"},{status:404});
+  const done=await checked(db.from("school_report_audit").select("id").eq("school_id",school.id).eq("actor_id",user.id)
+    .eq("event","term_report.viewed").eq("resource_id",row.id).limit(1));
+  if(!done.length)await checked(db.from("school_report_audit").insert({school_id:school.id,actor_id:user.id,event:"term_report.viewed",resource_id:row.id,metadata:{}}));
+  return Response.json({ok:true},{headers:{"Cache-Control":"private, no-store"}});
+ }catch(e){return jsonError(e)}
+}
+export async function GET(request,{params}){
+ try{
+  const {code}=await params;
+  const {db,school,user}=await schoolVerifiedContext(request,code);
   // Client may not request another student ID, even knowing its UUID.
-  const studentIds=[...permittedStudents];
+  const {isParent,isStudent,studentIds}=await permitted(db,school,user);
   let reports=[];
   if(studentIds.length){
     reports=await checked(db.from("school_published_reports")
