@@ -231,6 +231,17 @@ export async function POST(request,{params}){
       school_id:school.id,class_id:classId,subject_id:subjectId,created_by:actor.id
     },{onConflict:"school_id,class_id,subject_id"}).select("class_id,subject_id").single());
     await schoolAdminAudit(db,school.id,actor.id,"academic.subject_assigned",{classId,subjectId});
+  }else if(action==="academic.classSubjectRemove"){
+    requireSchoolPermission(actor,"academics.manage");
+    const classId=validateUuid(body.classId,"class");
+    const subjectId=validateUuid(body.subjectId,"subject");
+    const busy=await checked(db.from("school_teacher_assignments").select("teacher_id").eq("school_id",school.id)
+      .eq("class_id",classId).eq("subject_id",subjectId).eq("active",true).limit(1));
+    if(busy.length)throw new ApiError(409,"A teacher is still assigned to this subject in this class. Remove the teacher first.");
+    const del=await db.from("school_class_subjects").delete().eq("school_id",school.id).eq("class_id",classId).eq("subject_id",subjectId);
+    if(del.error)throw new ApiError(409,"This subject already has homework, marks or reports in this class, so it stays linked.");
+    await schoolAdminAudit(db,school.id,actor.id,"academic.subject_unassigned",{classId,subjectId});
+    result={classId,subjectId,removed:true};
   }else{
     throw new ApiError(400,"Unsupported school administration action");
   }
