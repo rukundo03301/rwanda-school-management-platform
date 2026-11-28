@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
@@ -87,7 +88,8 @@ export default function ClassroomDashboard({code}){
   finally{setBusy(false);}
  }
  // A notification link (?submission=) opens that submission's class and highlights it.
- const [focusSub,setFocusSub]=useState(()=>typeof window==="undefined"?"":new URLSearchParams(location.search).get("submission")||"");
+ const subQ=useSearchParams().get("submission")||"",[focusSub,setFocusSub]=useState(subQ);
+ useEffect(()=>{if(subQ)setFocusSub(subQ);},[subQ]);
  useEffect(()=>{if(!focusSub||!data)return;const s=(data.submissions||[]).find(x=>x.id===focusSub);const h=s&&(data.homework||[]).find(x=>x.id===s.homework_id);
   if(h){setSelectedClass(h.class_id);setTab("submissions");setTimeout(()=>document.getElementById("sub-"+focusSub)?.scrollIntoView({behavior:"smooth",block:"center"}),150);}},[focusSub,data]);
  if(!ready||loading)return <main className="school-admin-loading">Opening your school's classrooms…</main>;
