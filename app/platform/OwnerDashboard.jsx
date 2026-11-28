@@ -119,29 +119,29 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
    </div></div>
   </div>
   <div className="od-stats">
-   <div className="od-stat"><span className="ic"><Ico d={I.school}/></span><div><small>Total Schools</small><strong>{nf(t.tenants)}</strong></div></div>
-   <div className="od-stat"><span className="ic"><Ico d={I.users}/></span><div><small>Total Users</small><strong>{nf(ps.users)}</strong></div></div>
-   <div className="od-stat"><span className="ic"><Ico d={I.cap}/></span><div><small>Total Students</small><strong>{nf(students)}</strong></div></div>
-   <div className="od-stat"><span className="ic"><Ico d={I.board}/></span><div><small>Total Teachers</small><strong>{nf(ps.teachers)}</strong></div></div>
-   <div className="od-stat"><span className="ic"><Ico d={I.coins}/></span><div><small>Total Revenue</small><strong>{canBilling?rwf(t.manualCollectedRwf):"Restricted"}</strong></div></div>
+   <button type="button" className="od-stat od-go" onClick={()=>go("tenants")}><span className="ic"><Ico d={I.school}/></span><div><small>Total Schools</small><strong>{nf(t.tenants)}</strong></div></button>
+   <button type="button" className="od-stat od-go" onClick={()=>go("staff")}><span className="ic"><Ico d={I.users}/></span><div><small>Total Users</small><strong>{nf(ps.users)}</strong></div></button>
+   <button type="button" className="od-stat od-go" onClick={()=>go("reports")}><span className="ic"><Ico d={I.cap}/></span><div><small>Total Students</small><strong>{nf(students)}</strong></div></button>
+   <button type="button" className="od-stat od-go" onClick={()=>go("reports")}><span className="ic"><Ico d={I.board}/></span><div><small>Total Teachers</small><strong>{nf(ps.teachers)}</strong></div></button>
+   <button type="button" className="od-stat od-go" onClick={()=>go(canBilling?"billing":"reports")}><span className="ic"><Ico d={I.coins}/></span><div><small>Total Revenue</small><strong>{canBilling?rwf(t.manualCollectedRwf):"Restricted"}</strong></div></button>
   </div>
   <div className="od-row2">
-   <div className="od-card"><h3>Platform Growth (Last 12 Months)</h3>
+   <div className="od-card"><h3>Platform Growth (Last 12 Months) <button onClick={()=>go("reports")}>Reports</button></h3>
     <div className="od-legend"><span><i style={{background:"#2563eb"}}/>Schools ({nf(t.tenants)})</span><span><i style={{background:"#16a34a"}}/>Students ({nf(students)})</span>{canBilling&&<span><i style={{background:"#f97316"}}/>Revenue RWF</span>}</div>
     <Growth months={months} schools={schoolsSeries} students={studentsSeries} revenue={canBilling?revSeries:months.map(()=>0)}/></div>
    <div className="od-card"><h3>Schools Distribution (Rwanda) <button onClick={()=>go("reports")}>Reports</button></h3>
     <div className="od-map"><RwandaMap byDistrict={byDistrict} onPick={()=>go("tenants")}/>
-     <div className="od-list">{Object.entries(PROVINCE_LABEL).map(([k,v])=><div key={k} className="od-item"><span>{v}</span><span className="od-badge">{nf(prov[k])}</span></div>)}
-      {prov.none>0&&<div className="od-item"><span>Province not set</span><span className="od-badge" style={{background:"#64748b"}}>{nf(prov.none)}</span></div>}</div></div>
+     <div className="od-list">{Object.entries(PROVINCE_LABEL).map(([k,v])=><div key={k} className="od-item od-go" role="button" tabIndex={0} onClick={()=>go("tenants")} onKeyDown={e=>{if(e.key==="Enter")go("tenants");}}><span>{v}</span><span className="od-badge">{nf(prov[k])}</span></div>)}
+      {prov.none>0&&<div className="od-item od-go" role="button" tabIndex={0} onClick={()=>go("tenants")} onKeyDown={e=>{if(e.key==="Enter")go("tenants");}}><span>Province not set</span><span className="od-badge" style={{background:"#64748b"}}>{nf(prov.none)}</span></div>}</div></div>
     <div className="od-empty">Shaded by schools per district. Set a school's district from Schools, School profile. Boundaries: geoBoundaries, CC BY 4.0.</div></div>
   </div>
   <div className="od-row3">
-   <div className="od-card"><h3>Schools by Education Level</h3>
-    <div className="od-tiles">{Object.entries(LEVEL_LABEL).map(([k,v],i)=><div key={k} className="od-tile" style={{background:LEVEL_TONE[i][0],color:LEVEL_TONE[i][1]}}><b>{nf(lvl[k])}</b>{v}</div>)}</div>
+   <div className="od-card"><h3>Schools by Education Level <button onClick={()=>go("tenants")}>Schools</button></h3>
+    <div className="od-tiles">{Object.entries(LEVEL_LABEL).map(([k,v],i)=><button type="button" key={k} className="od-tile od-go" onClick={()=>go("tenants")} style={{background:LEVEL_TONE[i][0],color:LEVEL_TONE[i][1],border:0}}><b>{nf(lvl[k])}</b>{v}</button>)}</div>
     {lvl.none>0&&<div className="od-empty">{lvl.none} school(s) have no level set.</div>}</div>
    <div className="od-card"><h3>Subscription Plans <button onClick={()=>go("billing")}>Plans</button></h3>
     {plans.length?<>{plans.filter(p=>p.active).map((p,i)=>{const n=tenants.filter(x=>x.plan_code===p.code).length;const pct=tenants.length?Math.round(100*n/tenants.length):0;
-     return <div key={p.code} className="od-bar"><span><b>{p.name}</b><b>{pct}%</b></span><i><u style={{width:pct+"%",background:["#2563eb","#16a34a","#7c3aed","#f97316"][i%4]}}/></i><small>{n} school(s){p.monthly_fee_rwf==null?"":" - "+rwf(p.monthly_fee_rwf)+" a month"}</small></div>;})}
+     return <div key={p.code} className="od-bar od-go" role="button" tabIndex={0} onClick={()=>go("billing")} onKeyDown={e=>{if(e.key==="Enter")go("billing");}}><span><b>{p.name}</b><b>{pct}%</b></span><i><u style={{width:pct+"%",background:["#2563eb","#16a34a","#7c3aed","#f97316"][i%4]}}/></i><small>{n} school(s){p.monthly_fee_rwf==null?"":" - "+rwf(p.monthly_fee_rwf)+" a month"}</small></div>;})}
      {noPlan>0&&<div className="od-empty">{noPlan} school(s) have no plan set.</div>}</>
      :<div className="od-empty">Plans appear once the latest database update is applied.</div>}</div>
    <div className="od-card"><h3>Revenue Overview <button onClick={()=>go("billing")}>Open</button></h3>
@@ -150,7 +150,7 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
      <div className="od-empty">This month: {rwf(thisM)}</div>
      <div className="od-empty">Expected each month: {rwf(t.monthlyExpectedRwf)}. Past due: {nf(t.pastDue)}. Due today: {nf(t.dueToday)}.</div></>
      :<div className="od-empty">Restricted</div>}</div>
-   <div className="od-card"><h3>System Health <button onClick={()=>go("health")}>Details</button></h3><div className="od-health">
+   <div className="od-card"><h3>System Health <button onClick={()=>go("health")}>Details</button></h3><div className="od-health od-go" role="button" tabIndex={0} onClick={()=>go("health")} onKeyDown={e=>{if(e.key==="Enter")go("health");}}>
     <div>Platform status<span className="od-ok">Operational</span></div>
     <div>Database<span className={"od-ok"+(hl&&!hl.database.ok?" od-bad":"")}>{hl&&!hl.database.ok?"Problem":"Healthy"}</span></div>
     <div>File storage<span className={"od-ok"+(hl&&!hl.storage.ok?" od-bad":"")}>{hl&&!hl.storage.ok?"Problem":"Healthy"}</span></div>
@@ -159,15 +159,15 @@ export default function OwnerDashboard({data,canBilling,canCreate,go,onAddSchool
    </div></div>
   </div>
   {canBilling&&<div className="od-card"><h3>Payment Clock <button onClick={()=>go("billing")}>Subscriptions</button></h3>
-   {clock.length?<div className="od-act">{clock.slice(0,6).map(c=><div key={c.id}><span><b>{c.name}</b><br/><small>Monthly {rwf(c.amount)}, due {c.due}</small></span><PayBadge due={c.due}/></div>)}</div>
+   {clock.length?<div className="od-act">{clock.slice(0,6).map(c=><div key={c.id} className="od-go" role="button" tabIndex={0} onClick={()=>go("billing")} onKeyDown={e=>{if(e.key==="Enter")go("billing");}}><span><b>{c.name}</b><br/><small>Monthly {rwf(c.amount)}, due {c.due}</small></span><PayBadge due={c.due}/></div>)}</div>
     :<div className="od-empty">No school is past due or due within {DUE_SOON_DAYS} days.</div>}
    {clock.length>6&&<div className="od-empty">And {clock.length-6} more. Open Subscriptions to see all.</div>}</div>}
   <div className="od-row4">
    <div className="od-card"><h3>Recent Platform Activity <button onClick={()=>go("audit")}>View All</button></h3>
-    {audit.length?<div className="od-act">{audit.map(a=><div key={a.id}><span>{String(a.event).replace(/[._]/g," ")}</span><small>{ago(a.created_at)}</small></div>)}</div>:<div className="od-empty">No activity to show.</div>}</div>
+    {audit.length?<div className="od-act">{audit.map(a=><div key={a.id} className="od-go" role="button" tabIndex={0} onClick={()=>go("audit")} onKeyDown={e=>{if(e.key==="Enter")go("audit");}}><span>{String(a.event).replace(/[._]/g," ")}</span><small>{ago(a.created_at)}</small></div>)}</div>:<div className="od-empty">No activity to show.</div>}</div>
    <div className="od-card"><h3>Recently Added Schools <button onClick={()=>go("tenants")}>View All</button></h3>
     {recent.length?<table className="od-table"><thead><tr><th>School Name</th><th>Level</th><th>Location</th><th>Plan</th><th>Joined</th></tr></thead>
-     <tbody>{recent.map(r=><tr key={r.id}><td>{r.name}</td><td>{LEVEL_LABEL[r.education_level]||"Not set"}</td><td>{r.district?r.district+", ":""}{PROVINCE_LABEL[r.province]||"Not set"}</td><td>{(plans.find(p=>p.code===r.plan_code)||{}).name||"No plan"}</td><td>{day(r.created_at)}</td></tr>)}</tbody></table>
+     <tbody>{recent.map(r=><tr key={r.id} className="od-go" tabIndex={0} title={"Open "+r.name} onClick={()=>go("tenants",r.name)} onKeyDown={e=>{if(e.key==="Enter")go("tenants",r.name);}}><td>{r.name}</td><td>{LEVEL_LABEL[r.education_level]||"Not set"}</td><td>{r.district?r.district+", ":""}{PROVINCE_LABEL[r.province]||"Not set"}</td><td>{(plans.find(p=>p.code===r.plan_code)||{}).name||"No plan"}</td><td>{day(r.created_at)}</td></tr>)}</tbody></table>
      :<div className="od-empty">Registered schools will appear here.</div>}</div>
   </div>
  </div>;
