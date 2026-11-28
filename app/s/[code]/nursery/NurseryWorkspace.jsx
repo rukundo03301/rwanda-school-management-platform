@@ -90,26 +90,10 @@ export default function NurseryWorkspace({code}){
      <strong>{AREA_LABEL[o.learning_area]}</strong><small>{when(o.observed_on)} · {DESC_LABEL[o.descriptor]}{o.comment?" · "+o.comment:""}</small></div></li>)}</ul>
      :<p className="ds-empty">No observations yet for this child.</p>}
    </Card>
-   <Card title={"Progress report · Term "+term} icon="file" size="s4">
-    <label>Term<select value={term} onChange={e=>setTerm(Number(e.target.value))}>{[1,2,3].map(t=><option key={t} value={t}>Term {t}</option>)}</select></label>
-    {report&&<p><strong>{STATUS_LABEL[report.status]}</strong></p>}
-    <button className="button secondary" disabled={locked} onClick={suggest}>Suggest from observations</button>
-    {data.areas.map(a=><label key={a}>{AREA_LABEL[a]}<textarea rows={2} maxLength={600} disabled={locked} value={summaries[a]||""} onChange={e=>setSummaries({...summaries,[a]:e.target.value})}/></label>)}
-    <label>Teacher comment<textarea rows={3} maxLength={1500} disabled={locked} value={teacherComment} onChange={e=>setTeacherComment(e.target.value)}/></label>
-    <button className="button" disabled={busy||locked} onClick={()=>act({action:"report.save",classId,studentId,term,areaSummaries:summaries,teacherComment},()=>setNote("Draft saved and sent for approval."))}>{busy?"Saving…":"Save draft for approval"}</button>
+   <Card title="Term report" icon="file" size="s4">
+    <p>Write this child's term report in Term Reports. The early years template is used for nursery classes, and your observations here help you describe each learning area.</p>
+    <a className="button" href={"/s/"+code+"/term-reports"}>Open Term Reports</a>
    </Card>
   </div>}
-  {data.role.manager&&<Card title="Reports waiting for you" icon="check" size="s12">
-   {queue.length?<ul className="ds-list">{queue.map(r=><li key={r.id} className="ds-item"><div>
-    <strong>{nameOf(r.student_id)} · Term {r.term_number}</strong><small>{STATUS_LABEL[r.status]}</small>
-    {data.areas.filter(a=>r.area_summaries?.[a]).map(a=><small key={a} style={{display:"block",marginTop:4}}><b>{AREA_LABEL[a]}:</b> {r.area_summaries[a]}</small>)}
-    {r.teacher_comment&&<small style={{display:"block",marginTop:6}}><b>Teacher comment:</b> {r.teacher_comment}</small>}
-    {r.headteacher_comment&&<small style={{display:"block",marginTop:4}}><b>Headteacher comment:</b> {r.headteacher_comment}</small>}</div>
-    {r.status==="draft"&&<span><input style={{minWidth:220}} placeholder="Headteacher comment" maxLength={1500} value={headComment[r.id]||""} onChange={e=>setHeadComment({...headComment,[r.id]:e.target.value})}/>
-     <button className="button" disabled={busy} onClick={()=>act({action:"report.approve",reportId:r.id,headteacherComment:headComment[r.id]||""},()=>setNote("Report approved."))}>Approve</button></span>}
-    {r.status==="approved"&&data.role.owner&&<button className="button" disabled={busy} onClick={()=>act({action:"report.publish",reportId:r.id},()=>setNote("Report published to the child's parents."))}>Publish to parents</button>}
-    {r.status==="approved"&&!data.role.owner&&<small>Only the school owner can publish.</small>}
-   </li>)}</ul>:<p className="ds-empty">No reports are waiting.</p>}
-  </Card>}
  </>;
 }
