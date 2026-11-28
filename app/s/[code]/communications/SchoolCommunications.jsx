@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {browserSupabase} from "../../../../lib/client.js";
 
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -126,8 +127,8 @@ export default function SchoolCommunications({code}){
  const formSubjectIsValid=newPeriodTeacherAssignments.some(a=>a.subject_id===form.subjectId);
  const canSetAttendance=false; // Attendance belongs to the teacher classroom module.
  // Links from the bell and dashboards: ?tab=messages&thread=…&notification=… or ?tab=announcements&notice=…
- const deep=useRef(null),[focusNotice,setFocusNotice]=useState("");
- if(deep.current===null)deep.current=typeof window==="undefined"?{}:Object.fromEntries(new URLSearchParams(location.search));
+ const qs=useSearchParams().toString(),deep=useRef(null),seen=useRef(null),[focusNotice,setFocusNotice]=useState("");
+ if(seen.current!==qs){seen.current=qs;deep.current=Object.fromEntries(new URLSearchParams(qs));}
  const markThreadRead=useCallback(async(threadId,list)=>{
   const ids=(list||[]).filter(n=>n.thread_id===threadId&&!n.read_at).map(n=>n.id);
   if(!ids.length)return false;
@@ -148,7 +149,7 @@ export default function SchoolCommunications({code}){
    if(changed){await refresh();if(d.thread)setSelectedThread(d.thread);}
    if(d.notice)setTimeout(()=>document.getElementById("notice-"+d.notice)?.scrollIntoView({behavior:"smooth",block:"center"}),200);
   })();
- },[data]);
+ },[data,qs]);
  if(!ready||loading)return <main className="school-admin-loading">Loading your school day…</main>;
  if(!session)return <main className="school-admin-loading"><h2>School sign-in required</h2>
   <p>Sign in using the account authorized by your school.</p>
