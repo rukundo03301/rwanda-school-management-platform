@@ -13,7 +13,7 @@ export default function TermReportView({report,student,className,schoolName,year
    <p style={{margin:0}}><strong>{student}</strong>{className?" · "+className:""}{yearName?" · "+yearName:""}{report.term_number?" · Term "+report.term_number:""}</p>
   </header>}
   {t==="nursery"&&<table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={cell}>Learning area</th><th style={cell}>Progress</th><th style={cell}>What we see</th></tr></thead>
-   <tbody>{NURSERY_AREAS.map(([k,l])=><tr key={k}><td style={cell}>{l}</td><td style={cell}>{typeof c.areas?.[k]==="string"?"Described below":label(NURSERY_DESCRIPTORS,c.areas?.[k]?.descriptor)}</td><td style={cell}>{typeof c.areas?.[k]==="string"?c.areas[k]:c.areas?.[k]?.summary||""}</td></tr>)}</tbody></table>}
+   <tbody>{NURSERY_AREAS.map(([k,l])=><tr key={k}><td style={cell}>{l}</td><td style={cell}>{typeof c.areas?.[k]==="string"?"Not rated":label(NURSERY_DESCRIPTORS,c.areas?.[k]?.descriptor)}</td><td style={cell}>{typeof c.areas?.[k]==="string"?c.areas[k]:c.areas?.[k]?.summary||""}</td></tr>)}</tbody></table>}
   {(t==="primary"||t==="secondary")&&<>
    <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={cell}>Subject</th><th style={cell}>Continuous %</th><th style={cell}>Exam %</th><th style={cell}>Total %</th><th style={cell}>Grade</th><th style={cell}>Comment</th></tr></thead>
     <tbody>{(c.subjects||[]).map((s,i)=><tr key={i}><td style={cell}>{s.name}</td><td style={cell}>{s.continuous??""}</td><td style={cell}>{s.exam??""}</td><td style={cell}>{s.total??""}</td><td style={cell}>{s.grade}</td><td style={cell}>{s.comment}</td></tr>)}</tbody></table>
