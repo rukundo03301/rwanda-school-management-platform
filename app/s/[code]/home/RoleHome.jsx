@@ -1,7 +1,7 @@
 "use client";
 import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
-import {initialTab} from "../../../../lib/portal-nav.mjs";
+import {initialTab,ownerNav} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
 import {Item,DashboardShell,Stat,Ring,Bar,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 
@@ -60,11 +60,20 @@ export default function RoleHome({code}){
  const attPct=ov?.attendance?.total?pct((ov.attendance.present||0)+(ov.attendance.late||0),ov.attendance.total):null;
  const pupils=new Map((d.fees?.pupils||[]).map(p=>[p.id,p.name]));
  const overdue=(d.fees?.invoices||[]).filter(i=>i.balances?.overdue).slice(0,6);
+ // Students past due: one row per student, total overdue balance and how late the oldest bill is.
+ const lateMap=new Map();
+ for(const i of (d.fees?.invoices||[]).filter(i=>i.balances?.overdue&&Number(i.balances.balance_rwf)>0)){
+  const r=lateMap.get(i.student_id)||{id:i.student_id,total:0,bills:0,oldest:i.due_on};
+  r.total+=Number(i.balances.balance_rwf);r.bills++;if(i.due_on<r.oldest)r.oldest=i.due_on;lateMap.set(i.student_id,r);
+ }
+ const lateStudents=[...lateMap.values()].sort((a,b)=>b.total-a.total);
+ const daysLate=dt=>Math.max(0,Math.floor((Date.now()-new Date(dt+"T00:00:00").getTime())/86400000));
  const pendingClaims=(d.fees?.payments||[]).filter(p=>p.status==="pending");
  const recentPaid=(d.fees?.payments||[]).filter(p=>p.status==="posted").slice(0,5);
  const link=(p,t)=><a href={"/s/"+code+"/"+p}>{t} →</a>;
  const goto=(s)=>()=>setSection(s);
- const nav=[
+ // Owner and principal: the shared grouped menu; dashboard sections switch in place.
+ const nav=manager?ownerNav("/s/"+code+"/","home",l=>(d.access.levels||[]).includes(l)).map(n=>{const m=/\/home\?tab=(\w+)$/.exec(n.href);return m?{...n,href:undefined,active:cur===m[1],onClick:goto(m[1])}:n;}):[
   ...(manager?[{label:"Dashboard",icon:"home",active:cur==="overview",onClick:goto("overview")}]:[{label:bursar?"Dashboard":"Dashboard",icon:"home",active:cur===sections[0],onClick:goto(sections[0])}]),
   ...(manager||bursar?[{label:"Fees & Finance",icon:"wallet",active:cur==="finance",onClick:goto("finance")}]:[]),
   {label:"Inventory & Assets",icon:"box",active:cur==="inventory",onClick:goto("inventory")},
@@ -74,7 +83,7 @@ export default function RoleHome({code}){
    {label:"Courses",icon:"book",href:"/s/"+code+"/courses"},
    {label:"Reports & Curriculum",icon:"chart",href:"/s/"+code+"/reports"},
    {label:"Term Reports",icon:"file",href:"/s/"+code+"/term-reports"},
-   ...((d.access.levels||[]).includes("nursery")?[{label:"Early Years Observations",icon:"users",href:"/s/"+code+"/nursery"}]:[])]:[]),
+   ...((d.access.levels||[]).includes("nursery")?[{label:"Nursery Progress Notes",icon:"users",href:"/s/"+code+"/nursery"}]:[])]:[]),
   {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
   {label:"Messages & Notices",icon:"chat",href:"/s/"+code+"/communications"},
   {label:"School Operations",icon:"wrench",href:"/s/"+code+"/operations"},
@@ -173,15 +182,16 @@ export default function RoleHome({code}){
     {pendingClaims.length?<ul className="ds-list">{pendingClaims.slice(0,5).map(p=><Item key={p.id} href={"/s/"+code+"/fees"}><span className="ds-ico orange"><Icon name="wallet"/></span>
      <div><strong>{rwf(p.amount_rwf)}</strong><small>{p.method} · {when(p.proposed_at)}</small></div></Item>)}</ul>
      :<NoData t={fs.pending_claims?fs.pending_claims+" claim(s) are waiting for review.":"No payments are waiting for approval."}/>}</Card>
-   <Card title="Overdue Invoices" icon="alert" size="s4" link={link("fees","All invoices")}>
-    {overdue.length?<ul className="ds-list">{overdue.map(i=><Item key={i.id} href={"/s/"+code+"/fees"}><span className="ds-ico red"><Icon name="alert"/></span>
-     <div><strong>{pupils.get(i.student_id)||"Pupil"}</strong><small>{rwf(i.balances.balance_rwf)} due {when(i.due_on)}</small></div></Item>)}</ul>
-     :<NoData t="No overdue invoices."/>}</Card>
+   <Card title={"Students Past Due ("+lateStudents.length+")"} icon="alert" size="s4" link={link("fees","All invoices")}>
+    {lateStudents.length?<ul className="ds-list">{lateStudents.slice(0,8).map(r=><Item key={r.id} href={"/s/"+code+"/fees"}><span className="ds-ico red"><Icon name="alert"/></span>
+     <div><strong>{pupils.get(r.id)||"Pupil"}</strong><small>{rwf(r.total)} overdue · {r.bills} bill{r.bills===1?"":"s"} · {daysLate(r.oldest)} days late</small></div></Item>)}</ul>
+     :<NoData t="No student is past due."/>}</Card>
    <Card title="Recent Payments" icon="check" size="s6">
     {recentPaid.length?<ul className="ds-list">{recentPaid.map(p=><Item key={p.id} href={"/s/"+code+"/fees"}><span className="ds-ico green"><Icon name="check"/></span>
      <div><strong>{rwf(p.amount_rwf)}</strong><small>{p.method} · paid {when(p.paid_on)}</small></div></Item>)}</ul>:<NoData t="No payments have been posted yet."/>}</Card>
    <Card title="Finance Tools" icon="bolt" size="s6"><div className="ds-actions">
-    <a className="ds-action blue" href={"/s/"+code+"/fees"}>Open School Fees</a>
+    <a className="ds-action purple" href={"/s/"+code+"/settings?section=fees"}>Set or change school fees</a>
+    <a className="ds-action blue" href={"/s/"+code+"/fees"}>Bill students</a>
     <a className="ds-action green" href={"/s/"+code+"/fees"}>Record a payment</a></div>
     <p className="ds-empty">Mobile money collections are not connected yet; payments are recorded and approved by the school.</p></Card>
    </>}
@@ -220,7 +230,7 @@ export default function RoleHome({code}){
     <Stat icon="cap" tone="green" value={ov?ov.people.students:"—"} label="Students enrolled" href={"/s/"+code+"/admissions"}/>
     <Stat icon="wallet" tone="orange" value={fs?(collectedPct===null?"—":collectedPct+"%"):"—"} label="Fees collected" href={"/s/"+code+"/fees"}/>
    </div>
-   <Card title="Board Members" icon="users" size="s6" link={link("operations","Manage board")}>
+   <Card title="Board Members" icon="users" size="s6" link={link("settings?section=board","Add or change members")}>
     {(ops?.boardMembers||[]).length?<ul className="ds-list">{ops.boardMembers.map((m,i)=><Item key={m.id} href={"/s/"+code+"/operations?tab=board"}><span className={"ds-ico "+tones[i%tones.length]}><Icon name="user"/></span>
      <div><strong>{m.full_name}</strong><small>{m.position}{m.term_end?" · term ends "+when(m.term_end):""}</small></div></Item>)}</ul>
      :<NoData t="No board members have been recorded yet."/>}</Card>
