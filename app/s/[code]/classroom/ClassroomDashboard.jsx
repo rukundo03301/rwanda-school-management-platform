@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState} from "react";
 import {browserSupabase} from "../../../../lib/client.js";
 import {initialTab} from "../../../../lib/portal-nav.mjs";
 import useTabParam from "../../../ui/useTabParam.js";
-import {DashboardShell,Stat,Ring,Card,Icon,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
+import {DashboardShell,Stat,Ring,Card,Icon,Item,greeting,todayLabel} from "../../../ui/DashboardShell.jsx";
 import HomeworkComposer from "./HomeworkComposer.jsx";
 import MaterialFiles from "./MaterialFiles.jsx";
 import CurriculumLibrary from "./CurriculumLibrary.jsx";
@@ -86,6 +86,10 @@ export default function ClassroomDashboard({code}){
   }catch(e){setError(e.message);}
   finally{setBusy(false);}
  }
+ // A notification link (?submission=) opens that submission's class and highlights it.
+ const [focusSub,setFocusSub]=useState(()=>typeof window==="undefined"?"":new URLSearchParams(location.search).get("submission")||"");
+ useEffect(()=>{if(!focusSub||!data)return;const s=(data.submissions||[]).find(x=>x.id===focusSub);const h=s&&(data.homework||[]).find(x=>x.id===s.homework_id);
+  if(h){setSelectedClass(h.class_id);setTab("submissions");setTimeout(()=>document.getElementById("sub-"+focusSub)?.scrollIntoView({behavior:"smooth",block:"center"}),150);}},[focusSub,data]);
  if(!ready||loading)return <main className="school-admin-loading">Opening your school's classrooms…</main>;
  if(!session)return <main className="school-admin-loading"><h2>School login required</h2><a className="button" href={"/s/"+code+"/login?role=teacher"}>Sign in</a></main>;
  if(error&&!data)return <main className="school-admin-loading"><h2>Classroom access unavailable</h2><p role="alert">{error}</p><a href={"/s/"+code+"/portal?role=teacher"}>School Portal</a></main>;
@@ -133,10 +137,11 @@ export default function ClassroomDashboard({code}){
   ...((data?.classes||[]).some(c=>c.level_band==="nursery")?[{label:"Early Years Observations",icon:"users",href:"/s/"+code+"/nursery"}]:[]),
   {label:"Timetable & Messages",icon:"calendar",href:"/s/"+code+"/communications"},
   {label:"Assessment Gradebook",icon:"chart",href:"/s/"+code+"/reports"},
+  {label:"Smart Learning Studio",icon:"book",href:"/s/"+code+"/studio"},
   {label:"Learning Library",icon:"folder",href:"/s/"+code+"/resources"},
   ...(actor.manager?[{label:"Administration",icon:"gear",href:"/s/"+code+"/admin"}]:[])];
  const signOut=async()=>{await client.auth.signOut();window.location.assign("/s/"+code+"/login?role="+(actor.teacher?"teacher":"school_owner"));};
- return <DashboardShell school={{name:school.name,logoUrl:school.logo,place:actor.teacher?"Teacher workspace":"Academic workspace"}}
+ return <DashboardShell code={code} school={{name:school.name,logoUrl:school.logo,place:actor.teacher?"Teacher workspace":"Academic workspace"}}
   title={TITLES[tab]} user={{name:session.user.email||"School member",role:actor.teacher?"Teacher":actor.owner?"School Owner":"School Staff"}}
   nav={navItems} notifications={actor.teacher?toGrade.length:0} onBell={()=>selectSection("submissions")}
   helpText="Contact the school administration." onSignOut={signOut} portalHref={"/s/"+code+"/portal?role="+(actor.teacher?"teacher":"school_owner")}>
@@ -154,23 +159,23 @@ export default function ClassroomDashboard({code}){
      <div className="ds-grid">
       <div className="ds-span8" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:14,alignContent:"start"}}>
        <div className="ds-stats" style={{margin:0}}>
-        <Stat icon="users" tone="blue" value={teacherClasses.length} label="My Classes"/>
-        <Stat icon="cap" tone="purple" value={uniqueStudentCount} label="My Students"/>
-        <Stat icon="check" tone="orange" value={activeHomework.length} label="Published Homework"/>
-        <Stat icon="file" tone="green" value={toGrade.length} label="To Grade"/>
+        <Stat icon="users" tone="blue" value={teacherClasses.length} label="My Classes" onClick={()=>document.getElementById("my-classes")?.scrollIntoView({behavior:"smooth",block:"start"})}/>
+        <Stat icon="cap" tone="purple" value={uniqueStudentCount} label="My Students" onClick={()=>selectSection("attendance")}/>
+        <Stat icon="check" tone="orange" value={activeHomework.length} label="Published Homework" onClick={()=>selectSection("homework")}/>
+        <Stat icon="file" tone="green" value={toGrade.length} label="To Grade" onClick={()=>selectSection("submissions")}/>
        </div>
        <div className="ds-grid" style={{margin:0}}>
         <Card title="Today's Classes" icon="calendar" size="s6" link={<a href={"/s/"+code+"/communications"}>Timetable →</a>}>
-         {myPeriods.length?<ul className="ds-list">{myPeriods.map(x=><li key={x.id} className="ds-item"><span className="ds-ico blue"><Icon name="clock"/></span>
-          <div><strong>{subjectLabel(x.subject_id)} · {classLabel(x.class_id)}</strong><small>{hhmm(x.starts_at)} to {hhmm(x.ends_at)}{x.room?" · Room "+x.room:""}</small></div></li>)}</ul>
+         {myPeriods.length?<ul className="ds-list">{myPeriods.map(x=><Item key={x.id} href={"/s/"+code+"/communications?tab=timetable"}><span className="ds-ico blue"><Icon name="clock"/></span>
+          <div><strong>{subjectLabel(x.subject_id)} · {classLabel(x.class_id)}</strong><small>{hhmm(x.starts_at)} to {hhmm(x.ends_at)}{x.room?" · Room "+x.room:""}</small></div></Item>)}</ul>
           :<p className="ds-empty">{(com?.timetable||[]).length?"No lessons are scheduled for you today.":"No timetable has been published for your classes yet."}</p>}
         </Card>
         <Card title="Attendance Today" icon="clock" size="s6" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Mark attendance →</button>}>
-         <div className="ds-split"><Ring value={todayAttendance.length?Math.round(100*presentToday/Math.max(roster.length,todayAttendance.length)):null} label={todayAttendance.length?"Present":"Not recorded"}/>
-          <div className="ds-legend">{teacherClasses.map(cls=><div key={cls.id}>{classLabel(cls.id)}<b>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</b></div>)}</div></div>
+         <div className="ds-split"><button type="button" className="ds-go" style={{width:"auto",background:"transparent",borderRadius:"50%",padding:0}} aria-label="Open attendance" onClick={()=>selectSection("attendance")}><Ring value={todayAttendance.length?Math.round(100*presentToday/Math.max(roster.length,todayAttendance.length)):null} label={todayAttendance.length?"Present":"Not recorded"}/></button>
+          <div className="ds-legend">{teacherClasses.map(cls=><div key={cls.id} role="button" tabIndex={0} className="ds-go" style={{background:"transparent",padding:"2px 4px",borderRadius:6}} onClick={()=>{setSelectedClass(cls.id);selectSection("attendance");}} onKeyDown={e=>{if(e.key==="Enter"){setSelectedClass(cls.id);selectSection("attendance");}}}>{classLabel(cls.id)}<b>{attendance.filter(a=>a.attendance_on===currentDay&&a.class_id===cls.id&&a.status==="present").length} / {new Set(roster.filter(r=>r.classId===cls.id).map(r=>r.studentId)).size}</b></div>)}</div></div>
         </Card>
        </div>
-       <Card title="My Classes" icon="users" size="s12" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Open →</button>}>
+       <div id="my-classes" style={{scrollMarginTop:80}}/><Card title="My Classes" icon="users" size="s12" link={<button className="ds-link" onClick={()=>selectSection("attendance")}>Open →</button>}>
         {teacherClasses.length?<table className="ds-table"><thead><tr><th>Class</th><th>Subjects</th><th>Students</th><th></th></tr></thead><tbody>
          {teacherClasses.map(cls=><tr key={cls.id}><td><strong>{classLabel(cls.id)}</strong></td>
           <td>{[...new Set(myAssignments.filter(a=>a.class_id===cls.id).map(a=>subjectLabel(a.subject_id)))].join(", ")||"—"}</td>
@@ -180,14 +185,14 @@ export default function ClassroomDashboard({code}){
        </Card>
        <div className="ds-grid" style={{margin:0}}>
         <Card title="Homework Overview" icon="check" size="s6" link={<button className="ds-link" onClick={()=>selectSection("homework")}>View all →</button>}>
-         {recentAssignments.length?<ul className="ds-list">{recentAssignments.map(h=><li key={h.id} className="ds-item" style={{cursor:"pointer"}} onClick={()=>{setSelectedClass(h.class_id);selectSection("submissions")}}>
+         {recentAssignments.length?<ul className="ds-list">{recentAssignments.map(h=><Item key={h.id} onClick={()=>{setSelectedClass(h.class_id);selectSection("submissions")}}>
           <span className="ds-ico purple"><Icon name="check"/></span><div><strong>{h.title}</strong><small>{classLabel(h.class_id)} · Due {new Date(h.due_at).toLocaleDateString("en-GB",{timeZone:"Africa/Kigali"})}</small></div>
-          <span className="ds-pill info">{submissions.filter(x=>x.homework_id===h.id).length} submitted</span></li>)}</ul>
+          <span className="ds-pill info">{submissions.filter(x=>x.homework_id===h.id).length} submitted</span></Item>)}</ul>
           :<p className="ds-empty">Create and publish homework for your assigned classes.</p>}
         </Card>
         <Card title="Needs Grading" icon="file" size="s6" link={<button className="ds-link" onClick={()=>selectSection("submissions")}>Open →</button>}>
-         {toGrade.length?<ul className="ds-list">{toGrade.slice(0,4).map(x=><li key={x.id} className="ds-item">
-          <span className="ds-ico orange"><Icon name="file"/></span><div><strong>{roster.find(r=>r.studentId===x.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===x.homework_id)?.title||"Homework"}</small></div></li>)}</ul>
+         {toGrade.length?<ul className="ds-list">{toGrade.slice(0,4).map(x=><Item key={x.id} onClick={()=>setFocusSub(x.id+"")}>
+          <span className="ds-ico orange"><Icon name="file"/></span><div><strong>{roster.find(r=>r.studentId===x.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===x.homework_id)?.title||"Homework"}</small></div></Item>)}</ul>
           :<p className="ds-empty">Nothing is waiting for a grade.</p>}
         </Card>
        </div>
@@ -202,13 +207,13 @@ export default function ClassroomDashboard({code}){
         </div>
        </Card>
        <Card title="Today's Lesson Plans" icon="book">
-        {teacherTodayLessons.length?<ul className="ds-list">{teacherTodayLessons.map(l=><li key={l.id} className="ds-item"><span className="ds-ico green"><Icon name="book"/></span>
-         <div><strong>{l.title}</strong><small>{classLabel(l.class_id)} · {subjectLabel(l.subject_id)}</small></div></li>)}</ul>
+        {teacherTodayLessons.length?<ul className="ds-list">{teacherTodayLessons.map(l=><Item key={l.id} onClick={()=>{setSelectedClass(l.class_id);selectSection("lessons");}}><span className="ds-ico green"><Icon name="book"/></span>
+         <div><strong>{l.title}</strong><small>{classLabel(l.class_id)} · {subjectLabel(l.subject_id)}</small></div></Item>)}</ul>
          :<p className="ds-empty">No lesson plans dated today.</p>}
        </Card>
        <Card title="Recent Submissions" icon="file" link={<button className="ds-link" onClick={()=>selectSection("submissions")}>Review →</button>}>
-        {assignedSubmissions.length?<ul className="ds-list">{[...assignedSubmissions].sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at)).slice(0,5).map(x=><li key={x.id} className="ds-item">
-         <span className="ds-ico blue"><Icon name="user"/></span><div><strong>{roster.find(r=>r.studentId===x.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===x.homework_id)?.title||"Homework"} · {x.submitted_at?.slice(0,10)}</small></div></li>)}</ul>
+        {assignedSubmissions.length?<ul className="ds-list">{[...assignedSubmissions].sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at)).slice(0,5).map(x=><Item key={x.id} onClick={()=>setFocusSub(x.id+"")}>
+         <span className="ds-ico blue"><Icon name="user"/></span><div><strong>{roster.find(r=>r.studentId===x.student_id)?.name||"Assigned student"}</strong><small>{homework.find(h=>h.id===x.homework_id)?.title||"Homework"} · {x.submitted_at?.slice(0,10)}</small></div></Item>)}</ul>
          :<p className="ds-empty">No student submissions yet.</p>}
        </Card>
       </div>
@@ -277,7 +282,7 @@ export default function ClassroomDashboard({code}){
          {!rows.length&&<Blank title="No enrolled students for this class" description="Enroll real students in Admissions before taking attendance."/>}</div></section>}
      {tab==="submissions"&&<section className="cr-panel"><h2>Student homework submissions</h2>
        <div className="table-wrap"><table><thead><tr><th>Homework</th><th>Student</th><th>Response</th><th>Submitted</th><th>Grade &amp; feedback</th></tr></thead>
-       <tbody>{submissions.filter(x=>homework.some(h=>h.id===x.homework_id&&h.class_id===selectedClass)).map(s=><tr key={s.id}>
+       <tbody>{submissions.filter(x=>homework.some(h=>h.id===x.homework_id&&h.class_id===selectedClass)).map(s=><tr key={s.id} id={"sub-"+s.id} style={s.id===focusSub?{background:"#fff6dc"}:undefined}>
         <td>{homework.find(h=>h.id===s.homework_id)?.title||"Assignment"}</td>
         <td>{roster.find(x=>x.studentId===s.student_id)?.name||"Current student"}</td>
         <td><p className="cr-response">{s.response_text}</p></td><td>{s.submitted_at?.slice(0,16)} {s.is_late?"(Late)":""}</td>
