@@ -55,8 +55,9 @@ export default function TermReports({code}){
    if(!classId&&d.classes[0])setClassId(d.classes[0].id);}catch(e){setError(e.message);}
  },[call,classId,term]);
  useEffect(()=>{load();},[load]);
+ useEffect(()=>{if(open)setTimeout(()=>document.getElementById("tr-form")?.scrollIntoView({behavior:"smooth",block:"start"}),50);},[open]);
  const act=async(body,done)=>{setBusy(true);setNote("");try{await call(body);setNote(done);await load();return true;}catch(e){setNote(e.message);return false;}finally{setBusy(false);}};
- if(error)return <main className="rem-resources"><section className="rem-resource-card" role="alert">{error}</section></main>;
+ if(error)return <main className="rem-resources"><section className="rem-resource-card" role="alert">{error}<p><button type="button" className="button" onClick={()=>{setError("");load();}}>Try again</button></p></section></main>;
  if(!data)return <main className="rem-resources"><p>Opening term reports…</p></main>;
  const cv=data.classView,level=cv?.level;
  const openStudent=s=>{setOpen(s.id);setNote("");const r=s.report;setComment(r?.teacher_comment||"");
@@ -68,7 +69,7 @@ export default function TermReports({code}){
  return <main className="rem-resources">
   <header><h1>Term Reports</h1><p>Teachers draft reports for their classes. The report template follows each class's education level. The people the school owner chooses review, approve and publish them to families.</p></header>
   <div className="rem-resource-toolbar">{tabs.map(([k,l])=><button key={k} type="button" className={"button"+(tab===k?"":" secondary")} onClick={()=>{setTab(k);setNote("");}}>{l}</button>)}</div>
-  {note&&<p className="rem-resource-banner" role="status">{note}</p>}
+  {note&&<p className="rem-resource-banner" role="status" style={{position:"sticky",top:72,zIndex:5,boxShadow:"0 4px 14px rgba(20,40,80,.15)"}}>{note}</p>}
 
   {tab==="write"&&<section>
    <div className="rem-resource-toolbar">
@@ -81,7 +82,7 @@ export default function TermReports({code}){
      <td>{s.name}</td><td>{s.report?STATUS[s.report.status]:"Not started"}</td>
      <td><button type="button" className="button small" onClick={()=>openStudent(s)}>{editable(s.report)?(s.report?"Continue":"Write report"):"View"}</button></td></tr>)}</tbody></table></div>
     {open&&content&&(()=>{const s=cv.students.find(x=>x.id===open);const r=s.report;
-     return <section className="rem-resource-card" style={{marginTop:16}}>
+     return <section id="tr-form" className="rem-resource-card" style={{marginTop:16,scrollMarginTop:80}}>
       <h2>{s.name} · Term {term}</h2>
       {r?.status==="returned"&&<p className="rem-resource-banner">Returned to you: {r.return_reason}</p>}
       {editable(r)?<>
