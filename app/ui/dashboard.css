@@ -177,3 +177,14 @@ li>.ds-item.ds-go{display:flex}
 .ox-pl-row.pro{background:#dbeafe}.ox-pl-row.pro b{color:#1d4ed8}
 .ox-pl-row.loss{background:#fee2e2}.ox-pl-row.loss b{color:#b91c1c}
 .ox-pend{display:flex;gap:6px;align-items:center;color:#92400e;background:#fef3c7;padding:8px 10px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none}
+
+.ds-acc{gap:4px}
+.ds-grp{border-radius:12px}
+.ds-grp.open{background:#f6f8fd}
+.ds-grphead{width:100%;font-weight:700}
+.ds-grphead.has{color:var(--ds-blue)}
+.ds-chev{margin-left:auto;display:inline-grid;transition:transform .15s;color:var(--ds-muted)}
+.ds-grp.open .ds-chev{transform:rotate(180deg)}
+.ds-grpbody{display:flex;flex-direction:column;gap:2px;padding:0 6px 8px 22px}
+.ds-nav .ds-sub{padding:7px 10px !important;font-size:14px;gap:9px !important}
+.ds-navico.sm[class*=" t-"]{width:24px;height:24px;border-radius:7px}

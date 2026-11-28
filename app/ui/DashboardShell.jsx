@@ -113,6 +113,39 @@ export function Bar({label,value,color="#1fa64a",href}){
 export function Card({title,icon,link,size="",children}){
  return <section className={"ds-card "+size}><h3>{icon&&<Icon name={icon}/>}{title}{link}</h3>{children}</section>;
 }
+// Grouped menus show only the group names; opening a group shows its pages, one group at a time,
+// so the sidebar stays short. The group holding the current page opens by itself.
+function SideNav({nav,onPick}){
+ const [here,setHere]=useState("");
+ useEffect(()=>{const f=()=>setHere(window.location.pathname+window.location.search);f();window.addEventListener("popstate",f);return()=>window.removeEventListener("popstate",f);},[]);
+ const strip=h=>String(h||"").split("?")[0];
+ const flagged=nav.findIndex(n=>n.active);
+ const exact=nav.findIndex(n=>n.href&&n.href===here);
+ const loose=nav.findIndex(n=>n.href&&!n.href.includes("?")&&strip(n.href)===strip(here));
+ const activeIdx=flagged>=0?flagged:exact>=0?exact:loose;
+ const grouped=nav.some(n=>n.group);
+ const [openGroup,setOpenGroup]=useState(null);
+ const activeGroup=activeIdx>=0?nav[activeIdx].group:null;
+ useEffect(()=>{if(activeGroup)setOpenGroup(activeGroup);},[activeGroup]);
+ const link=(n,i,sub)=>{
+  const on=i===activeIdx;
+  const body=<><span className={"ds-navico"+(n.tone?" t-"+n.tone:"")+(sub?" sm":"")}><Icon name={n.icon} size={sub?16:20}/></span><span className="ds-navtext">{n.label}{!grouped&&n.hint&&<small>{n.hint}</small>}</span>{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</>;
+  const cls=(on?"on":"")+(sub?" ds-sub":"");
+  return n.href
+   ?<Link key={n.label} href={n.href} prefetch title={n.hint||undefined} className={cls} onClick={()=>{setHere(n.href);onPick();}}>{body}</Link>
+   :<button key={n.label} title={n.hint||undefined} className={cls} onClick={()=>{n.onClick?.();onPick();}}>{body}</button>;
+ };
+ if(!grouped)return <nav className="ds-nav" aria-label="Sections">{nav.map((n,i)=>link(n,i,false))}</nav>;
+ const groups=[];for(const [i,n] of nav.entries()){let g=groups.find(x=>x.name===n.group);if(!g)groups.push(g={name:n.group,icon:n.groupIcon||n.icon,tone:n.tone,items:[]});g.items.push([n,i]);}
+ return <nav className="ds-nav ds-acc" aria-label="Sections">{groups.map(g=>{
+  if(g.items.length===1)return link(g.items[0][0],g.items[0][1],false);
+  const open=openGroup===g.name,has=g.items.some(([,i])=>i===activeIdx);
+  return <div key={g.name} className={"ds-grp"+(open?" open":"")}>
+   <button type="button" className={"ds-grphead"+(has?" has":"")} aria-expanded={open} onClick={()=>setOpenGroup(open?null:g.name)}>
+    <span className={"ds-navico"+(g.tone?" t-"+g.tone:"")}><Icon name={g.icon}/></span><span className="ds-navtext">{g.name}</span><span className="ds-chev"><Icon name="down" size={16}/></span></button>
+   {open&&<div className="ds-grpbody">{g.items.map(([n,i])=>link(n,i,true))}</div>}
+  </div>;})}</nav>;
+}
 export function DashboardShell({school,code,title,subtitle,nav,user,notifications=0,onBell,onSearch,searchPlaceholder="Search…",helpTitle="Need Help?",helpText,onSignOut,portalHref,children}){
  const [open,setOpen]=useState(false);
  const [menu,setMenu]=useState(false);
@@ -137,15 +170,7 @@ export function DashboardShell({school,code,title,subtitle,nav,user,notification
    </div>
   </div>
   <aside className="ds-side">
-   <nav className="ds-nav" aria-label="Sections">{nav.map((n,i)=>{
-     // Optional group headings and a one-line description under each item.
-     const head=n.group&&n.group!==nav[i-1]?.group?<div key={"g"+n.group} className="ds-navgroup">{n.group}</div>:null;
-     const body=<><span className={"ds-navico"+(n.tone?" t-"+n.tone:"")}><Icon name={n.icon}/></span><span className="ds-navtext">{n.label}{n.hint&&<small>{n.hint}</small>}</span>{n.badge>0&&<span className="ds-badge">{n.badge}</span>}</>;
-     const el=n.href
-      ?<Link key={n.label} href={n.href} prefetch title={n.hint||undefined} className={n.active?"on":""}>{body}</Link>
-      :<button key={n.label} title={n.hint||undefined} className={n.active?"on":""} onClick={()=>{n.onClick?.();setOpen(false);}}>{body}</button>;
-     return head?[head,el]:el;})}
-   </nav>
+   <SideNav nav={nav} onPick={()=>setOpen(false)}/>
    {helpText&&<div className="ds-help"><Icon name="help" size={30}/><div><strong>{helpTitle}</strong>{helpText}</div></div>}
   </aside>
   <main className="ds-main">{children}</main>
